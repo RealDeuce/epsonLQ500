@@ -63,9 +63,18 @@ the workspace loss.
     paper advance/retard, carriage movement, and pin firing. Cut-sheet feeder
     and other option mechanisms are lower priority unless they share these
     output paths.
-    - carriage anchor: `0908h` pulses `PC bit 7`; `093Eh` selects a direction
-      phase update; `0953h`/`095Fh` rotate `VV16`; `096Ah` maps `VV16 & 18h`
-      directly to `PB & 18h`.
+    - paper-feed hardware anchor from service manual Figure 2-47: the paper
+      feed motor is a 4-phase, 48-step motor using 2-2 phase excitation. One
+      phase switch advances paper `1/180` inch. `PB2` is active-low drive:
+      low turns Q27 on and supplies `+24 V`; when not driven, `+5 V` is
+      supplied through `R36`/`D11` for hold. `PB3` is phase A/B and `PB4` is
+      phase C/D.
+    - firmware match for Figure 2-47: `540Dh` has a `VV62=0` branch at
+      `5498h`/`549Ch` that sets/clears `PB04h`, matching `PB2` if bit
+      numbering is zero-based. `0908h`/`093Eh`/`0953h`/`095Fh`/`096Ah` rotate
+      `VV16` and map `VV16 & 18h` directly to `PB18h`, matching `PB3`/`PB4`.
+      The old "carriage PB18" label should be treated as stale; re-find
+      carriage after paper feed is settled.
     - pin-firing/head anchor: `08D0h` writes `F004=0C0h`, presets alternate
       `BC=F005h`, and arms timer state; vector `0978h` writes three bytes
       through that `F005h` pointer. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`
@@ -75,16 +84,17 @@ the workspace loss.
       signed vertical-advance setup at `256Eh`. Nonzero pending distance can
       reach `2864h`, which stores the magnitude in `EF40h` and calls the timed
       output scheduler at `5676h`; that path reaches `558Dh`/`55B1h` and
-      `540Dh`. Separately, startup calls `51F7h-5253h`, which branches on and
+      `540Dh`. Correlate this with `PB04h` low drive windows and `PB18h` phase
+      switches. Separately, startup calls `51F7h-5253h`, which branches on and
       samples `PA bit 20h`, walks timing tables around `7287h`/`72AFh`, and
       selects four PA/PB output states at `546Ah`, `5474h`, `547Eh`, and
-      `5488h`. Keep this named as a candidate until the command feed path is
-      connected to board signals.
+      `5488h`. Keep that `PB20h`/`PA02h`/`PB40h` table separate until tied to
+      a schematic signal.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
-      model. The key unresolved question is the minimum movement: `ESC J n` is
-      documented as `n/180` inch, but the physical step or microstep count
-      should be derived from how `EE7Ah`/`EE86h`/`EF40h` and `EF64h` advance
-      through the `FE1` timed output path.
+      model. The key unresolved firmware question is now the counter mapping:
+      the service manual says each phase switch is `1/180` inch, so count how
+      `EE7Ah`/`EE86h`/`EF40h` and `EF64h` advance through the `FE1` timed
+      output path into `PB18h` phase changes.
 - `4C` resident CG/font ROM candidate has been dumped successfully:
   - chip markings: `EPSON (C) 1997 / JAPAN 871 / M10A10LA EDH`
   - board marking under chip: `IM/256 Kbit MASK` and `?256PROM`

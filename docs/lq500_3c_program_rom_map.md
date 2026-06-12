@@ -79,9 +79,9 @@ firmware uses external windows and buffers outside this ROM:
 | `0582h` | `isr_gate_f000_input_capture_buffer` | Interrupt path reads `F000h` through the gate-array window and stores the byte into the shared `EE20h` input buffer. Candidate parallel-port data path. |
 | `05E2h` | `isr_rxb_host_receive_buffer` | Reads `RXB`, checks `ER`, stores received byte into the `EE20h` buffer with temporary `F002` bank changes. |
 | `08D0h` | `arm_head_f005_burst_output` | Writes `F004=0C0h`, presets alternate-register `BC=F005h`, loads head-data/timing pointers, and arms the timer path. Strong candidate head-fire setup. |
-| `0908h` | `carriage_step_timing_pulse` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters; called by the print ISR and timed motion sequence. |
-| `093Eh` | `carriage_phase_and_position_update` | Rotates carriage phase via `0953h`/`095Fh`, then updates position/state helpers. |
-| `096Ah` | `write_carriage_phase_to_pb18` | Maps `VV16 & 18h` directly to `PB & 18h`; high-confidence carriage phase output. |
+| `0908h` | `paper_feed_step_timing_pulse_candidate` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters; called by the print ISR and timed motion sequence. Figure 2-47 makes this a paper-feed step candidate. |
+| `093Eh` | `paper_feed_pb18_phase_update_candidate` | Rotates the `VV16` phase via `0953h`/`095Fh`, then updates position/state helpers. |
+| `096Ah` | `write_pb18_stepper_phase_outputs` | Maps `VV16 & 18h` directly to `PB & 18h`; service manual Figure 2-47 identifies paper-feed phase signals as `PB3`/`PB4`, matching these mask bits if bit numbering is zero-based. |
 | `0978h` | `isr_head_f005_burst_transfer_reload` | Writes three bytes through alternate-register `BC`, which `08D0h` presets to `F005h`; likely 24-pin head data burst. |
 | `0A0Bh` | `read_next_host_input_byte` | Consumes from the shared input buffer using `EE22h` as the read pointer and `EE1Eh` as the pending count. This is `CALT ($0080)`. |
 | `0B23h` | `write_bank_register_f002` | Single-purpose helper: `MOV ($F002),A; RET`. |
@@ -99,7 +99,7 @@ firmware uses external windows and buffers outside this ROM:
 | `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages/clamps ADC-derived adjustment values used at startup and by bidirectional adjustment mode. |
 | `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`; branches on `PA bit 20h`, sets `VV61` motion mode/direction values, and calls the timed sequence at `5253h`. |
 | `5253h` | `mechanism_pa20_timed_step_sequence` | Drives table-based delays, samples `PA bit 20h` via `5306h`, and selects PA/PB phase states through `546Ah`/`547Eh`. |
-| `540Dh` | `mechanism_output_state_dispatch` | Selects PA/PB phase-output states from `VV37`/`EFxx` state bytes and the jump table at `7007h`. |
+| `540Dh` | `mechanism_output_state_dispatch` | Selects output states from `VV37`/`EFxx`. Its `VV62=0` branch sets/clears `PB04h`, matching the service-manual active-low `PB2` paper-feed drive/hold control. |
 | `546Ah` | `mechanism_phase_state_0_pa_pb_candidate` | One PA/PB actuator state: `PB20=1`, `PA02=1`, `PB40=1`. |
 | `5474h` | `mechanism_phase_state_1_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=1`, `PB40=1`. |
 | `547Eh` | `mechanism_phase_state_2_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=1`, `PB40=0`. |
@@ -143,15 +143,17 @@ lower priority unless they share these paths.
 
 | Mechanism | Best current anchors | Firmware evidence |
 | --- | --- | --- |
-| Carriage movement | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah` | `0908h` pulses `PC bit 7`; `0953h`/`095Fh` rotate `VV16`; `096Ah` maps `VV16 & 18h` to `PB & 18h`. |
+| Paper feed phase / drive | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB18h` and controls `PB04h` in `540Dh`. |
+| Carriage movement | unresolved after PB18 reassignment | The prior `PB18h` carriage label conflicts with the service-manual paper-feed phase signals; find carriage through the carriage motor driver schematic next. |
 | Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
-| Paper feed / retard candidate | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh`, `51F7h`, `5253h`, `5306h`, `546Ah-5488h` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance can reach the timed output scheduler through `2864h`/`5676h`. Separately, startup reaches `51F7h-5253h`, which branches on/samples `PA20h` and selects PA/PB phase-output states. |
+| Paper feed / retard command path | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance can reach the timed output scheduler through `2864h`/`5676h`; this should be correlated with `PB04h` drive and `PB18h` phase switches. |
 
-The paper-feed assignment is still a candidate. The immediate-feed command path
-now reaches the generic timed output scheduler, but the exact paper actuator and
-minimum physical movement remain unresolved. The next pass should count how
+The service manual now resolves the physical paper-feed unit: one phase switch
+is `1/180` inch. The remaining firmware question is how
 `EE7Ah`/`EE86h`/`EF40h` and `EF64h` progress through `FE1` interrupt service and
-how many `PB04h` or PA/PB phase changes occur per documented `ESC J` unit.
+how many `PB18h` phase changes occur per command unit. The `PB20h`/`PA02h`/
+`PB40h` jump table remains a separate mechanism candidate until it is tied to a
+schematic signal.
 
 ## Host Input To Command Parser
 

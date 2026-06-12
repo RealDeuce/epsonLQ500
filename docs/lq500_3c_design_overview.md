@@ -201,22 +201,32 @@ Current priority is paper advance/retard, carriage movement, and pin firing.
 Cut-sheet feeder and other option-specific mechanisms should stay secondary
 unless they share one of these output paths.
 
-### Carriage Movement
+### Paper Feed Stepper Phase
 
-The strongest carriage anchor is the `0908h`/`093Eh` pair in the print-engine
-ISR region:
+The service manual identifies the paper-feed motor as a 4-phase, 48-step motor
+driven with 2-2 phase excitation. Each phase switch advances paper by `1/180`
+inch, and the CPU controls it open loop. Figure 2-47 also identifies `PB2` as
+the active-low paper-feed drive signal: when `PB2` is low, Q27 turns on and
+supplies `+24 V`; when not driven, `+5 V` is supplied through `R36`/`D11` to
+hold the motor. The same text identifies `PB3` as phase A/B and `PB4` as phase
+C/D.
+
+That makes the firmware's `PB04h` and `PB18h` paths the strongest paper-feed
+hardware anchors:
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
-| `0908h` | `carriage_step_timing_pulse` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates `VV61`/position counters. It is called directly by the print ISR and by the timed motion sequence at `5303h`. |
-| `093Eh` | `carriage_phase_and_position_update` | Chooses phase direction from `VV61 bit 0`, calls `0953h` or `095Fh`, then updates position/state through `54A0h`, `54C9h`, and `5538h`. |
-| `0953h` | `rotate_carriage_phase_positive` | Rotates `VV16` right with wrap and sets `EA=+1`. |
-| `095Fh` | `rotate_carriage_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
-| `096Ah` | `write_carriage_phase_to_pb18` | Stores the new `VV16` phase and maps `VV16 & 18h` directly onto `PB & 18h`. |
+| `0908h` | `paper_feed_step_timing_pulse_candidate` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates `VV61`/position counters. It is called directly by the print ISR and by the timed motion sequence at `5303h`. |
+| `093Eh` | `paper_feed_pb18_phase_update_candidate` | Chooses phase direction from `VV61 bit 0`, calls `0953h` or `095Fh`, then updates position/state through `54A0h`, `54C9h`, and `5538h`. |
+| `0953h` | `rotate_pb18_phase_positive` | Rotates `VV16` right with wrap and sets `EA=+1`. |
+| `095Fh` | `rotate_pb18_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
+| `096Ah` | `write_pb18_stepper_phase_outputs` | Stores the new `VV16` phase and maps `VV16 & 18h` directly onto `PB & 18h`; if service-manual bit numbering is zero-based, this is `PB3`/`PB4`. |
+| `5498h`/`549Ch` | `PB04h` drive/hold control inside `540Dh` | `549Ch` clears `PB04h` and `5498h` sets `PB04h`. This matches service-manual `PB2` active-low +24 V paper-feed drive enable versus +5 V hold. |
 
-The direct `VV16 -> PB bits 3/4` mapping makes `PB18h` a high-confidence
-carriage phase output. The exact motor-driver polarity is still a board-level
-question, but the firmware-side phase sequencer is now named.
+The previous working label treated `PB18h` as carriage phase output. Figure
+2-47 makes that unlikely unless the schematic's `PB3`/`PB4` labels are not
+CPU-port bit labels. Carriage movement should be re-found after paper feed is
+settled.
 
 ### Head / Pin Firing
 
@@ -254,7 +264,7 @@ with carriage motion.
 | `2864h` | `process_pending_vertical_advance_distance` | Bridge from pending distance to scheduler: a nonzero `EE7Ah` magnitude is stored in `EF40h`, `VV38h` bit `08h` is set, and `5676h` is called when the scheduler is available. |
 | `5676h` | `schedule_output_from_ef38_state` | Copies `EF38h` state to `EF6Dh`, writes `F004h=20h`, and routes into the timed-record arm path. |
 | `558Dh`/`55B1h` | `arm_timed_mechanism_record` / `load_mechanism_timing_record_into_ef49` | Loads timing/control records from `7005h`/`7088h` into `EF49h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
-| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and indexes the `7007h` jump table when `VV62 != 0`; with `VV62 == 0`, it uses the simple `PB04h` output case. |
+| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and indexes the `7007h` jump table when `VV62 != 0`; with `VV62 == 0`, it uses the simple `PB04h` output case, matching the service-manual paper-feed motor drive/hold control. |
 | `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed sequence at `5253h` with short or long distances. |
 | `5253h` | `mechanism_pa20_timed_step_sequence` | Starts by selecting output state `547Eh`, walks timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, then restores output state `546Ah`. |
 | `5306h` | `sample_pa20_during_motion_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
@@ -269,13 +279,12 @@ The candidate phase outputs are:
 | `547Eh` | `PB20=0`, `PA02=1`, `PB40=0` |
 | `5488h` | `PB20=0`, `PA02=0`, `PB40=1` |
 
-Because `ESC J`/`ESC j` prove a software feed-distance path and `51F7h-5253h`
-prove a PA20-driven mechanism sequence, these are the two best current starting
-points for paper advance/retard. The command path now reaches the generic timed
-output scheduler through `2864h`/`5676h`, but the exact actuator assignment is
-still open. The next paper-feed pass should trace `EE7Ah`/`EE86h`/`EF40h` and
-`EF64h` through the `FE1` interrupt progression to count output-state advances
-per documented feed unit.
+Because `ESC J`/`ESC j` prove a software feed-distance path and the service
+manual says one phase switch equals `1/180` inch, the next paper-feed pass
+should count `PB18h` phase updates and `PB04h` drive-enable windows per
+`EE7Ah`/`EE86h`/`EF40h` unit. The PA20-driven `51F7h-5253h` path still looks
+paper related, but the `PB20h`/`PA02h`/`PB40h` table should remain a separate
+mechanism table until it is tied to a schematic signal.
 
 ## Service/Test Path
 

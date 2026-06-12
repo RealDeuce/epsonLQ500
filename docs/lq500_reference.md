@@ -311,6 +311,16 @@ the current DIP switch settings. Firmware tracing shows the selected settings
 are printed in emphasized/bold mode, while the unselected alternatives remain in
 normal weight.
 
+Paper-feed motor details from service manual Figure 2-47:
+
+- The paper-feed motor is a 4-phase, 48-step stepper motor.
+- It uses 2-2 phase excitation and open-loop CPU control.
+- Each phase switch advances paper by `1/180` inch.
+- `PB2` is the active-low paper-feed drive signal: low turns Q27 on and
+  supplies `+24 V`; when not driven, `+5 V` is supplied through `R36`/`D11` to
+  hold the motor.
+- `PB3` is phase A/B and `PB4` is phase C/D.
+
 ## Command Set
 
 The full command list is available as machine-readable data in

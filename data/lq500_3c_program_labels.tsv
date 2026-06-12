@@ -22,11 +22,11 @@ address	label	kind	confidence	notes
 0x05E2	isr_rxb_host_receive_buffer	code	high	Reads CPU RXB, checks ER, stores received byte into the shared EE20 input buffer while temporarily changing F002.
 0x0668	isr_print_engine_dispatch	code	medium	Large RETI routine dispatching on VV37/VV61 flags; calls motion/print helpers and updates timers.
 0x08D0	arm_head_f005_burst_output	code	medium	Writes F004=0xC0, sets alternate-register BC=F005 and DE/EA pointers from EF75/EF79, programs TM1/TMM, and re-enters print timer flow. Strong candidate head-fire burst setup.
-0x0908	carriage_step_timing_pulse	code	medium	Writes MB=0x03, pulses PC bit 7 low/high with delay slots, updates VV61/VV6C and position counters. Called by print ISR and feed/motion sequencer.
-0x093E	carriage_phase_and_position_update	code	medium	Chooses phase rotation by VV61 bit 0, calls 0x0953/0x095F, then updates carriage position/state through 0x54A0/0x54C9/0x5538.
-0x0953	rotate_carriage_phase_positive	code	medium	Rotates VV16 right with wrap, sets EA=+1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
-0x095F	rotate_carriage_phase_negative	code	medium	Rotates VV16 left with wrap, sets EA=-1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
-0x096A	write_carriage_phase_to_pb18	code	high	Stores the new VV16 phase and maps VV16 & 0x18 directly onto PB & 0x18 while preserving other PB bits.
+0x0908	paper_feed_step_timing_pulse_candidate	code	medium	Writes MB=0x03, pulses PC bit 7 low/high with delay slots, updates VV61/VV6C and position counters. Called by print ISR and the 0x5253 timed sequence; service manual says paper feed is stepped by phase switches.
+0x093E	paper_feed_pb18_phase_update_candidate	code	medium	Chooses phase rotation by VV61 bit 0, calls 0x0953/0x095F, then updates position/state through 0x54A0/0x54C9/0x5538. Service manual identifies PB3/PB4 as paper-feed phase A/B and C/D signals.
+0x0953	rotate_pb18_phase_positive	code	medium	Rotates VV16 right with wrap, sets EA=+1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
+0x095F	rotate_pb18_phase_negative	code	medium	Rotates VV16 left with wrap, sets EA=-1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
+0x096A	write_pb18_stepper_phase_outputs	code	high	Stores the new VV16 phase and maps VV16 & 0x18 directly onto PB & 0x18 while preserving other PB bits. Service manual paper-feed phase lines PB3/PB4 correspond to these mask bits if bit numbering is zero-based.
 0x0978	isr_head_f005_burst_transfer_reload	code	medium	Alternate-register ISR writes three bytes to BC, which 0x08D0 presets to F005; direction follows VV61 bit 0, then reloads ETM0 from ECNT+EE3A.
 0x0A0B	read_next_host_input_byte	code	high	Blocking consumer for the EE20/EE22 input ring: waits for EE1E pending count, reads one byte from EE22 under F002=0xC0, advances EE22, decrements EE1E, and returns byte in A.
 0x0A81	disable_f001_irq_or_strobe	code	medium	DI; clears F001 bits with NOP delays; masks MKL; similar sequence appears in interrupt paths.
@@ -99,7 +99,7 @@ address	label	kind	confidence	notes
 0x51F7	startup_mechanism_pa20_motion_entry	code	low	Only traced caller is startup at 0x0340. Branches on PA bit 0x20, seeds VV61 motion direction/mode values, calls 0x5253 with short or long distances, and exits through the 0x53E1 mechanism path.
 0x5253	mechanism_pa20_timed_step_sequence	code	low	Starts with candidate phase state 2 at 0x547E, walks timing tables around 0x7287/0x72AF, samples PA bit 0x20 via 0x5306, and eventually restores phase state 0 at 0x546A.
 0x5306	sample_pa20_during_motion_delay	code	low	Divides a delay interval into thirds, delays, and samples PA bit 0x20 three times while accumulating a small count in D.
-0x540D	mechanism_output_state_dispatch	code	medium	Maps VV37 flags to EFxx state bytes and a jump table at 0x7007; selects PA/PB phase/output states. Candidate paper-feed or related actuator dispatcher.
+0x540D	mechanism_output_state_dispatch	code	medium	Maps VV37 flags to EFxx state bytes. With VV62=0 it controls PB04, now matching the service-manual paper-feed +24 V enable/hold line; with VV62!=0 it indexes the 0x7007 PA/PB output table.
 0x546A	mechanism_phase_state_0_pa_pb_candidate	code	medium	Output state: sets PB20, PA02, and PB40, then returns without clearing PB20. Likely one phase of a mechanical actuator.
 0x5474	mechanism_phase_state_1_pa_pb_candidate	code	medium	Output state: sets PB20, PA02, and PB40, then falls through to clear PB20 at 0x5491.
 0x547E	mechanism_phase_state_2_pa_pb_candidate	code	medium	Output state: sets PB20 and PA02, clears PB40, then falls through to clear PB20 at 0x5491. Used by the 0x5253 timed sequence entry.
