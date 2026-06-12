@@ -1,0 +1,10 @@
+# Local ROM dumps and ROM-derived disassemblies.
+roms/
+
+# Python cache from local tooling.
+__pycache__/
+tools/__pycache__/
+
+# Temporary local notes/output.
+*.tmp
+*.bak

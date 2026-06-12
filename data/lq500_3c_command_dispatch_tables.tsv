@@ -1,0 +1,77 @@
+table	byte	handler	mnemonic	notes
+primary	0x1B	0x695B	ESC	Enter ESC command table after reading next byte.
+primary	0x0A	0x2011	LF	Line feed.
+primary	0x0D	0x1FEE	CR	Carriage return.
+primary	0x07	0x41C5	BEL	Beeper.
+primary	0x08	0x1040	BS	Backspace.
+primary	0x09	0x0E7D	HT	Horizontal tab.
+primary	0x0B	0x1F69	VT	Vertical tab.
+primary	0x0C	0x201F	FF	Form feed.
+primary	0x0E	0x43B1	SO	Select double-wide for one line.
+primary	0x0F	0x439E	SI	Select condensed mode.
+primary	0x12	0x43A2	DC2	Cancel condensed mode.
+primary	0x13	0x4315	DC3	Deselect printer.
+primary	0x14	0x43B5	DC4	Cancel double-wide for one line.
+primary	0x18	0x0F78	CAN	Cancel line.
+esc	0x0E	0x43B1	ESC SO	Select double-wide for one line.
+esc	0x0F	0x439E	ESC SI	Select condensed mode.
+esc	0x19	0x431C	ESC EM n	Control cut sheet feeder.
+esc	0x20	0x0DE1	ESC SP n	Set intercharacter space.
+esc	0x21	0x0F42	ESC ! n	Master select.
+esc	0x24	0x41DC	ESC $ n1 n2	Set absolute print position.
+esc	0x25	0x112E	ESC % n	Select user-defined set.
+esc	0x26	0x113D	ESC & ...	Define user-defined characters.
+esc	0x2A	0x0BB5	ESC * m n1 n2	Select graphics mode.
+esc	0x2D	0x43B9	ESC - n	Turn underline mode on/off.
+esc	0x2F	0x42BA	ESC / n	Select vertical tab channel.
+esc	0x30	0x41FC	ESC 0	Select 1/8-inch line spacing.
+esc	0x32	0x41FF	ESC 2	Select 1/6-inch line spacing.
+esc	0x33	0x4210	ESC 3 n	Set n/180-inch line spacing.
+esc	0x34	0x436C	ESC 4	Select italic mode.
+esc	0x35	0x4371	ESC 5	Cancel italic mode.
+esc	0x3A	0x11B0	ESC : ...	Copy ROM to RAM.
+esc	0x3C	0x418F	ESC <	Select unidirectional mode for one line.
+esc	0x3F	0x0B7F	ESC ? s m	Reassign graphics mode.
+esc	0x40	0x41D5	ESC @	Initialize printer.
+esc	0x41	0x4203	ESC A n	Set n/60-inch line spacing.
+esc	0x42	0x426C	ESC B ... 0	Set vertical tabs.
+esc	0x43	0x421E	ESC C ...	Set page length in lines/inches.
+esc	0x44	0x0EEA	ESC D ... 0	Set horizontal tabs.
+esc	0x45	0x4362	ESC E	Select emphasized mode.
+esc	0x46	0x4367	ESC F	Cancel emphasized mode.
+esc	0x47	0x4376	ESC G	Select double-strike mode.
+esc	0x48	0x437A	ESC H	Cancel double-strike mode.
+esc	0x4A	0x2530	ESC J n	Perform n/180-inch line feed.
+esc	0x4B	0x0BA9	ESC K n1 n2	Single-density graphics.
+esc	0x4C	0x0BAB	ESC L n1 n2	Double-density graphics.
+esc	0x4D	0x0F32	ESC M	Select 12 cpi.
+esc	0x4E	0x4246	ESC N n	Set skip over perforation.
+esc	0x4F	0x4267	ESC O	Cancel skip over perforation.
+esc	0x50	0x0F2E	ESC P	Select 10 cpi.
+esc	0x51	0x0D7E	ESC Q n	Set right margin.
+esc	0x53	0x437E	ESC S n	Select superscript/subscript mode.
+esc	0x54	0x4399	ESC T	Cancel superscript/subscript mode.
+esc	0x55	0x41A6	ESC U n	Turn unidirectional mode on/off.
+esc	0x57	0x43A7	ESC W n	Turn double-wide mode on/off.
+esc	0x59	0x0BAD	ESC Y n1 n2	High-speed double-density graphics.
+esc	0x5A	0x0BAF	ESC Z n1 n2	Quadruple-density graphics.
+esc	0x5C	0x0DE5	ESC \ n1 n2	Set relative print position.
+esc	0x61	0x42C1	ESC a n	Select justification.
+esc	0x62	0x426F	ESC b c ... 0	Set vertical tabs in channels.
+esc	0x6B	0x435B	ESC k n	Select typestyle family.
+esc	0x6C	0x0DA2	ESC l n	Set left margin.
+esc	0x70	0x0F21	ESC p n	Turn proportional mode on/off.
+esc	0x73	0x0A0B	ESC s n	FX-80 compatibility: half-speed mode parameter. LQ-500 handler consumes one byte through the generic input reader and has no identified state change yet.
+esc	0x78	0x434E	ESC x n	Select letter-quality or draft.
+esc	0x67	0x0F3A	ESC g	Select 15 cpi.
+esc	0x52	0x1454	ESC R n	Select international character set.
+esc	0x23	0x1423	ESC #	Cancel MSB control.
+esc	0x3D	0x1426	ESC =	Set MSB to 0.
+esc	0x3E	0x1429	ESC >	Set MSB to 1.
+esc	0x36	0x144C	ESC 6	Enable printable characters.
+esc	0x37	0x1450	ESC 7	Enable upper control codes.
+esc	0x74	0x1431	ESC t n	Select character table.
+esc	0x77	0x0F16	ESC w n	Turn double-high mode on/off.
+esc	0x6A	0x2568	ESC j n	FX-80 compatibility: immediate reverse feed by n/216 inch. Handler reads n, sets H=0x80, and enters the shared ESC J/immediate-feed path.
+esc	0x72	0x0A0B	ESC r n	Compatibility/no-op candidate. Not found in FX-80 notes; LQ-500 handler is the generic one-byte consumer, so it preserves stream sync.
+esc	0x68	0x0A0B	ESC h n	Compatibility/no-op candidate. Not found in FX-80 notes; LQ-500 handler is the generic one-byte consumer, so it preserves stream sync.

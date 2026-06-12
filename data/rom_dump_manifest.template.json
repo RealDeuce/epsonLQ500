@@ -1,0 +1,71 @@
+{
+  "printer": "Epson LQ-500",
+  "dump_session": {
+    "date": "",
+    "operator": "",
+    "programmer": "",
+    "notes": ""
+  },
+  "dumps": [
+    {
+      "filename": "roms/lq500_3c_m25a10pa_internal_prom.bin",
+      "board_location": "3C",
+      "manual_region": "internal_prom",
+      "expected_size": "32 KB",
+      "chip_markings": "M25A10PA",
+      "package": "DIP28",
+      "programmer_device_type": "27C256@DIP28",
+      "actual_size_bytes": null,
+      "crc32": "",
+      "sha1": "",
+      "sha256": "",
+      "multiple_reads_match": null,
+      "notes": "Program PROM hypothesis; M25A10PA plausibly corresponds to 256 kbit / 32 KB. Disassemble with ../mame/unidasm -arch upd7810 -basepc 0x0000."
+    },
+    {
+      "filename": "roms/lq500_4c_m10a10la_cg_candidate.bin",
+      "board_location": "4C",
+      "manual_region": "unknown_or_1M_CG_candidate",
+      "expected_size": "confirm from dump; M10A10LA may be 1 Mbit / 128 KB but this is not proven",
+      "chip_markings": "M10A10LA",
+      "package": "DIP28",
+      "programmer_device_type": "T48: try 27C512@DIP28; T56: try AT27C011@DIP28",
+      "actual_size_bytes": null,
+      "crc32": "",
+      "sha1": "",
+      "sha256": "",
+      "multiple_reads_match": null,
+      "notes": "Board photos suggest 4C is a socketed ROM-like DIP28 device. minipro reports AT27C011@DIP28/D27C011@DIP28/D27011@DIP28 as 131072-byte devices but T56-only. With T48, 27C512@DIP28 can test a 64 KB read but may not read a full 128 KB ROM."
+    },
+    {
+      "filename": "roms/lq500_5c_4m_cg.bin",
+      "board_location": "5C",
+      "manual_region": "4M_CG",
+      "expected_size": "confirm from chip markings; 4M label likely means 4 Mbit if populated",
+      "chip_markings": "",
+      "package": "",
+      "programmer_device_type": "",
+      "actual_size_bytes": null,
+      "crc32": "",
+      "sha1": "",
+      "sha256": "",
+      "multiple_reads_match": null,
+      "notes": "Character generator select; banked into 8000h-A000h. Board photos suggest this footprint may be unpopulated and labeled 4M/2M/1M/256kbit MASK IMPROM; do not assume stock population or size without chip markings."
+    },
+    {
+      "filename": "",
+      "board_location": "",
+      "manual_region": "external_CG_or_font_module",
+      "expected_size": "",
+      "chip_markings": "",
+      "package": "",
+      "programmer_device_type": "",
+      "actual_size_bytes": null,
+      "crc32": "",
+      "sha1": "",
+      "sha256": "",
+      "multiple_reads_match": null,
+      "notes": "Use for optional font module or any extra CG ROM present."
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "printer": "Epson LQ-500",
+  "sources": [
+    "epsonlq-500servicemanual.pdf",
+    "lq500_sl.pdf",
+    "lq500_u1.pdf"
+  ],
+  "resident_fonts": [
+    {"name": "Epson Draft", "pitches": ["10 cpi", "12 cpi", "15 cpi"], "quality": "draft"},
+    {"name": "Epson Roman", "pitches": ["10 cpi", "12 cpi", "15 cpi", "proportional"], "quality": "letter_quality", "family_number": 0},
+    {"name": "Epson Sans Serif", "pitches": ["10 cpi", "12 cpi", "15 cpi", "proportional"], "quality": "letter_quality", "family_number": 1}
+  ],
+  "optional_modules": [
+    {"catalog_number": "7400", "name": "Courier"},
+    {"catalog_number": "7401", "name": "Prestige"},
+    {"catalog_number": "7402", "name": "Script"},
+    {"catalog_number": "7403", "name": "OCR-B"},
+    {"catalog_number": "7407", "name": "Multi-Font Module", "fonts": ["Courier", "Prestige", "Script", "OCR-A", "OCR-B", "Orator", "Orator-S"]}
+  ],
+  "character_matrices": [
+    {"mode": "Draft, 10 pitch", "face_matrix": "9x23", "hdd": 120, "character_size_mm": "1.9x3.2", "esc_sp_unit": 120},
+    {"mode": "Draft, 12 pitch", "face_matrix": "9x23", "hdd": 120, "character_size_mm": "1.9x3.2", "esc_sp_unit": 120},
+    {"mode": "Draft, 15 pitch", "face_matrix": "9x16", "hdd": 120, "character_size_mm": "1.0x2.3", "esc_sp_unit": 120},
+    {"mode": "Draft, 10 pitch, condensed", "face_matrix": "reshaped", "hdd": 240, "esc_sp_unit": 120},
+    {"mode": "Draft, 12 pitch, condensed", "face_matrix": "reshaped", "hdd": 240, "esc_sp_unit": 120},
+    {"mode": "LQ, 10 pitch", "face_matrix": "29x23", "hdd": 360, "character_size_mm": "2.0x3.2", "esc_sp_unit": 180},
+    {"mode": "LQ, 12 pitch", "face_matrix": "29x23", "hdd": 360, "character_size_mm": "2.0x3.2", "esc_sp_unit": 180},
+    {"mode": "LQ, 15 pitch", "face_matrix": "15x16", "hdd": 360, "character_size_mm": "1.0x2.3", "esc_sp_unit": 180},
+    {"mode": "LQ, 10 pitch, condensed", "face_matrix": "reshaped", "hdd": 360, "esc_sp_unit": 180},
+    {"mode": "LQ, 12 pitch, condensed", "face_matrix": "reshaped", "hdd": 360, "esc_sp_unit": 180},
+    {"mode": "LQ, proportional", "face_matrix": {"max": "39x23", "min": "18x23"}, "hdd": 360, "character_size_mm": {"max": "2.6x3.2", "min": "1.0x3.2"}, "esc_sp_unit": 180},
+    {"mode": "LQ, proportional, condensed", "face_matrix": "reshaped", "hdd": 360, "esc_sp_unit": 180},
+    {"mode": "LQ, proportional, super/subscript", "face_matrix": {"max": "28x16", "min": "12x16"}, "hdd": 360, "character_size_mm": {"max": "1.8x2.3", "min": "0.7x2.3"}, "esc_sp_unit": 180},
+    {"mode": "LQ, proportional, super/subscript, condensed", "face_matrix": "reshaped", "hdd": 360, "esc_sp_unit": 180}
+  ],
+  "cell_geometry": {
+    "draft": {
+      "face_width_dots": 9,
+      "character_widths": [
+        {"pitch": "10 cpi", "dots": 12, "dpi": 120},
+        {"pitch": "12 cpi", "dots": 15, "dpi": 180},
+        {"pitch": "15 cpi", "dots": 16, "dpi": 240},
+        {"pitch": "condensed 10 cpi", "dots": 14, "dpi": 240},
+        {"pitch": "condensed 12 cpi", "dots": 12, "dpi": 240}
+      ]
+    },
+    "letter_quality": {
+      "face_width_dots": 29,
+      "face_width_note": "15-dot glyphs for 15 pitch and condensed LQ are made from 29 dots by printer firmware.",
+      "character_widths": [
+        {"pitch": "10 cpi", "dots": 36, "dpi": 360},
+        {"pitch": "12 cpi", "dots": 30, "dpi": 360},
+        {"pitch": "15 cpi", "dots": 24, "dpi": 360},
+        {"pitch": "condensed 10 cpi", "dots": 21, "dpi": 360},
+        {"pitch": "condensed 12 cpi", "dots": 18, "dpi": 360}
+      ]
+    },
+    "fields": ["left_space_a0", "face_width_a1", "right_space_a2", "character_width_cw"]
+  },
+  "memory_map": {
+    "cpu": {"model": "NEC uPD7810HG", "board_location": "4B", "address_space": "64 KB"},
+    "regions": [
+      {"name": "internal_prom", "size": "32 KB", "board_location": "3C"},
+      {"name": "external_prom", "selection": "write bit 7 low at F001h when correct external PROM is mounted"},
+      {"name": "4M_CG", "size_note": "manual label; likely 4 Mbit capacity class if populated, but confirm from chip markings", "board_location": "5C", "window": "8000h-A000h", "banked": true},
+      {"name": "1M_CG", "size_note": "manual label; likely 1 Mbit capacity class if populated, but confirm from chip markings", "board_location": "4C/2C", "location_note": "text conflicts with PSRAM at 2C", "window": "8000h-A000h", "banked": true},
+      {"name": "external_CG", "window": "8000h-A000h", "banked": true},
+      {"name": "PSRAM", "board_location": "2C"}
+    ],
+    "board_photo_observations": [
+      {
+        "observation": "Online board photos appear to show a socketed E01A05LC at 6C, a socketed ROM-like device at 4C, a clearly marked RAM chip at 2C, and a partially obscured socket that is almost certainly 3C, with 5C unpopulated and labeled 4M/2M/1M/256kbit MASK IMPROM.",
+        "rom_markings": ["M25A10PA", "M10A10LA"],
+        "interpretation": "6C is likely the address-decoder gate array, not a ROM dump target. 3C is likely the program PROM, with M25A10PA plausibly indicating a 256 kbit / 32 KB mask PROM. 4C is a ROM/CG candidate. M10A10LA may indicate a 1 Mbit / 128 KB mask PROM, but that is unproven because both visible ROMs are DIP28; dump size must decide. 5C may be an alternate or optional mask-ROM footprint, not necessarily a populated stock CG ROM.",
+        "conflict": "Actual PCB/chip markings still need to confirm the 3C and 4C socket roles."
+      }
+    ],
+    "address_decoder": {
+      "gate_array": "E01A05KA",
+      "board_location": "6C",
+      "observed_marking": "E01A05LC",
+      "selects": ["internal PROM", "external PROM", "4MCG", "1MCG", "external CG", "RAM", "HEAD gate array"],
+      "address_lines": ["AB12", "AB13", "AB14", "AB15"],
+      "bank_lines": [7, 6]
+    }
+  },
+  "download_buffer": {
+    "capacity": "6 KB",
+    "note": "DIP SW2-5 ON selects 8 KB input buffer; the technical manual says downloading will be ignored in that setting."
+  },
+  "external_source_checks": [
+    {
+      "source": "IBMulator printer emulation / 1541 Ultimate MPS Emulator",
+      "result": "MPS Emulator includes Epson FX-80/JX-80, IBM Graphics Printer, IBM Proprinter, and Commodore MPS interpreters, but uses shared MPS chargen tables rather than a Proprinter III ROM dump.",
+      "tables_seen": ["chargen_draft", "chargen_nlq_low", "chargen_nlq_high", "chargen_italic"],
+      "relevance_to_lq500": "Not a direct LQ-500 source; at most useful as a 9-pin/FX-style reference."
+    }
+  ],
+  "contains_per_glyph_bitmaps": false
+}

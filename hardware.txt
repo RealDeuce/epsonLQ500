@@ -1,0 +1,20 @@
+3C:
+EPSON © 1998
+JAPAN 8841 B
+M25A10PA T1
+
+Board below: 27256
+
+4C:
+EPSON © 1997
+JAPAN 871
+M10A10LA EDH
+
+Board below:
+IM/256 Kbit MASK
+?256PROM
+
+Continuity notes:
+- 3C pin 1 has continuity to 3C pin 28.
+- 4C pin 1 does not have continuity to 4C pin 28.
+- 4C pin 28 has continuity to 3C pin 1 and 3C pin 28.

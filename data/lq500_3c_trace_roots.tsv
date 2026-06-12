@@ -1,0 +1,9 @@
+address	source	note
+0x0000	vector	reset/vector dispatch
+0x0004	vector	interrupt vector
+0x0008	vector	interrupt vector
+0x0010	vector	interrupt vector
+0x0018	vector	interrupt vector
+0x0028	vector	interrupt vector
+0x0060	vector	interrupt vector
+0x2568	command_table	ESC j compatibility handler from ESC dispatch table

@@ -1,0 +1,116 @@
+{
+  "printer": "Epson LQ-500",
+  "dump_session": {
+    "date": "2026-06-12",
+    "operator": "",
+    "programmer": "Xgecu T48, minipro 0.7.4",
+    "notes": "3C M25A10PA T1 was first inserted according to inferred markings and read as all 0xff under multiple 27C256-compatible profiles. Reversing the chip orientation produced plausible data; two read-only 27C256@DIP28 reads matched byte-for-byte. 4C M10A10LA EDH was read successfully as 27C256@DIP28 and also as a stable 27C512@DIP28 two-bank test. Chip ID reads reported 0x0000, expected for these custom mask ROMs or unsupported ID path."
+  },
+  "dumps": [
+    {
+      "filename": "roms/lq500_3c_m25a10pa_internal_prom.bin",
+      "board_location": "3C",
+      "manual_region": "internal_prom",
+      "expected_size": "32 KB",
+      "chip_markings": "EPSON (C) 1998 / JAPAN 8841 B / M25A10PA T1",
+      "package": "DIP28",
+      "programmer_device_type": "27C256@DIP28",
+      "actual_size_bytes": 32768,
+      "crc32": "cf3ba9da",
+      "posix_cksum": "4251713095 32768",
+      "sha1": "7275ef3547ad1bbb12210d626c796a827f308bb6",
+      "sha256": "44cef05debd14852daefdc07dceaec0180e6efebdaea3bb9588966dbd0dab9a0",
+      "multiple_reads_match": true,
+      "read_files": [
+        "roms/lq500_3c_m25a10pa_internal_prom_reversed_read1.bin",
+        "roms/lq500_3c_m25a10pa_internal_prom_reversed_read2.bin"
+      ],
+      "derived_files": [
+        "roms/lq500_3c_m25a10pa_internal_prom.asm",
+        "roms/lq500_3c_m25a10pa_internal_prom_noraw.asm"
+      ],
+      "notes": "Program PROM dump. Disassembled with ../mame/unidasm -arch upd7810 -basepc 0x0000. First bytes decode as DI; JMP $0180, matching a plausible uPD7810 reset/vector table."
+    },
+    {
+      "filename": "roms/lq500_4c_m10a10la_cg_candidate.bin",
+      "board_location": "4C",
+      "manual_region": "resident_CG_candidate",
+      "expected_size": "manual evidence suggests at least 64 KB may be relevant; board text includes IM/256 Kbit MASK / ?256PROM, but 4C pin 1 is not tied high and 27C512 read exposes two stable 32 KB banks",
+      "chip_markings": "EPSON (C) 1997 / JAPAN 871 / M10A10LA EDH",
+      "package": "DIP28",
+      "programmer_device_type": "27C256@DIP28",
+      "actual_size_bytes": 32768,
+      "crc32": "a9b738e0",
+      "posix_cksum": "4161721624 32768",
+      "sha1": "58c089c14cfa2320008781367578b45f60436880",
+      "sha256": "ef2af1dfc61d5884e86ccf8f6be7782b0683583806fe7ae9b801079413db65fc",
+      "multiple_reads_match": true,
+      "read_files": [
+        "roms/lq500_4c_m10a10la_cg_candidate_read1.bin",
+        "roms/lq500_4c_m10a10la_cg_candidate_read2.bin"
+      ],
+      "test_reads": [
+        {
+          "filename": "roms/lq500_4c_m10a10la_cg_candidate_27c512_test.bin",
+          "programmer_device_type": "27C512@DIP28",
+          "actual_size_bytes": 65536,
+          "crc32": "5989d780",
+          "sha1": "6a4245be7e86fccd2501d908f164439592ac2d8f",
+          "repeated_read_match": true,
+          "split_banks": [
+            {
+              "filename": "roms/lq500_4c_m10a10la_pin1_low_bank.bin",
+              "pin1_state": "low under 27C512@DIP28 profile",
+              "actual_size_bytes": 32768,
+              "crc32": "3d0bfaa2",
+              "sha1": "56b80fcc01b60313fc6754ef1e2072d273d2e25b",
+              "sha256": "6517c81083033faed20f1d8ca5139783cb57fa41fa6b56b64a118cc870f53be9",
+              "notes": "Stable across repeated 27C512 reads. Contains plausible bitmap/font data and Draft strings. Because 4C pin 1 is not tied to VCC like 3C pin 1, this may be a real selected bank or mode and should be preserved for analysis."
+            },
+            {
+              "filename": "roms/lq500_4c_m10a10la_pin1_high_bank.bin",
+              "pin1_state": "high under 27C512@DIP28 profile",
+              "actual_size_bytes": 32768,
+              "crc32": "a9b738e0",
+              "sha1": "58c089c14cfa2320008781367578b45f60436880",
+              "sha256": "ef2af1dfc61d5884e86ccf8f6be7782b0683583806fe7ae9b801079413db65fc",
+              "notes": "Matches the canonical 27C256@DIP28 dump exactly."
+            }
+          ],
+          "interpretation": "Upper 32768 bytes match the original 27C256@DIP28 dump exactly; lower 32768 bytes are different stable output when the 27C512 profile drives pin 1 low. A board continuity check found 4C pin 1 is not tied to VCC/pin 28, unlike 3C. Combined with the manual's 1M CG/banked-CG evidence, treat the 65536-byte 27C512 read as the current best complete 4C capture unless tracing or a 27C011-style 128 KB read proves otherwise."
+        }
+      ],
+      "notes": "Resident CG/font ROM candidate. Byte patterns look like glyph data. The pin1-high/original-27C256 bank includes Draft and Roman strings; the pin1-low bank includes Draft strings. Chip ID mismatch/0x0000 was bypassed with -y. Need trace 4C pin 1 to determine whether this is a bank select, mode select, or custom mask-ROM behavior. A 128 KB DIP28 27C011-style possibility remains untested on the T48 because those profiles are T56-only."
+    },
+    {
+      "filename": "roms/lq500_5c_4m_cg.bin",
+      "board_location": "5C",
+      "manual_region": "4M_CG",
+      "expected_size": "confirm from chip markings; 4M label likely means 4 Mbit if populated",
+      "chip_markings": "",
+      "package": "",
+      "programmer_device_type": "",
+      "actual_size_bytes": null,
+      "crc32": "",
+      "sha1": "",
+      "sha256": "",
+      "multiple_reads_match": null,
+      "notes": "Pending if populated. Character generator select; banked into 8000h-A000h. Board photos suggest this footprint may be unpopulated and labeled 4M/2M/1M/256kbit MASK IMPROM."
+    },
+    {
+      "filename": "",
+      "board_location": "",
+      "manual_region": "external_CG_or_font_module",
+      "expected_size": "",
+      "chip_markings": "",
+      "package": "",
+      "programmer_device_type": "",
+      "actual_size_bytes": null,
+      "crc32": "",
+      "sha1": "",
+      "sha256": "",
+      "multiple_reads_match": null,
+      "notes": "Use for optional font module or any extra CG ROM present."
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "printer": "Epson LQ-500",
+  "language": "Epson ESC/P",
+  "sources": [
+    "lq500_u1.pdf",
+    "epsonlq-500servicemanual.pdf",
+    "lq500_sl.pdf",
+    "lq500_ps.pdf"
+  ],
+  "notes": [
+    "Recovered after workspace loss from retained chat context.",
+    "OCR corrections: ESC O is capital O for cancel skip-over-perforation; ESC 0 is digit zero for 1/8-inch line spacing; ESC l is lowercase L for left margin."
+  ],
+  "commands": [
+    {"category":"printer_operation","mnemonic":"ESC @","bytes":["1B","40"],"description":"Initialize printer","parameters":{"notes":"Software initialization; resets font to current SelecType setting rather than DIP font."}},
+    {"category":"printer_operation","mnemonic":"DC1","bytes":["11"],"description":"Select printer"},
+    {"category":"printer_operation","mnemonic":"DC3","bytes":["13"],"description":"Deselect printer"},
+    {"category":"printer_operation","mnemonic":"DEL","bytes":["7F"],"description":"Delete character"},
+    {"category":"printer_operation","mnemonic":"ESC <","bytes":["1B","3C"],"description":"Select unidirectional mode for one line"},
+    {"category":"printer_operation","mnemonic":"ESC U n","bytes":["1B","55","n"],"description":"Turn unidirectional mode on/off","parameters":{"n":"1=on, 0=off"}},
+    {"category":"printer_operation","mnemonic":"ESC EM n","bytes":["1B","19","n"],"description":"Control cut sheet feeder","parameters":{"n":"4=on, R=eject sheet, 0=off"}},
+    {"category":"printer_operation","mnemonic":"ESC =","bytes":["1B","3D"],"description":"Set MSB to 0"},
+    {"category":"printer_operation","mnemonic":"ESC >","bytes":["1B","3E"],"description":"Set MSB to 1"},
+    {"category":"printer_operation","mnemonic":"ESC #","bytes":["1B","23"],"description":"Cancel MSB control"},
+    {"category":"printer_operation","mnemonic":"BEL","bytes":["07"],"description":"Beeper","parameters":{"notes":"Support bulletin: one 0.5 second beep for BEL on LQ-500 group."}},
+
+    {"category":"data_control","mnemonic":"CR","bytes":["0D"],"description":"Carriage return"},
+    {"category":"data_control","mnemonic":"CAN","bytes":["18"],"description":"Cancel line"},
+
+    {"category":"vertical_motion","mnemonic":"FF","bytes":["0C"],"description":"Form feed"},
+    {"category":"vertical_motion","mnemonic":"ESC C n","bytes":["1B","43","n"],"description":"Set page length in lines","parameters":{"n":"1-127 lines"}},
+    {"category":"vertical_motion","mnemonic":"ESC C 0 n","bytes":["1B","43","00","n"],"description":"Set page length in inches","parameters":{"n":"1-22 inches"}},
+    {"category":"vertical_motion","mnemonic":"ESC N n","bytes":["1B","4E","n"],"description":"Set skip over perforation","parameters":{"n":"1-127 lines"}},
+    {"category":"vertical_motion","mnemonic":"ESC O","bytes":["1B","4F"],"description":"Cancel skip over perforation","parameters":{"notes":"Capital O, not zero."}},
+    {"category":"vertical_motion","mnemonic":"LF","bytes":["0A"],"description":"Line feed"},
+    {"category":"vertical_motion","mnemonic":"ESC 0","bytes":["1B","30"],"description":"Select 1/8-inch line spacing","parameters":{"notes":"Digit zero."}},
+    {"category":"vertical_motion","mnemonic":"ESC 2","bytes":["1B","32"],"description":"Select 1/6-inch line spacing"},
+    {"category":"vertical_motion","mnemonic":"ESC 3 n","bytes":["1B","33","n"],"description":"Set n/180-inch line spacing"},
+    {"category":"vertical_motion","mnemonic":"ESC A n","bytes":["1B","41","n"],"description":"Set n/60-inch line spacing"},
+    {"category":"vertical_motion","mnemonic":"ESC J n","bytes":["1B","4A","n"],"description":"Perform n/180-inch line feed"},
+    {"category":"vertical_motion","mnemonic":"VT","bytes":["0B"],"description":"Tab vertically"},
+    {"category":"vertical_motion","mnemonic":"ESC B ... 0","bytes":["1B","42","...","00"],"description":"Set vertical tabs","parameters":{"notes":"Up to 16 tab stops, terminated by 0."}},
+    {"category":"vertical_motion","mnemonic":"ESC b c ... 0","bytes":["1B","62","c","...","00"],"description":"Set vertical tabs in channels","parameters":{"c":"vertical tab channel"}},
+    {"category":"vertical_motion","mnemonic":"ESC / n","bytes":["1B","2F","n"],"description":"Select vertical tab channel","parameters":{"n":"0-7"}},
+
+    {"category":"horizontal_motion","mnemonic":"ESC l n","bytes":["1B","6C","n"],"description":"Set left margin","parameters":{"n":"left margin column","notes":"Lowercase L."}},
+    {"category":"horizontal_motion","mnemonic":"ESC Q n","bytes":["1B","51","n"],"description":"Set right margin","parameters":{"n":"right margin column"}},
+    {"category":"horizontal_motion","mnemonic":"BS","bytes":["08"],"description":"Backspace"},
+    {"category":"horizontal_motion","mnemonic":"ESC $ n1 n2","bytes":["1B","24","n1","n2"],"description":"Set absolute print position","parameters":{"units":"n1+n2*256; from left margin in 1/60-inch units"}},
+    {"category":"horizontal_motion","mnemonic":"ESC \\\\ n1 n2","bytes":["1B","5C","n1","n2"],"description":"Set relative print position","parameters":{"units":"n1+n2*256; 1/120 inch in draft, 1/180 inch in LQ"}},
+    {"category":"horizontal_motion","mnemonic":"HT","bytes":["09"],"description":"Tab horizontally"},
+    {"category":"horizontal_motion","mnemonic":"ESC D ... 0","bytes":["1B","44","...","00"],"description":"Set horizontal tabs","parameters":{"notes":"Up to 32 ascending tab stops, terminated by 0."}},
+
+    {"category":"overall_printing_style","mnemonic":"ESC x n","bytes":["1B","78","n"],"description":"Select Letter Quality or Draft","parameters":{"n":"1=LQ, 0=Draft"}},
+    {"category":"overall_printing_style","mnemonic":"ESC k n","bytes":["1B","6B","n"],"description":"Select typestyle family","parameters":{"values":{"0":"Roman","1":"Sans Serif","2":"Courier","3":"Prestige","4":"Script","5":"OCR-B","6":"OCR-A","7":"Orator","8":"Orator-S"},"notes":"Values 2-8 require optional font module."}},
+    {"category":"overall_printing_style","mnemonic":"ESC ! n","bytes":["1B","21","n"],"description":"Master select","parameters":{"bit_values":{"0":"10 pitch","1":"12 pitch","2":"proportional","4":"condensed","8":"emphasized","16":"double-strike","32":"double-wide","64":"italic","128":"underline"}}},
+
+    {"category":"print_size_width","mnemonic":"ESC P","bytes":["1B","50"],"description":"Select 10 cpi"},
+    {"category":"print_size_width","mnemonic":"ESC M","bytes":["1B","4D"],"description":"Select 12 cpi"},
+    {"category":"print_size_width","mnemonic":"ESC g","bytes":["1B","67"],"description":"Select 15 cpi"},
+    {"category":"print_size_width","mnemonic":"ESC p n","bytes":["1B","70","n"],"description":"Turn proportional mode on/off","parameters":{"n":"1=on, 0=off"}},
+    {"category":"print_size_width","mnemonic":"SI","bytes":["0F"],"description":"Select condensed mode"},
+    {"category":"print_size_width","mnemonic":"ESC SI","bytes":["1B","0F"],"description":"Select condensed mode"},
+    {"category":"print_size_width","mnemonic":"DC2","bytes":["12"],"description":"Cancel condensed mode"},
+    {"category":"print_size_width","mnemonic":"SO","bytes":["0E"],"description":"Select double-wide mode for one line"},
+    {"category":"print_size_width","mnemonic":"ESC SO","bytes":["1B","0E"],"description":"Select double-wide mode for one line"},
+    {"category":"print_size_width","mnemonic":"ESC W n","bytes":["1B","57","n"],"description":"Turn double-wide mode on/off","parameters":{"n":"1=on, 0=off"}},
+    {"category":"print_size_width","mnemonic":"DC4","bytes":["14"],"description":"Cancel double-wide mode for one line"},
+    {"category":"print_size_width","mnemonic":"ESC w n","bytes":["1B","77","n"],"description":"Turn double-high mode on/off","parameters":{"n":"1=on, 0=off"}},
+
+    {"category":"print_enhancement","mnemonic":"ESC E","bytes":["1B","45"],"description":"Select emphasized mode"},
+    {"category":"print_enhancement","mnemonic":"ESC F","bytes":["1B","46"],"description":"Cancel emphasized mode"},
+    {"category":"print_enhancement","mnemonic":"ESC G","bytes":["1B","47"],"description":"Select double-strike mode"},
+    {"category":"print_enhancement","mnemonic":"ESC H","bytes":["1B","48"],"description":"Cancel double-strike mode"},
+    {"category":"print_enhancement","mnemonic":"ESC S 0","bytes":["1B","53","00"],"description":"Select superscript mode"},
+    {"category":"print_enhancement","mnemonic":"ESC S 1","bytes":["1B","53","01"],"description":"Select subscript mode"},
+    {"category":"print_enhancement","mnemonic":"ESC T","bytes":["1B","54"],"description":"Cancel superscript/subscript mode"},
+    {"category":"print_enhancement","mnemonic":"ESC ( - 3 0 1 n1 n2","bytes":["1B","28","2D","03","00","01","n1","n2"],"description":"Select score","parameters":{"n1":"1=underline, 2=strikethrough, 3=overscore","n2":"0=cancel, 1=single continuous, 2=double continuous, 5=single broken, 6=double broken"}},
+    {"category":"print_enhancement","mnemonic":"ESC - n","bytes":["1B","2D","n"],"description":"Turn underline mode on/off","parameters":{"n":"1=on, 0=off"}},
+    {"category":"print_enhancement","mnemonic":"ESC 4","bytes":["1B","34"],"description":"Select italic mode"},
+    {"category":"print_enhancement","mnemonic":"ESC 5","bytes":["1B","35"],"description":"Cancel italic mode"},
+    {"category":"print_enhancement","mnemonic":"ESC q n","bytes":["1B","71","n"],"description":"Select character style","parameters":{"n":"0=normal, 1=outline, 2=shadow, 3=outline with shadow"}},
+
+    {"category":"word_processing","mnemonic":"ESC a n","bytes":["1B","61","n"],"description":"Select justification","parameters":{"n":"0=left, 1=center, 2=right, 3=full"}},
+    {"category":"word_processing","mnemonic":"ESC SP n","bytes":["1B","20","n"],"description":"Set intercharacter space","parameters":{"n":"1-127 units; 1/120 inch draft, 1/180 inch LQ/proportional"}},
+
+    {"category":"character_tables","mnemonic":"ESC t n","bytes":["1B","74","n"],"description":"Select character table","parameters":{"n":"0=Italic, 1=Extended Graphics, 2=remap download chars 0-127 to 128-255"}},
+    {"category":"character_tables","mnemonic":"ESC R n","bytes":["1B","52","n"],"description":"Select international character set"},
+
+    {"category":"user_defined_characters","mnemonic":"ESC & 0 n1 n2 d0 d1 d2 data","bytes":["1B","26","00","n1","n2","d0","d1","d2","..."],"description":"Define user-defined characters","parameters":{"n1":"first code","n2":"last code","d0":"left space","d1":"body width","d2":"right space","data":"three bytes per column; super/subscripts use two bytes per column"}},
+    {"category":"user_defined_characters","mnemonic":"ESC : 0 n 0","bytes":["1B","3A","00","n","00"],"description":"Copy ROM to RAM","parameters":{"n":"font family; 0=Roman, 1=Sans Serif; cartridge fonts can also be copied"}},
+    {"category":"user_defined_characters","mnemonic":"ESC % n","bytes":["1B","25","n"],"description":"Select user-defined set","parameters":{"n":"0=normal, 1=user-defined"}},
+    {"category":"user_defined_characters","mnemonic":"ESC 6","bytes":["1B","36"],"description":"Enable printable characters","parameters":{"notes":"With Extended Graphics, enables codes 128-159."}},
+    {"category":"user_defined_characters","mnemonic":"ESC 7","bytes":["1B","37"],"description":"Enable upper control codes","parameters":{"notes":"Cancels ESC 6."}},
+
+    {"category":"graphics","mnemonic":"ESC K n1 n2","bytes":["1B","4B","n1","n2"],"description":"Select single-density graphics mode","parameters":{"pins":8,"horizontal_dpi":60,"columns":"n1+n2*256"}},
+    {"category":"graphics","mnemonic":"ESC L n1 n2","bytes":["1B","4C","n1","n2"],"description":"Select double-density graphics mode","parameters":{"pins":8,"horizontal_dpi":120,"columns":"n1+n2*256"}},
+    {"category":"graphics","mnemonic":"ESC Y n1 n2","bytes":["1B","59","n1","n2"],"description":"Select high-speed double-density graphics","parameters":{"pins":8,"horizontal_dpi":120,"columns":"n1+n2*256","notes":"Adjacent dots cannot be printed."}},
+    {"category":"graphics","mnemonic":"ESC Z n1 n2","bytes":["1B","5A","n1","n2"],"description":"Select quadruple-density graphics","parameters":{"pins":8,"horizontal_dpi":240,"columns":"n1+n2*256","notes":"Adjacent dots cannot be printed."}},
+    {"category":"graphics","mnemonic":"ESC * m n1 n2","bytes":["1B","2A","m","n1","n2"],"description":"Select graphics mode","parameters":{"columns":"n1+n2*256","modes":{"0":"8-pin single-density 60 dpi","1":"8-pin double-density 120 dpi","2":"8-pin high-speed double-density 120 dpi","3":"8-pin quadruple-density 240 dpi","4":"8-pin CRT I 40 dpi","6":"8-pin CRT II 90 dpi","32":"24-pin single-density 60 dpi","33":"24-pin double-density 120 dpi","38":"24-pin CRT III 90 dpi","39":"24-pin triple-density 180 dpi","40":"24-pin hex-density 360 dpi"}}},
+    {"category":"graphics","mnemonic":"ESC ? s m","bytes":["1B","3F","s","m"],"description":"Reassign graphics mode","parameters":{"s":"K, L, Y, or Z","m":"graphics mode 0-6"}}
+  ]
+}

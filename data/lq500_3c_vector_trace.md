@@ -1,0 +1,196 @@
+# LQ-500 3C Recursive Trace Map
+
+Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x2568`
+
+- Decoded instructions: `7010`
+- Reached code bytes: `14058`
+- Not reached bytes: `18710`
+
+## Reached Code Ranges
+
+| Start | End | Size |
+| --- | --- | ---: |
+| `0x0000` | `0x0006` | 6 |
+| `0x0008` | `0x000B` | 3 |
+| `0x0010` | `0x0013` | 3 |
+| `0x0018` | `0x001B` | 3 |
+| `0x0028` | `0x002B` | 3 |
+| `0x0060` | `0x0063` | 3 |
+| `0x0075` | `0x0079` | 4 |
+| `0x0080` | `0x008B` | 11 |
+| `0x008C` | `0x008D` | 1 |
+| `0x008E` | `0x0093` | 5 |
+| `0x0094` | `0x00A2` | 14 |
+| `0x00A4` | `0x00AF` | 11 |
+| `0x00B0` | `0x00B7` | 7 |
+| `0x00B8` | `0x00B9` | 1 |
+| `0x00BA` | `0x00BB` | 1 |
+| `0x00CC` | `0x00CD` | 1 |
+| `0x0180` | `0x01EC` | 108 |
+| `0x0200` | `0x02DE` | 222 |
+| `0x02E4` | `0x04F7` | 531 |
+| `0x04F8` | `0x07E0` | 744 |
+| `0x07E1` | `0x07E8` | 7 |
+| `0x0804` | `0x0811` | 13 |
+| `0x0812` | `0x0819` | 7 |
+| `0x0836` | `0x0A0B` | 469 |
+| `0x0AEB` | `0x0AF6` | 11 |
+| `0x0B0C` | `0x0B18` | 12 |
+| `0x0E66` | `0x0E7D` | 23 |
+| `0x0F78` | `0x0FD0` | 88 |
+| `0x105A` | `0x10A2` | 72 |
+| `0x10A7` | `0x112E` | 135 |
+| `0x1442` | `0x1448` | 6 |
+| `0x1455` | `0x147C` | 39 |
+| `0x173D` | `0x17A2` | 101 |
+| `0x17A3` | `0x17DA` | 55 |
+| `0x17DB` | `0x17F2` | 23 |
+| `0x17F5` | `0x1845` | 80 |
+| `0x1848` | `0x1896` | 78 |
+| `0x1965` | `0x1995` | 48 |
+| `0x19AF` | `0x1A16` | 103 |
+| `0x1A24` | `0x1A4F` | 43 |
+| `0x1A8A` | `0x1F23` | 1177 |
+| `0x1F4D` | `0x1F69` | 28 |
+| `0x1FE4` | `0x23E9` | 1029 |
+| `0x23F1` | `0x240C` | 27 |
+| `0x2428` | `0x2475` | 77 |
+| `0x24AD` | `0x2530` | 131 |
+| `0x2534` | `0x2785` | 593 |
+| `0x27A1` | `0x27B0` | 15 |
+| `0x27D1` | `0x2895` | 196 |
+| `0x289D` | `0x2DCE` | 1329 |
+| `0x400B` | `0x4012` | 7 |
+| `0x4038` | `0x4142` | 266 |
+| `0x4173` | `0x418F` | 28 |
+| `0x425A` | `0x4267` | 13 |
+| `0x42E8` | `0x4315` | 45 |
+| `0x43DD` | `0x47B7` | 986 |
+| `0x47CB` | `0x4C37` | 1132 |
+| `0x4E28` | `0x4E90` | 104 |
+| `0x4E9B` | `0x4EB9` | 30 |
+| `0x4ECF` | `0x4F36` | 103 |
+| `0x4F37` | `0x4F97` | 96 |
+| `0x4FB1` | `0x5059` | 168 |
+| `0x506D` | `0x50BC` | 79 |
+| `0x50EB` | `0x50FE` | 19 |
+| `0x5124` | `0x51E4` | 192 |
+| `0x51F7` | `0x534F` | 344 |
+| `0x5359` | `0x5367` | 14 |
+| `0x53AF` | `0x53DF` | 48 |
+| `0x53E1` | `0x53FD` | 28 |
+| `0x53FE` | `0x5488` | 138 |
+| `0x5491` | `0x5794` | 771 |
+| `0x6944` | `0x6960` | 28 |
+| `0x739B` | `0x744C` | 177 |
+| `0x744D` | `0x74C9` | 124 |
+| `0x74CB` | `0x756C` | 161 |
+| `0x756F` | `0x761E` | 175 |
+| `0x7693` | `0x78B5` | 546 |
+| `0x78B6` | `0x79ED` | 311 |
+| `0x79F6` | `0x7A18` | 34 |
+| `0x7AB2` | `0x7B74` | 194 |
+
+## Not-Reached Ranges
+
+| Start | End | Size | Classification |
+| --- | --- | ---: | --- |
+| `0x0006` | `0x0008` | 2 | fill_ff |
+| `0x000B` | `0x0010` | 5 | fill_ff |
+| `0x0013` | `0x0018` | 5 | fill_ff |
+| `0x001B` | `0x0028` | 13 | fill_ff |
+| `0x002B` | `0x0060` | 53 | fill_ff |
+| `0x0063` | `0x0075` | 18 | likely_text_or_table |
+| `0x0079` | `0x0080` | 7 | fill_ff |
+| `0x008B` | `0x008C` | 1 | likely_text_or_table |
+| `0x008D` | `0x008E` | 1 | likely_text_or_table |
+| `0x0093` | `0x0094` | 1 | likely_data_or_untraced_code |
+| `0x00A2` | `0x00A4` | 2 | likely_data_or_untraced_code |
+| `0x00AF` | `0x00B0` | 1 | likely_data_or_untraced_code |
+| `0x00B7` | `0x00B8` | 1 | likely_text_or_table |
+| `0x00B9` | `0x00BA` | 1 | likely_text_or_table |
+| `0x00BB` | `0x00CC` | 17 | likely_text_or_table |
+| `0x00CD` | `0x0180` | 179 | fill_ff |
+| `0x01EC` | `0x0200` | 20 | fill_ff |
+| `0x02DE` | `0x02E4` | 6 | likely_data_or_untraced_code |
+| `0x04F7` | `0x04F8` | 1 | likely_data_or_untraced_code |
+| `0x07E0` | `0x07E1` | 1 | likely_data_or_untraced_code |
+| `0x07E8` | `0x0804` | 28 | likely_data_or_untraced_code |
+| `0x0811` | `0x0812` | 1 | likely_data_or_untraced_code |
+| `0x0819` | `0x0836` | 29 | likely_data_or_untraced_code |
+| `0x0A0B` | `0x0AEB` | 224 | likely_data_or_untraced_code |
+| `0x0AF6` | `0x0B0C` | 22 | likely_data_or_untraced_code |
+| `0x0B18` | `0x0E66` | 846 | likely_data_or_untraced_code |
+| `0x0E7D` | `0x0F78` | 251 | likely_data_or_untraced_code |
+| `0x0FD0` | `0x105A` | 138 | likely_data_or_untraced_code |
+| `0x10A2` | `0x10A7` | 5 | likely_data_or_untraced_code |
+| `0x112E` | `0x1442` | 788 | likely_data_or_untraced_code |
+| `0x1448` | `0x1455` | 13 | likely_data_or_untraced_code |
+| `0x147C` | `0x173D` | 705 | likely_data_or_untraced_code |
+| `0x17A2` | `0x17A3` | 1 | likely_data_or_untraced_code |
+| `0x17DA` | `0x17DB` | 1 | likely_data_or_untraced_code |
+| `0x17F2` | `0x17F5` | 3 | likely_data_or_untraced_code |
+| `0x1845` | `0x1848` | 3 | likely_data_or_untraced_code |
+| `0x1896` | `0x1965` | 207 | likely_data_or_untraced_code |
+| `0x1995` | `0x19AF` | 26 | likely_data_or_untraced_code |
+| `0x1A16` | `0x1A24` | 14 | likely_data_or_untraced_code |
+| `0x1A4F` | `0x1A8A` | 59 | likely_data_or_untraced_code |
+| `0x1F23` | `0x1F4D` | 42 | likely_data_or_untraced_code |
+| `0x1F69` | `0x1FE4` | 123 | likely_data_or_untraced_code |
+| `0x23E9` | `0x23F1` | 8 | likely_data_or_untraced_code |
+| `0x240C` | `0x2428` | 28 | likely_text_or_table |
+| `0x2475` | `0x24AD` | 56 | likely_data_or_untraced_code |
+| `0x2530` | `0x2534` | 4 | likely_data_or_untraced_code |
+| `0x2785` | `0x27A1` | 28 | likely_data_or_untraced_code |
+| `0x27B0` | `0x27D1` | 33 | likely_data_or_untraced_code |
+| `0x2895` | `0x289D` | 8 | likely_data_or_untraced_code |
+| `0x2DCE` | `0x400B` | 4669 | likely_text_or_table |
+| `0x4012` | `0x4038` | 38 | likely_data_or_untraced_code |
+| `0x4142` | `0x4173` | 49 | likely_data_or_untraced_code |
+| `0x418F` | `0x425A` | 203 | likely_data_or_untraced_code |
+| `0x4267` | `0x42E8` | 129 | likely_data_or_untraced_code |
+| `0x4315` | `0x43DD` | 200 | likely_data_or_untraced_code |
+| `0x47B7` | `0x47CB` | 20 | likely_text_or_table |
+| `0x4C37` | `0x4E28` | 497 | likely_data_or_untraced_code |
+| `0x4E90` | `0x4E9B` | 11 | likely_data_or_untraced_code |
+| `0x4EB9` | `0x4ECF` | 22 | likely_data_or_untraced_code |
+| `0x4F36` | `0x4F37` | 1 | likely_data_or_untraced_code |
+| `0x4F97` | `0x4FB1` | 26 | likely_data_or_untraced_code |
+| `0x5059` | `0x506D` | 20 | likely_data_or_untraced_code |
+| `0x50BC` | `0x50EB` | 47 | likely_data_or_untraced_code |
+| `0x50FE` | `0x5124` | 38 | likely_data_or_untraced_code |
+| `0x51E4` | `0x51F7` | 19 | likely_data_or_untraced_code |
+| `0x534F` | `0x5359` | 10 | likely_data_or_untraced_code |
+| `0x5367` | `0x53AF` | 72 | likely_data_or_untraced_code |
+| `0x53DF` | `0x53E1` | 2 | likely_text_or_table |
+| `0x53FD` | `0x53FE` | 1 | likely_data_or_untraced_code |
+| `0x5488` | `0x5491` | 9 | likely_data_or_untraced_code |
+| `0x5794` | `0x6944` | 4528 | likely_text_or_table |
+| `0x6960` | `0x739B` | 2619 | likely_data_or_untraced_code |
+| `0x744C` | `0x744D` | 1 | likely_data_or_untraced_code |
+| `0x74C9` | `0x74CB` | 2 | likely_data_or_untraced_code |
+| `0x756C` | `0x756F` | 3 | likely_data_or_untraced_code |
+| `0x761E` | `0x7693` | 117 | likely_data_or_untraced_code |
+| `0x78B5` | `0x78B6` | 1 | likely_data_or_untraced_code |
+| `0x79ED` | `0x79F6` | 9 | likely_data_or_untraced_code |
+| `0x7A18` | `0x7AB2` | 154 | likely_data_or_untraced_code |
+| `0x7B74` | `0x8000` | 1164 | fill_ff |
+
+## Unresolved Stops
+
+- `0x008B`: `decode failed`
+- `0x00A2`: `decode failed`
+- `0x02DC`: `02dc: 48 28  JEA`
+- `0x240A`: `240a: 48 28  JEA`
+- `0x5468`: `5468: 48 28     JEA`
+- `0x761C`: `761c: 48 28  JEA`
+
+## Notes
+
+- Direct calls/jumps are followed.
+- Conditional `JRE` follows both target and fallthrough.
+- uPD7810 skip-producing instructions follow both fallthrough and skipped-next-instruction paths.
+- `RET`, `RETI`, and `RETS` terminate a path.
+- `JEA`, `illegal`, and failed decodes are treated as unresolved stops.
+- `.frontier.tsv` is the iterative follow-up file; hand-confirmed entry points belong in the roots TSV passed by `--roots-file`.
+- Indirect jump tables and computed calls need manual follow-up.
