@@ -178,9 +178,11 @@ Working hypothesis:
 
 - `M25A10PA` is the `3C` program PROM. The `25` marking plausibly corresponds
   to a 256 kbit / 32 KB mask PROM, matching the manual's internal PROM size.
-- `M10A10LA` is the `4C` resident CG ROM candidate. The `10` marking may
-  correspond to a 1 Mbit / 128 KB mask PROM, matching the manual's `1M CG`
-  label, but this is not proven. Both visible ROMs are DIP28.
+- `M10A10LA` is the `4C` resident CG ROM candidate. The stable 64 KiB
+  `27C512@DIP28` read is the current best capture. The `10` marking and the
+  manual's `1M CG` label leave a 1 Mbit / 128 KiB possibility open, but this
+  is not proven without tracing `4C` pin 1 / higher address selection or
+  making a suitable `27C011`-style read.
 
 Treat this as a hypothesis until the actual board location and dump sizes
 confirm it.

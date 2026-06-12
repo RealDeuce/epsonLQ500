@@ -71,7 +71,7 @@
       {
         "observation": "Online board photos appear to show a socketed E01A05LC at 6C, a socketed ROM-like device at 4C, a clearly marked RAM chip at 2C, and a partially obscured socket that is almost certainly 3C, with 5C unpopulated and labeled 4M/2M/1M/256kbit MASK IMPROM.",
         "rom_markings": ["M25A10PA", "M10A10LA"],
-        "interpretation": "6C is likely the address-decoder gate array, not a ROM dump target. 3C is likely the program PROM, with M25A10PA plausibly indicating a 256 kbit / 32 KB mask PROM. 4C is a ROM/CG candidate. M10A10LA may indicate a 1 Mbit / 128 KB mask PROM, but that is unproven because both visible ROMs are DIP28; dump size must decide. 5C may be an alternate or optional mask-ROM footprint, not necessarily a populated stock CG ROM.",
+        "interpretation": "6C is likely the address-decoder gate array, not a ROM dump target. 3C is likely the program PROM, with M25A10PA plausibly indicating a 256 kbit / 32 KB mask PROM. 4C is the resident ROM/CG candidate; the stable 27C512 read is the current best 64 KiB capture. M10A10LA and the manual's 1M CG label leave a 1 Mbit / 128 KiB possibility open, but that is unproven until 4C pin 1 and any higher address selection are traced or a suitable 27C011-style read is made. 5C may be an alternate or optional mask-ROM footprint, not necessarily a populated stock CG ROM.",
         "conflict": "Actual PCB/chip markings still need to confirm the 3C and 4C socket roles."
       }
     ],

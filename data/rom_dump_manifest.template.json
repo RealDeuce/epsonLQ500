@@ -26,7 +26,7 @@
       "filename": "roms/lq500_4c_m10a10la_cg_candidate.bin",
       "board_location": "4C",
       "manual_region": "unknown_or_1M_CG_candidate",
-      "expected_size": "confirm from dump; M10A10LA may be 1 Mbit / 128 KB but this is not proven",
+      "expected_size": "current captured evidence should decide; 64 KB is plausible from a 27C512 read, while 1 Mbit / 128 KiB remains unproven until pin 1 / higher address selection or a 27C011-style read is checked",
       "chip_markings": "M10A10LA",
       "package": "DIP28",
       "programmer_device_type": "T48: try 27C512@DIP28; T56: try AT27C011@DIP28",
@@ -35,7 +35,7 @@
       "sha1": "",
       "sha256": "",
       "multiple_reads_match": null,
-      "notes": "Board photos suggest 4C is a socketed ROM-like DIP28 device. minipro reports AT27C011@DIP28/D27C011@DIP28/D27011@DIP28 as 131072-byte devices but T56-only. With T48, 27C512@DIP28 can test a 64 KB read but may not read a full 128 KB ROM."
+      "notes": "Board photos suggest 4C is a socketed ROM-like DIP28 device. Lead with the actual captured size. minipro reports AT27C011@DIP28/D27C011@DIP28/D27011@DIP28 as 131072-byte devices but T56-only. With T48, 27C512@DIP28 can test a 64 KB read; do not describe 4C as 128 KiB unless pin tracing or a suitable read proves it."
     },
     {
       "filename": "roms/lq500_5c_4m_cg.bin",

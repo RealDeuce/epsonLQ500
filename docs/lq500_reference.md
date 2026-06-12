@@ -180,8 +180,9 @@ Board-photo notes from the chat:
 - The partially obscured socket is almost certainly `3C`.
 - The two visible ROM markings are `M25A10PA` and `M10A10LA`.
 - Working hypothesis: `M25A10PA` is the `3C` 256 kbit / 32 KB program PROM.
-- Working hypothesis: `M10A10LA` is the `4C` CG/font ROM candidate. It may be
-  1 Mbit / 128 KB, but this is not proven. Both visible ROMs are DIP28.
+- Working hypothesis: `M10A10LA` is the `4C` CG/font ROM candidate. The current
+  best capture is the stable 64 KiB `27C512@DIP28` read; a 1 Mbit / 128 KiB
+  interpretation remains an unproven marking/manual-map possibility.
 - `5C` is an unpopulated footprint labeled `4M/2M/1M/256kbit MASK IMPROM`.
 
 For the planned hardware dumps, see [`rom_dump_handoff.md`](rom_dump_handoff.md)
