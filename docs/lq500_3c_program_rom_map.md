@@ -130,8 +130,16 @@ The most important hardware anchors for CG/ROM-bank work are:
   and presets alternate-register `BC=F005h`, while `0978h` writes three bytes
   through that pointer. `5681h` writes the idle/arm value `F004=20h`.
 
-The `4C` CG dump has a plausible pin-1-low and pin-1-high bank. Firmware
-analysis should look for values written to `F002h` before reads from
+The `4C` CG dump is now a stable 128 KiB custom PROM read. The schematic
+reportedly confirms `4C` pin 1 is `A15`, so each 64 KiB A16 bank has valid
+low/high `A15` halves. The 4C jumper/schematic evidence points to a banked
+1 Mbit arrangement: `J5` ties pin 1 / `A15` to `BK2` on the `6C` E01A05KA gate
+array, `J6` wires pin 20 `/CE`, and the hard-to-read `A16/OE` label appears to
+be `A16` wired to `BK3`, not `/OE`. Native T48 `AT27C011@DIP28` and
+`D27C011@DIP28` reads mirrored only the A16-low 64 KiB bank; patched custom
+PROM reads captured the distinct pin-22-high/A16-high bank and a full 128 KiB
+image ordered as A16-low then A16-high. Firmware analysis should look for
+values written to `F002h` before reads from
 `8000h-9FFFh`/`A000h`, especially routines that call `0B23h`, `508Dh`, or
 directly write `F002h`.
 
@@ -143,7 +151,7 @@ lower priority unless they share these paths.
 
 | Mechanism | Best current anchors | Firmware evidence |
 | --- | --- | --- |
-| Paper feed phase / drive | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB18h` and controls `PB04h` in `540Dh`. |
+| Paper feed phase / drive | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-pole motor using 2-2 phase excitation, one phase switch per `1/180` inch, with a `400 PPS` drive frequency matching the `2.5 ms` steady timing word. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB18h` and controls `PB04h` in `540Dh`. The manual labels the excitation-table order clockwise/paper-forward, and firmware `0953h` follows that order from the reset-start phase. |
 | Carriage movement | unresolved after PB18 reassignment | The prior `PB18h` carriage label conflicts with the service-manual paper-feed phase signals; find carriage through the carriage motor driver schematic next. |
 | Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
 | Paper feed / retard command path | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance can reach the timed output scheduler through `2864h`/`5676h`; this should be correlated with `PB04h` drive and `PB18h` phase switches. |
@@ -154,6 +162,22 @@ is `1/180` inch. The remaining firmware question is how
 how many `PB18h` phase changes occur per command unit. The `PB20h`/`PA02h`/
 `PB40h` jump table remains a separate mechanism candidate until it is tied to a
 schematic signal.
+
+The service-manual 2-2 excitation table maps firmware `PB18h` states to phase
+pairs as `18h=A+C`, `08h=A+D`, `00h=B+D`, and `10h=B+C`. Reset seeds
+`VV16=CCh`, giving initial `PB18h=08h`. The `0953h` rotate-right helper walks
+`08h -> 00h -> 10h -> 18h -> 08h`; `095Fh` walks the reverse order.
+
+The service-manual acceleration profile is `3.33`, `2.87`, `2.65`, `2.53`,
+then `2.50 ms`, with deceleration in reverse and no accel/decel for moves under
+10 steps. The ROM timing words around `725Fh-7286h` contain matching values:
+`0FFCh`, `0DC6h`, `0CB8h`, `0C24h`, and `0C00h` convert to about `3.333`,
+`2.871`, `2.650`, `2.529`, and `2.500 ms` if `0C00h` is the steady interval.
+The PA20 startup timed-step routine at `5253h` has the only traced literal
+10-step mechanism split so far: `52BDh` subtracts `000Ah` after the first nine
+indexed intervals, and the zero-remainder path skips the long steady loop.
+The normal `ESC J` path still needs an equivalent short-move rule located or
+proven through the derived `EF3Bh`/`EF3Eh` partition fields.
 
 ## Host Input To Command Parser
 
@@ -238,8 +262,8 @@ Startup panel mode dispatch:
   separation. The current labels only mark high-fan-in helpers.
 - `4000h-5793h` may be alternate/external-PROM-related code or a second major
   firmware body behind the `PBLS` check. It is real code, not filler.
-- The relationship between `F002h` writes and the 4C pin-1-low/high CG banks is
-  not yet resolved.
+- The relationship between `F002h` writes and the 4C `BK2`/`A15`,
+  `BK3`/`A16`, and `/CE` selection is not yet resolved.
 
 ## Next Pass
 

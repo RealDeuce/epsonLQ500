@@ -23,20 +23,20 @@
       "notes": "Program PROM hypothesis; M25A10PA plausibly corresponds to 256 kbit / 32 KB. Disassemble with ../mame/unidasm -arch upd7810 -basepc 0x0000."
     },
     {
-      "filename": "roms/lq500_4c_m10a10la_cg_candidate.bin",
-      "board_location": "4C",
-      "manual_region": "unknown_or_1M_CG_candidate",
-      "expected_size": "current captured evidence should decide; 64 KB is plausible from a 27C512 read, while 1 Mbit / 128 KiB remains unproven until pin 1 / higher address selection or a 27C011-style read is checked",
-      "chip_markings": "M10A10LA",
-      "package": "DIP28",
-      "programmer_device_type": "T48: try 27C512@DIP28; T56: try AT27C011@DIP28",
+            "filename": "roms/lq500_4c_m10a10la_cg_128k_custom_prom.bin",
+            "board_location": "4C",
+            "manual_region": "resident_CG",
+            "expected_size": "128 KB / 1 Mbit if M10A10LA is wired like the observed LQ-500 board: pin 1 is A15, pin 20 is /CE, and pin 22 is A16/BK3",
+            "chip_markings": "M10A10LA",
+            "package": "DIP28",
+            "programmer_device_type": "patched minipro/T48: LQ500_4C_A16_PIN22@DIP28; fallback provenance reads: 27C512@DIP28 and LQ500_4C_PIN22_HIGH@DIP28",
       "actual_size_bytes": null,
       "crc32": "",
       "sha1": "",
       "sha256": "",
       "multiple_reads_match": null,
-      "notes": "Board photos suggest 4C is a socketed ROM-like DIP28 device. Lead with the actual captured size. minipro reports AT27C011@DIP28/D27C011@DIP28/D27011@DIP28 as 131072-byte devices but T56-only. With T48, 27C512@DIP28 can test a 64 KB read; do not describe 4C as 128 KiB unless pin tracing or a suitable read proves it."
-    },
+            "notes": "Board photos suggest 4C is a socketed ROM-like DIP28 device. Native T48 AT27C011/D27C011 reads mirrored the 27C512 capture and did not expose BK3/A16. The patched custom PROM profile LQ500_4C_A16_PIN22@DIP28 should produce a full 128 KB read; verify its low 64 KB half against the 27C512 capture and its high 64 KB half against a repeated LQ500_4C_PIN22_HIGH@DIP28 read."
+        },
     {
       "filename": "roms/lq500_5c_4m_cg.bin",
       "board_location": "5C",

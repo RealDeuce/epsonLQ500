@@ -28,7 +28,13 @@ manual notes, or hardware measurements.
   data/code block.
 - `data/lq500_3c_7000_block_usage.tsv`: consumer map for the `7000h-7FFFh`
   mechanism/render/service block.
+- `data/lq500_3c_mechanism_timing_records.tsv`: decoded timing-record bytes
+  copied by `55B1h` into `EF49h..EF5Fh`.
+- `data/lq500_3c_paper_feed_timing.tsv`: service-manual paper-feed
+  acceleration/deceleration timings and ROM timing-word matches.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
+- `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
+  for custom `4C` pin-22/A16 read experiments.
 
 ## Trace Workflow
 

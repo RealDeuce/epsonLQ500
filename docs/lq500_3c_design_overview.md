@@ -203,9 +203,10 @@ unless they share one of these output paths.
 
 ### Paper Feed Stepper Phase
 
-The service manual identifies the paper-feed motor as a 4-phase, 48-step motor
+The service manual identifies the paper-feed motor as a 4-phase, 48-pole motor
 driven with 2-2 phase excitation. Each phase switch advances paper by `1/180`
-inch, and the CPU controls it open loop. Figure 2-47 also identifies `PB2` as
+inch, and the CPU controls it open loop. The motor drive frequency is `400 PPS`,
+matching one phase switch every `2.5 ms`. Figure 2-47 also identifies `PB2` as
 the active-low paper-feed drive signal: when `PB2` is low, Q27 turns on and
 supplies `+24 V`; when not driven, `+5 V` is supplied through `R36`/`D11` to
 hold the motor. The same text identifies `PB3` as phase A/B and `PB4` as phase
@@ -222,6 +223,21 @@ hardware anchors:
 | `095Fh` | `rotate_pb18_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
 | `096Ah` | `write_pb18_stepper_phase_outputs` | Stores the new `VV16` phase and maps `VV16 & 18h` directly onto `PB & 18h`; if service-manual bit numbering is zero-based, this is `PB3`/`PB4`. |
 | `5498h`/`549Ch` | `PB04h` drive/hold control inside `540Dh` | `549Ch` clears `PB04h` and `5498h` sets `PB04h`. This matches service-manual `PB2` active-low +24 V paper-feed drive enable versus +5 V hold. |
+
+The service-manual excitation sequence makes the `PB18h` states concrete:
+
+| Step | `PB18h` | `PB3` | `PB4` | Energized phases |
+| --- | --- | --- | --- | --- |
+| 0 | `18h` | H | H | A + C |
+| 1 | `08h` | H | L | A + D |
+| 2 | `00h` | L | L | B + D |
+| 3 | `10h` | L | H | B + C |
+
+Reset initializes `VV16=CCh`, so the masked output starts at `08h` / step 1.
+The manual labels the table order as clockwise and says clockwise feeds paper
+forward, while counterclockwise feeds paper in reverse. The `0953h`
+rotate-right path advances `08h -> 00h -> 10h -> 18h -> 08h`, matching the
+increasing manual step order; the `095Fh` rotate-left path reverses that order.
 
 The previous working label treated `PB18h` as carriage phase output. Figure
 2-47 makes that unlikely unless the schematic's `PB3`/`PB4` labels are not
@@ -285,6 +301,24 @@ should count `PB18h` phase updates and `PB04h` drive-enable windows per
 `EE7Ah`/`EE86h`/`EF40h` unit. The PA20-driven `51F7h-5253h` path still looks
 paper related, but the `PB20h`/`PA02h`/`PB40h` table should remain a separate
 mechanism table until it is tied to a schematic signal.
+
+The service manual gives paper-feed acceleration intervals of `3.33`, `2.87`,
+`2.65`, `2.53`, and steady `2.50 ms`; deceleration is the reverse, and moves
+under 10 steps use no acceleration or deceleration. ROM words in the
+`725Fh-7286h` region line up with this profile if `0C00h` is the steady
+`2.50 ms` count: `0FFCh`, `0DC6h`, `0CB8h`, `0C24h`, and `0C00h` correspond to
+about `3.333`, `2.871`, `2.650`, `2.529`, and `2.500 ms`. That implies a timer
+tick of about `0.8138 us` for this table.
+
+The PA20 startup timed-step routine at `5253h` contains an explicit 10-step
+split that matches the manual rule's shape. The loop at `529Ah` walks up to
+nine table-driven intervals from `7287h`, then `52BDh` subtracts `000Ah` from
+the requested count. A zero remainder branches at `52C3h` to the decel/tail
+path, while a nonzero remainder enters the longer steady loop using the
+`72ADh` timing entry. This proves the literal threshold exists in the firmware,
+but it is in the PA20/startup mechanism path; the normal `ESC J` path still
+appears to encode its short/long behavior through the derived `EF3Bh`/`EF3Eh`
+partition fields rather than a traced literal `000Ah` compare.
 
 ## Service/Test Path
 

@@ -180,9 +180,15 @@ Board-photo notes from the chat:
 - The partially obscured socket is almost certainly `3C`.
 - The two visible ROM markings are `M25A10PA` and `M10A10LA`.
 - Working hypothesis: `M25A10PA` is the `3C` 256 kbit / 32 KB program PROM.
-- Working hypothesis: `M10A10LA` is the `4C` CG/font ROM candidate. The current
-  best capture is the stable 64 KiB `27C512@DIP28` read; a 1 Mbit / 128 KiB
-  interpretation remains an unproven marking/manual-map possibility.
+- Working hypothesis: `M10A10LA` is the `4C` CG/font ROM candidate. The
+  schematic reportedly identifies `4C` pin 1 as `A15`, so the stable
+  `27C512@DIP28` read should be treated as a 64 KiB A16-low bank with valid
+  low/high A15 halves rather than an invalid low-half artifact. The
+  schematic/jumper trace shows `J5` tying pin 1 / `A15` to `BK2` on `6C`
+  E01A05KA, `J6` wiring pin 20 `/CE`, and the hard-to-read `A16/OE` label now
+  appears to be `A16` wired to `BK3`. Native T48 `AT27C011@DIP28` and
+  `D27C011@DIP28` reads mirrored the A16-low bank, but patched custom PROM
+  reads captured a distinct pin-22-high/A16-high bank and a full 128 KiB image.
 - `5C` is an unpopulated footprint labeled `4M/2M/1M/256kbit MASK IMPROM`.
 
 For the planned hardware dumps, see [`rom_dump_handoff.md`](rom_dump_handoff.md)
@@ -313,13 +319,45 @@ normal weight.
 
 Paper-feed motor details from service manual Figure 2-47:
 
-- The paper-feed motor is a 4-phase, 48-step stepper motor.
+- The paper-feed motor is a 4-phase, 48-pole stepper motor.
+- Drive voltage is `24 VDC +10%`; coil resistance is `58 ohms +/- 7%` at
+  `25 C`.
+- Current is `1.1 A` max/rush, `0.30 A` typical while driving, and
+  `0.06 A +/- 20 mA` while holding.
+- The motor drive frequency is `400 PPS`, matching one phase switch every
+  `2.5 ms`.
 - It uses 2-2 phase excitation and open-loop CPU control.
 - Each phase switch advances paper by `1/180` inch.
 - `PB2` is the active-low paper-feed drive signal: low turns Q27 on and
   supplies `+24 V`; when not driven, `+5 V` is supplied through `R36`/`D11` to
   hold the motor.
 - `PB3` is phase A/B and `PB4` is phase C/D.
+
+Paper-feed 2-2 excitation sequence:
+
+| Step | `PB3` | `PB4` | A phase | B phase | C phase | D phase |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | H | H | ON | OFF | ON | OFF |
+| 1 | H | L | ON | OFF | OFF | ON |
+| 2 | L | L | OFF | ON | OFF | ON |
+| 3 | L | H | OFF | ON | ON | OFF |
+
+The listed excitation order is clockwise and feeds paper forward.
+Counterclockwise rotation feeds paper in reverse.
+
+Paper-feed acceleration/deceleration timing:
+
+| Stage | Set time |
+| --- | --- |
+| `tc1` | `3.33 ms` |
+| `tc2` | `2.87 ms` |
+| `tc3` | `2.65 ms` |
+| `tc4` | `2.53 ms` |
+| `t` | `2.50 ms` |
+
+Deceleration uses the reverse timing order. Timing accuracy is `+200 us` /
+`-50 us`. If the move is less than 10 steps, the speed is neither accelerating
+nor decelerating.
 
 ## Command Set
 

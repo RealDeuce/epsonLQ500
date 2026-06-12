@@ -4,7 +4,7 @@
     "date": "2026-06-12",
     "operator": "",
     "programmer": "Xgecu T48, minipro 0.7.4",
-    "notes": "3C M25A10PA T1 was first inserted according to inferred markings and read as all 0xff under multiple 27C256-compatible profiles. Reversing the chip orientation produced plausible data; two read-only 27C256@DIP28 reads matched byte-for-byte. 4C M10A10LA EDH was read successfully as 27C256@DIP28 and also as a stable 27C512@DIP28 two-bank test. Chip ID reads reported 0x0000, expected for these custom mask ROMs or unsupported ID path."
+    "notes": "3C M25A10PA T1 was first inserted according to inferred markings and read as all 0xff under multiple 27C256-compatible profiles. Reversing the chip orientation produced plausible data; two read-only 27C256@DIP28 reads matched byte-for-byte. 4C M10A10LA EDH was first read successfully as 27C256@DIP28 and as a stable 27C512@DIP28 A16-low bank. Native T48 AT27C011/D27C011 reads mirrored that 64 KB bank, but patched custom PROM bitbang profiles captured a distinct pin-22-high/A16-high bank and a complete 128 KB image. Chip ID reads reported 0x0000, expected for these custom mask ROMs or unsupported ID path."
   },
   "dumps": [
     {
@@ -32,24 +32,36 @@
       "notes": "Program PROM dump. Disassembled with ../mame/unidasm -arch upd7810 -basepc 0x0000. First bytes decode as DI; JMP $0180, matching a plausible uPD7810 reset/vector table."
     },
     {
-      "filename": "roms/lq500_4c_m10a10la_cg_candidate.bin",
+      "filename": "roms/lq500_4c_m10a10la_cg_128k_custom_prom.bin",
       "board_location": "4C",
-      "manual_region": "resident_CG_candidate",
-      "expected_size": "manual evidence suggests at least 64 KB may be relevant; board text includes IM/256 Kbit MASK / ?256PROM, but 4C pin 1 is not tied high and 27C512 read exposes two stable 32 KB banks",
+      "manual_region": "resident_CG",
+      "expected_size": "128 KB / 1 Mbit. Schematic evidence identifies 4C pin 1 as A15, J5 ties A15 to BK2 on the 6C E01A05KA, J6 wires pin 20 /CE, and the hard-to-read A16/OE label appears to be A16 wired to BK3. A patched minipro custom PROM profile that treats pin 22 as A16 produced a 128 KB image whose low half matches the stable 27C512 capture and whose high half matches a repeated pin-22-high custom read.",
       "chip_markings": "EPSON (C) 1997 / JAPAN 871 / M10A10LA EDH",
       "package": "DIP28",
-      "programmer_device_type": "27C256@DIP28",
-      "actual_size_bytes": 32768,
-      "crc32": "a9b738e0",
-      "posix_cksum": "4161721624 32768",
-      "sha1": "58c089c14cfa2320008781367578b45f60436880",
-      "sha256": "ef2af1dfc61d5884e86ccf8f6be7782b0683583806fe7ae9b801079413db65fc",
+      "programmer_device_type": "LQ500_4C_A16_PIN22@DIP28 custom PROM profile on patched minipro/T48",
+      "actual_size_bytes": 131072,
+      "crc32": "a482d81c",
+      "posix_cksum": "3600394045 131072",
+      "sha1": "7c85fdca1fa388e2a0f21795bd239a9daf04f4f6",
+      "sha256": "67b2fecb5e90c410dc17562fd344ffe793aefd6bd563ff4d89b89322a8fac303",
       "multiple_reads_match": true,
       "read_files": [
-        "roms/lq500_4c_m10a10la_cg_candidate_read1.bin",
-        "roms/lq500_4c_m10a10la_cg_candidate_read2.bin"
+        "roms/lq500_4c_m10a10la_cg_128k_custom_prom.bin",
+        "roms/lq500_4c_m10a10la_cg_candidate_27c512_test.bin",
+        "roms/lq500_4c_m10a10la_pin22_high_custom_prom.bin"
       ],
       "test_reads": [
+        {
+          "filename": "roms/lq500_4c_m10a10la_cg_candidate.bin",
+          "programmer_device_type": "27C256@DIP28",
+          "actual_size_bytes": 32768,
+          "crc32": "a9b738e0",
+          "posix_cksum": "4161721624 32768",
+          "sha1": "58c089c14cfa2320008781367578b45f60436880",
+          "sha256": "ef2af1dfc61d5884e86ccf8f6be7782b0683583806fe7ae9b801079413db65fc",
+          "repeated_read_match": true,
+          "interpretation": "Original 27C256-compatible read. It matches the A15-high 32 KB quarter of the 128 KB custom PROM capture."
+        },
         {
           "filename": "roms/lq500_4c_m10a10la_cg_candidate_27c512_test.bin",
           "programmer_device_type": "27C512@DIP28",
@@ -65,7 +77,7 @@
               "crc32": "3d0bfaa2",
               "sha1": "56b80fcc01b60313fc6754ef1e2072d273d2e25b",
               "sha256": "6517c81083033faed20f1d8ca5139783cb57fa41fa6b56b64a118cc870f53be9",
-              "notes": "Stable across repeated 27C512 reads. Contains plausible bitmap/font data and Draft strings. Because 4C pin 1 is not tied to VCC like 3C pin 1, this may be a real selected bank or mode and should be preserved for analysis."
+              "notes": "Stable across repeated 27C512 reads. Contains plausible bitmap/font data and Draft strings. Schematic evidence reportedly identifies 4C pin 1 as A15, so this is the low 32 KB address half of the 64 KB read."
             },
             {
               "filename": "roms/lq500_4c_m10a10la_pin1_high_bank.bin",
@@ -74,13 +86,35 @@
               "crc32": "a9b738e0",
               "sha1": "58c089c14cfa2320008781367578b45f60436880",
               "sha256": "ef2af1dfc61d5884e86ccf8f6be7782b0683583806fe7ae9b801079413db65fc",
-              "notes": "Matches the canonical 27C256@DIP28 dump exactly."
+              "notes": "Matches the canonical 27C256@DIP28 dump exactly. Schematic evidence reportedly identifies 4C pin 1 as A15, so this is the high 32 KB address half of the 64 KB read."
             }
           ],
-          "interpretation": "Upper 32768 bytes match the original 27C256@DIP28 dump exactly; lower 32768 bytes are different stable output when the 27C512 profile drives pin 1 low. A board continuity check found 4C pin 1 is not tied to VCC/pin 28, unlike 3C. Combined with the manual's 1M CG/banked-CG evidence, treat the 65536-byte 27C512 read as the current best complete 4C capture unless tracing or a 27C011-style 128 KB read proves otherwise."
+          "interpretation": "Upper 32768 bytes match the original 27C256@DIP28 dump exactly; lower 32768 bytes are different stable output when the 27C512 profile drives pin 1/A15 low. A board continuity check found 4C pin 1 is not tied to VCC/pin 28, unlike 3C, and the schematic reportedly confirms pin 1 is A15. The schematic/jumper trace shows J5 tying pin 1/A15 to BK2 on the 6C E01A05KA, J6 wiring pin 20 /CE, and the hard-to-read A16/OE label appears to be A16 wired to BK3. This 65536-byte read is the stable 4C A16-low image."
+        },
+        {
+          "filename": "roms/lq500_4c_m10a10la_pin22_high_custom_prom.bin",
+          "programmer_device_type": "LQ500_4C_PIN22_HIGH@DIP28 custom PROM profile on patched minipro/T48",
+          "actual_size_bytes": 65536,
+          "crc32": "d9caaca8",
+          "posix_cksum": "2305131511 65536",
+          "sha1": "d5d70c8591043ea9fa325e11687e2b30d4611394",
+          "sha256": "f707ccb88aeca8cc0993fedae725ef8be2bd946ff2b21e981b1b3fe9b0e7bb61",
+          "repeated_read_match": true,
+          "interpretation": "Custom bitbang PROM read with pin 20 low and pin 22 held high. Two reads matched byte-for-byte. This 65536-byte read is the stable 4C A16-high image."
+        },
+        {
+          "filename": "roms/lq500_4c_m10a10la_cg_candidate_27c011_test.bin",
+          "programmer_device_type": "AT27C011@DIP28 on T48; D27C011@DIP28 also tested and matched",
+          "actual_size_bytes": 131072,
+          "crc32": "7e1e80b2",
+          "posix_cksum": "2115964658 131072",
+          "sha1": "5a0b345da366aa4c18cbd022cb60093902425731",
+          "sha256": "dd8543e4a5713a76193a6e329cbca364bc8eb21d511ef9ab6726e87af775dddc",
+          "repeated_read_match": true,
+          "interpretation": "T48 accepted both AT27C011@DIP28 and D27C011@DIP28 reads despite minipro -d reporting those profiles as T56-only. Both 128 KB reads matched each other exactly. Splitting the result into 64 KB halves gives two byte-for-byte copies of the 27C512 capture; splitting into 32 KB quarters gives A15-low, A15-high, A15-low, A15-high. This does not expose distinct BK3/A16 data."
         }
       ],
-      "notes": "Resident CG/font ROM candidate. Byte patterns look like glyph data. The pin1-high/original-27C256 bank includes Draft and Roman strings; the pin1-low bank includes Draft strings. Chip ID mismatch/0x0000 was bypassed with -y. Need trace 4C pin 1 to determine whether this is a bank select, mode select, or custom mask-ROM behavior. A 128 KB DIP28 27C011-style possibility remains untested on the T48 because those profiles are T56-only."
+      "notes": "Resident CG/font ROM. Byte patterns look like glyph data. The A16-low/A15-high/original-27C256 quarter includes Draft and Roman strings; the A16-low/A15-low quarter includes Draft strings; the A16-high bank includes Sans Serif strings at full-image offsets 164CBh, 18E13h, 1A570h, and 1C5D3h. Chip ID mismatch/0x0000 was bypassed with -y. Native T48 27C011-style reads did not toggle the relevant pin for this custom mask ROM, but patched custom PROM bitbang profiles captured a distinct pin-22-high bank and a 128 KB image ordered as A16-low followed by A16-high."
     },
     {
       "filename": "roms/lq500_5c_4m_cg.bin",

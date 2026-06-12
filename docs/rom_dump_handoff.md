@@ -64,7 +64,7 @@ the workspace loss.
     and other option mechanisms are lower priority unless they share these
     output paths.
     - paper-feed hardware anchor from service manual Figure 2-47: the paper
-      feed motor is a 4-phase, 48-step motor using 2-2 phase excitation. One
+      feed motor is a 4-phase, 48-pole motor using 2-2 phase excitation. One
       phase switch advances paper `1/180` inch. `PB2` is active-low drive:
       low turns Q27 on and supplies `+24 V`; when not driven, `+5 V` is
       supplied through `R36`/`D11` for hold. `PB3` is phase A/B and `PB4` is
@@ -120,8 +120,12 @@ the workspace loss.
       - SHA1: `56b80fcc01b60313fc6754ef1e2072d273d2e25b`
     - continuity finding: 3C pin 1 has continuity to 3C pin 28/VCC, but 4C
       pin 1 does not. 4C pin 28 does have continuity to 3C pin 1 and pin 28.
-      Therefore 4C pin 1 may be a real select/mode line; do not dismiss the
-      pin-1-low bank as an invalid read until pin 1 is traced.
+    - schematic cross-check: the 4C schematic reportedly identifies pin 1 as
+      `A15`, confirming that the `27C512@DIP28` pin-1-low/high halves are real
+      low/high `A15` halves. The schematic/jumper trace now points to a banked
+      1 Mbit arrangement: `J5` ties pin 1 / `A15` to `BK2` on `6C` E01A05KA,
+      `J6` wires pin 20 `/CE`, and the hard-to-read `A16/OE` label appears to
+      be `A16` wired to `BK3`, not `/OE`.
     - manual cross-check: the technical manual memory map labels the resident
       CG select as `1M CG` in the 4C/2C area, and the address decoder uses
       gate-array bank lines for CG windows. That is evidence for more than a
@@ -129,10 +133,39 @@ the workspace loss.
       `256 Kbit`.
   - note: the dump has bitmap-like two-byte patterns and embedded strings
     including `Draft` and `Roman`, so it is very likely resident CG/font data.
-    The pin-1-low bank has `Draft` strings; the pin-1-high/canonical bank has
-    `Draft` and `Roman` strings. `Sans serif` appears in the 3C program ROM's
-    DIP-switch menu text, but has not yet appeared as a plain ASCII label in
-    the 4C CG banks.
+    The A15-low half has `Draft` strings; the A15-high/canonical half has
+    `Draft` and `Roman` strings. The pin-22-high/A16-high bank includes
+    `Sans Serif` strings at full-image offsets `164CBh`, `18E13h`, `1A570h`,
+    and `1C5D3h`.
+  - `AT27C011@DIP28` and `D27C011@DIP28` test reads on the T48 completed even
+    though `minipro -d` reports those profiles as T56-only. Both produced the
+    same 131072-byte file:
+    `roms/lq500_4c_m10a10la_cg_candidate_27c011_test.bin`
+    - CRC32: `7e1e80b2`
+    - POSIX cksum: `2115964658 131072`
+    - SHA1: `5a0b345da366aa4c18cbd022cb60093902425731`
+    - SHA256: `dd8543e4a5713a76193a6e329cbca364bc8eb21d511ef9ab6726e87af775dddc`
+    - result: the 128 KiB image is exactly the 64 KiB `27C512` capture
+      repeated twice. As 32 KiB quarters it is A15-low, A15-high, A15-low,
+      A15-high. This does not expose distinct `BK3`/`A16` data.
+  - patched minipro custom PROM reads captured the missing pin-22/A16 state:
+    - `LQ500_4C_PIN22_HIGH@DIP28` reads 65536 bytes with pin 20 low and pin 22
+      held high. Two reads matched byte-for-byte.
+    - pin-22-high file:
+      `roms/lq500_4c_m10a10la_pin22_high_custom_prom.bin`
+      - CRC32: `d9caaca8`
+      - POSIX cksum: `2305131511 65536`
+      - SHA1: `d5d70c8591043ea9fa325e11687e2b30d4611394`
+      - SHA256: `f707ccb88aeca8cc0993fedae725ef8be2bd946ff2b21e981b1b3fe9b0e7bb61`
+    - `LQ500_4C_A16_PIN22@DIP28` treats pin 22 as `A16` and reads 131072
+      bytes. Its first 65536 bytes match the stable `27C512@DIP28` capture,
+      and its second 65536 bytes match the repeated pin-22-high read.
+    - full 128 KiB file:
+      `roms/lq500_4c_m10a10la_cg_128k_custom_prom.bin`
+      - CRC32: `a482d81c`
+      - POSIX cksum: `3600394045 131072`
+      - SHA1: `7c85fdca1fa388e2a0f21795bd239a9daf04f4f6`
+      - SHA256: `67b2fecb5e90c410dc17562fd344ffe793aefd6bd563ff4d89b89322a8fac303`
 - Recovered technical/service manual: `epsonlq-500servicemanual.pdf`.
 - CPU from the technical manual: NEC uPD7810HG at board location `4B`.
 - Disassembler available locally: `../mame/unidasm`.
@@ -147,9 +180,10 @@ the workspace loss.
   - `lq500_sl.pdf`
 
 Manual extraction is complete enough for command and font naming work. Program
-ROM and the populated 4C resident CG/font ROM candidate are now dumped. Treat
-the 64 KiB `27C512@DIP28` read as the current best complete 4C capture until
-4C pin 1 is traced or a 128 KiB `27C011`-style read is possible.
+ROM and the populated `4C` resident CG/font ROM are now dumped. The complete
+`4C` image is the 128 KiB custom PROM read
+`roms/lq500_4c_m10a10la_cg_128k_custom_prom.bin`; native T48 `27C011`-style
+reads are known to mirror only the A16-low 64 KiB bank.
 
 ## Expected Chips And Regions
 
@@ -188,11 +222,12 @@ Working hypothesis:
 
 - `M25A10PA` is the `3C` program PROM. The `25` marking plausibly corresponds
   to a 256 kbit / 32 KB mask PROM, matching the manual's internal PROM size.
-- `M10A10LA` is the `4C` resident CG ROM candidate. The stable 64 KiB
-  `27C512@DIP28` read is the current best capture. The `10` marking and the
-  manual's `1M CG` label leave a 1 Mbit / 128 KiB possibility open, but this
-  is not proven without tracing `4C` pin 1 / higher address selection or
-  making a suitable `27C011`-style read.
+- `M10A10LA` is the `4C` resident CG ROM. The patched minipro custom PROM read
+  captured it as 128 KiB. The schematic reportedly confirms `4C` pin 1 is
+  `A15`, so each 64 KiB A16 bank has valid low/high `A15` halves. The
+  schematic/jumper trace also shows `J5` tying pin 1 / `A15` to `BK2`, `J6`
+  wiring pin 20 `/CE`, and the hard-to-read `A16/OE` label appears to be
+  `A16` wired to `BK3`.
 
 Treat this as a hypothesis until the actual board location and dump sizes
 confirm it.
@@ -250,6 +285,28 @@ part numbers, so these are compatible read-profile guesses:
   devices, but also says they are available on T56 only. With a T48, try
   `27C512@DIP28` to test a 64 KB read, but do not assume that proves the full
   capacity if the chip is actually 128 KB.
+
+The native EPROM XML entries do not expose an `OE` polarity knob. To test
+whether the `4C` `BK3`/pin-22 state can be captured by holding that pin high,
+use [`../patches/minipro-lq500-4c-custom-prom.patch`](../patches/minipro-lq500-4c-custom-prom.patch).
+It adds two custom PROM bitbang profiles to the T48/`INFOIC2PLUS` database:
+
+```sh
+git -C /usr/ports/sysutils/minipro/work/minipro-f124338492a3937dbf02f9c4bc5219892f10481e apply /usr/home/admin/T400/lq500/patches/minipro-lq500-4c-custom-prom.patch
+```
+
+After rebuilding/running that patched minipro, the useful read attempts are:
+
+```sh
+minipro -p 'LQ500_4C_PIN22_HIGH@DIP28' -y -r roms/lq500_4c_m10a10la_pin22_high_custom_prom.bin
+minipro -p 'LQ500_4C_A16_PIN22@DIP28' -y -r roms/lq500_4c_m10a10la_cg_128k_custom_prom.bin
+```
+
+`LQ500_4C_PIN22_HIGH@DIP28` reads 64 KiB with pin 20 low and pin 22 high; this
+captured a stable bank distinct from the existing 64 KiB `27C512` capture.
+`LQ500_4C_A16_PIN22@DIP28` treats pin 22 as `A16` and captured a single 128 KiB
+read ordered as the old `27C512` A16-low bank followed by the pin-22-high
+A16-high bank.
 
 Only perform read operations. If two compatible profiles produce byte-identical
 files of the expected size, keep the simpler generic profile name in the
