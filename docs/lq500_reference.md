@@ -306,7 +306,9 @@ Manual-described button combinations:
 | ON LINE + FORM FEED + LINE FEED/AUTO LOAD | Bidirectional adjustment mode |
 
 The service manual says the self-test prints the firmware revision first, then
-the current DIP switch settings.
+the current DIP switch settings. Firmware tracing shows the selected settings
+are printed in emphasized/bold mode, while the unselected alternatives remain in
+normal weight.
 
 ## Command Set
 

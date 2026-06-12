@@ -1,0 +1,47 @@
+selector	address	text	selected_by	manual_switch
+0x00	0x6230	Country          SW1-1 1-2 1-3	header	-
+0x01	0x6250	  USA              on  on  on	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x02	0x6270	  France           on  on  off	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x03	0x6290	  Germany          on  off on	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x04	0x62B0	  U.K.             on  off off	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x05	0x62D0	  Denmark          off on  on	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x06	0x62F0	  Sweden           off on  off	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x07	0x6310	  Italy            off off on	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x08	0x6330	  Spain            off off off	VV00 bits 0-2 via 0x7693	SW1-1..SW1-3
+0x00	0x6350	Font             SW1-4 1-5	header	-
+0x09	0x6370	  Roman            off off	VV00 bits 3-4 via 0x76A6	SW1-4..SW1-5
+0x0A	0x6390	  Sans serif       on  off	VV00 bits 3-4 via 0x76A6	SW1-4..SW1-5
+0x0B	0x63B0	  Slot             off on	VV00 bits 3-4 via 0x76A6	SW1-4..SW1-5
+0x0C	0x63D0	  Draft            on  on	VV00 bits 3-4 via 0x76A6	SW1-4..SW1-5
+0x00	0x63F0	Condensed        SW1-6	header	-
+0x0D	0x6410	  Invalid          off	VV00 bit 5	SW1-6
+0x10	0x6430	  Valid            on	VV00 bit 5	SW1-6
+0x00	0x6450	CG table         SW1-7	header	-
+0x17	0x6470	  Italic           off	VV00 bit 6	SW1-7
+0x18	0x6490	  Graphic          on	VV00 bit 6	SW1-7
+0x00	0x64B0	CSF mode         SW1-8	header	-
+0x13	0x64D0	  Invalid          off	VV00 bit 7	SW1-8
+0x14	0x64F0	  Valid            on	VV00 bit 7	SW1-8
+0x00	0x6510	Page length      SW2-1	header	-
+0x19	0x6530	  11"              off	VV01 bit 0	SW2-1
+0x1A	0x6550	  12"              on	VV01 bit 0	SW2-1
+0x00	0x6570	CSF page length  SW2-2	header	-
+0x1B	0x6590	  61 Lines         off	VV01 bit 1	SW2-2
+0x1C	0x65B0	  65 Lines         on	VV01 bit 1	SW2-2
+0x00	0x65D0	1"Skip           SW2-3	header	-
+0x11	0x65F0	  Invalid          off	VV01 bit 2	SW2-3
+0x12	0x6610	  Valid            on	VV01 bit 2	SW2-3
+0x00	0x6630	Auto LF          SW2-4	header	-
+0x15	0x6650	  Invalid          off	VV01 bit 3	SW2-4
+0x16	0x6670	  Valid            on	VV01 bit 3	SW2-4
+0x00	0x6690	Receive buffer   SW2-5	header	-
+0x1D	0x66B0	  1kbytes          off	VV01 bit 4	SW2-5
+0x1E	0x66D0	  8kbytes          on	VV01 bit 4	SW2-5
+0x00	0x66F0	Graphics print   SW2-6	header	-
+0x1F	0x6710	  Uni-d            off	VV01 bit 5	SW2-6
+0x20	0x6730	  Bi-d             on	VV01 bit 5	SW2-6
+0x00	0x6750	Pitch            SW2-7 2-8	header	-
+0x2B	0x6770	  10 pitch         off off	VV01 bits 6-7 via 0x76B4	SW2-7..SW2-8
+0x2C	0x6790	  12 pitch         on  off	VV01 bits 6-7 via 0x76B4	SW2-7..SW2-8
+0x2D	0x67B0	  15 pitch         off on	VV01 bits 6-7 via 0x76B4	SW2-7..SW2-8
+0x2E	0x67D0	  Proportional     on  on	VV01 bits 6-7 via 0x76B4	SW2-7..SW2-8

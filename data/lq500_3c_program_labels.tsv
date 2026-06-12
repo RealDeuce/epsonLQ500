@@ -103,7 +103,8 @@ address	label	kind	confidence	notes
 0x5794	unused_ff_gap_5794_5fff	data	high	Long 0xFF fill from 0x5794 through 0x5FFF.
 0x6000	byte_identity_table_00_ff	data	high	Full 0x00-0xFF byte table.
 0x6100	selftest_and_menu_strings	data	high	String/data block: L5217B, Data Dump Mode, CSF messages, DIP-switch/menu text.
-0x6211	dip_menu_fixed_width_strings	data	high	FF-delimited fixed-width menu strings for DIP-switch printout.
+0x61AA	selftest_status_string_pointer_table	data	high	Two-column pointer table consumed by 0x75C7; each row supplies left and right status strings, ending with 0000h.
+0x6230	selftest_status_selector_strings	data	high	Fixed-width DIP/status strings; first byte is a selector ID, followed by FF-delimited printable text.
 0x6854	character_set_or_translation_tables	data	medium	Non-code tables after menu strings; includes visible character-set fragments.
 0x6944	dispatch_control_or_esc_command	code	high	Command-table dispatcher. Pushes 0x400B as the loop return, scans byte/target tables, and jumps to matched command handlers.
 0x695B	dispatch_esc_command_after_esc	code	high	ESC handler from the primary table: reads the next byte with 0x0AB2 and dispatches through the ESC table at 0x699C.
@@ -119,9 +120,17 @@ address	label	kind	confidence	notes
 0x7493	select_print_state_for_character	code	medium	Selects current/alternate font state into VV21/VV22 based on character range, then checks bounds via 0x4173.
 0x74CB	draft_self_test_entry	code	high	Power-on LINE FEED/AUTO LOAD self-test path; sets VV23 bit 0x04 before common self-test printing.
 0x74CF	letter_quality_self_test_entry	code	high	Power-on FORM FEED self-test path; clears VV23 bit 0x04 before common self-test printing.
-0x755D	print_ff_or_nul_terminated_string	code	high	Prints bytes from HL until 0x00/0xFF, using A/C mode and char-output helpers.
+0x7552	print_selftest_firmware_header	code	high	Prints the 0x6100 L5217B firmware header string, then advances output through 0x2011.
 0x7557	print_string_then_output_advance	code	medium	Calls 0x755D then jumps to 0x2011.
+0x755D	print_ff_or_nul_terminated_string	code	high	Prints bytes from HL until 0x00/0xFF, using A/C mode and char-output helpers.
 0x7594	copy_string_to_ff00_then_print	code	medium	Copies a source string to 0xFF00 then prints via 0x755D.
+0x75C7	print_selftest_status_table	code	high	Saves current style, builds selected status IDs, prints the two-column 0x61AA table, then restores VV22/VV23/VV24.
+0x760A	build_selftest_selected_status_ids	code	high	Builds up to twelve selected DIP/status selector IDs in FF00 from VV00/VV01 before the status table is printed.
+0x7693	map_country_dip_bits_to_selector_index	code	medium	Reorders VV00 bits 0-2 into an index used to select one of the country selector IDs.
+0x76A6	map_font_dip_bits_to_selector_index	code	medium	Builds the font selector index from VV00 bits 3-4.
+0x76B4	map_pitch_dip_bits_to_selector_index	code	medium	Builds the pitch selector index from VV01 bits 6-7.
+0x76C2	print_status_string_bold_if_selected	code	high	Reads a selector-prefixed status string, keeps VV24 bit 0x10 emphasized/bold set only when the selector is present in FF00, then prints the string.
+0x76DE	print_status_column_spacing	code	medium	Prints repeated spacing strings from 0x618E unless the high bit says no spacing.
 0x7719	data_dump_mode_routine	code	high	Prints strings at 0x6116/0x612E/0x613C/0x615E; handles data-dump paper length flow.
 0x7818	bidirectional_adjustment_mode	code	high	Prints 0x7A18 'Bi-d Adjustment Mode', VR strings, reads panel/sensor input.
 0x7A18	bidirectional_adjustment_strings	data	high	FF-delimited strings: Bi-d Adjustment Mode, VR1, VR2, out of range.

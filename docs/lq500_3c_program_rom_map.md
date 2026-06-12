@@ -9,6 +9,7 @@ Source dump:
 - First-pass labels: `data/lq500_3c_program_labels.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
+- Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
 - Editable trace roots: `data/lq500_3c_trace_roots.tsv`
 
@@ -182,7 +183,8 @@ Important FF-delimited strings:
 | `617Fh` | `(8.5mm)` |
 | `6187h` | `(22mm)` |
 | `6190h-61A8h` | Pitch names: `10`, `12`, `15`, `Proportional` |
-| `6231h-67EEh` | DIP-switch and menu-print strings. |
+| `61AAh-620Dh` | Self-test status pointer table: two pointers per printed row, ending with `0000h`. |
+| `6230h-67EFh` | Selector-prefixed DIP/status strings. The first byte is matched against selected IDs in `FF00h`; matching rows print emphasized/bold. |
 | `7A18h` | `Bi-d Adjustment Mode` |
 | `7A2Dh` | `VR1 = ` |
 | `7A34h` | `VR2 = ` |

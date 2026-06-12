@@ -48,6 +48,30 @@ Known bit-level handles:
 | `PA bit 20h` | Used by feed/mechanism setup flows around `51F7h-5241h`; likely paper/feed related, not fully named yet. |
 | `PA bit 00h` / `PB bit 80h` | Written by `7B52h` during service/adjustment UI setup. |
 
+## Self-Test Status Header
+
+The LINE FEED/AUTO LOAD and FORM FEED power-on paths share the same status
+printer after selecting draft or letter-quality mode. The flow is:
+
+| Address | Role |
+| --- | --- |
+| `74CBh` | Draft self-test entry; sets `VV23.2`. |
+| `74CFh` | Letter Quality self-test entry; clears `VV23.2`. |
+| `7552h` | Prints the `6100h` firmware header string (`L5217B`) and advances output. |
+| `75C7h` | Saves `VV22`/`VV23`/`VV24`, selects the status print style, walks the two-column pointer table at `61AAh`, and restores the previous style. |
+| `760Ah` | Builds the selected status selector IDs in `FF00h` from `VV00`/`VV01`. |
+| `76C2h` | Prints one selector-prefixed status string, emphasized only when its selector byte is present in the `FF00h` selected-ID list. |
+
+This explains the manual's "prints current DIP switch settings" behavior. The
+strings at `6230h-67EFh` contain all possible values, while `760Ah` chooses one
+selector per status group. `76C2h` sets `VV24.4` before printing each value and
+clears it only for unselected values, so the selected row is printed in
+emphasized/bold mode. It is not using the double-strike flag; `VV24.6` is the
+separate `ESC G`/`ESC H` double-strike bit.
+
+The extracted selector text is mirrored in
+`data/lq500_3c_selftest_status_selectors.tsv`.
+
 ## Input Pipeline
 
 The host input path from the candidate parallel ISR to the parser now has a
