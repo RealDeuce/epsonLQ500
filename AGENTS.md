@@ -40,6 +40,8 @@ manual notes, or hardware measurements.
   `72B3h-72D8h` carriage scheduler records copied to `EF7C..EF80`.
 - `data/lq500_3c_carriage_scheduler_contexts.tsv`: callers and runtime-state
   paths around the normal `56C8h-5712h` carriage scheduler.
+- `data/lq500_3c_vv3a_mode_selector.tsv`: shared `VV3A`/`VV6F` selector
+  values across carriage TM1 records and render geometry tables.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 - `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
   for custom `4C` pin-22/A16 read experiments.

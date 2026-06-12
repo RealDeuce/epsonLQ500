@@ -296,6 +296,14 @@ The runtime queue around `FFB0h + 15*slot` can restore the same 15-byte state
 into either `EF38..EF46` or the live `EF6D..EF7B` window; see
 `data/lq500_3c_carriage_scheduler_contexts.tsv`.
 
+`VV3A` is the shared low-level mode selector behind this. Render code masks
+`VV3A & 07h` for the `7307h`/`730Fh`/`7317h` geometry tables, while scheduler
+state copies put the same selector byte into `VV6F` for the carriage TM1 record
+selection. `563Ch` also uses `VV6F.1` as a count-scale bit: when set, `EF64` is
+halved before being saved as `EF79`. The current side-by-side selector map is in
+`data/lq500_3c_vv3a_mode_selector.tsv`; exact user-facing speed/excitation mode
+names still need correlation to the `F003h` helper callers.
+
 ### Head / Pin Firing
 
 `F004h/F005h` look like the head-interface registers. `045Dh` initializes

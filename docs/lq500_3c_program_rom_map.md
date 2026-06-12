@@ -13,6 +13,7 @@ Source dump:
 - Carriage path trace: `data/lq500_3c_carriage_path.tsv`
 - Carriage sequence records: `data/lq500_3c_carriage_sequence_records.tsv`
 - Carriage scheduler contexts: `data/lq500_3c_carriage_scheduler_contexts.tsv`
+- Shared `VV3A`/`VV6F` mode selector: `data/lq500_3c_vv3a_mode_selector.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
