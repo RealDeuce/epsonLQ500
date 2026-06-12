@@ -118,8 +118,9 @@ the workspace loss.
       carriage timing tables around `7287h`/`72AFh`, pulses `0908h`/`PC7`/`TM`,
       and selects four carriage-current states at `546Ah`, `5474h`, `547Eh`,
       and `5488h`. The current-control shape matches the service manual's
-      `PB5`/`PB6`/`SPDH` table, except firmware uses `PA & 02h` where the
-      manual labels the third selector as `PB1`/`SPDH`.
+      `PB5`/`PB6 SPDM`/`PB1 SPDH` table, with `SPDM`/`SPDH` likely meaning
+      speed medium/high current-select inputs. Firmware uses `PA & 02h` where
+      the manual labels the third selector as `PB1`/`SPDH`.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`

@@ -265,7 +265,7 @@ manual table address instead.
 | `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed seek sequence at `5253h`. |
 | `5253h` | `startup_carriage_home_seek_timed_sequence` | Selects current state `547Eh`, walks carriage timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, pulses `PC7` through `0908h`, then restores hold state `546Ah`. |
 | `5306h` | `sample_home_pa20_during_carriage_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times, matching the manual's startup home-position sampling description. |
-| `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four PA/PB output states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`. These match the manual's carriage-current control shape, except the manual labels the third selector as `PB1`/`SPDH` while firmware manipulates `PA & 02h`. |
+| `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four PA/PB output states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`. These match the manual's carriage-current control shape, except the manual labels the third selector as `PB1`/`SPDH`, likely speed high, while firmware manipulates `PA & 02h`. |
 
 The carriage startup seek now explains the old PA20 path. The service manual
 describes checking the HOME signal during initialization after a timed 2-2 phase
@@ -321,7 +321,7 @@ with carriage motion.
 | `51F7h` | `startup_carriage_home_seek_entry` | Startup-only carriage home-seek path. Branches on the `PA bit 20h` HOME candidate, seeds `VV61` with carriage direction/mode values, and calls the timed seek sequence at `5253h`. |
 | `5253h` | `startup_carriage_home_seek_timed_sequence` | Walks carriage timing tables around `7287h`/`72AFh`, samples HOME through `5306h`, pulses the carriage gate-array `TM` input through `0908h`, and selects carriage current states through `546Ah`/`547Eh`. |
 | `5306h` | `sample_home_pa20_during_carriage_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
-| `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four carriage-current control states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`; this matches the service-manual current-control shape aside from the unresolved `PA02` versus manual `PB1`/`SPDH` label mismatch. |
+| `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four carriage-current control states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`; this matches the service-manual current-control shape aside from the unresolved `PA02` versus manual `PB1`/`SPDH` speed-high selector label mismatch. |
 
 The candidate phase outputs are:
 
