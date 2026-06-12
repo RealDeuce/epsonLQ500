@@ -6,7 +6,7 @@ Source dump:
 - CRC32 `cf3ba9da`
 - SHA1 `7275ef3547ad1bbb12210d626c796a827f308bb6`
 - Disassembly: `roms/lq500_3c_m25a10pa_internal_prom.asm`
-- First-pass labels: `data/lq500_3c_program_labels.csv`
+- First-pass labels: `data/lq500_3c_program_labels.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
 - Editable trace roots: `data/lq500_3c_trace_roots.tsv`
@@ -42,7 +42,7 @@ firmware uses external windows and buffers outside this ROM:
 | `0080h-00BFh` | `CALT` fast-call area | Many one-byte `CALT` calls target `0080h-00BEh`. Needs target-by-target alignment work. |
 | `0180h-02FFh` | Reset/boot sequence | Initializes stack/MM/V page, clears memory, probes optional external PROM, reads gate-array state, and derives initial DIP/status bits. |
 | `038Bh-0571h` | Initialization and memory/window probes | Clears RAM state, initializes ports/timers/gate-array registers, probes `8000h` bank/window, computes page checksums. |
-| `0582h-09C1h` | Interrupt handlers and mechanism dispatch | ISRs buffer data from `F000h`/`RXB`, manipulate `F001h/F002h`, update timers, and dispatch mechanism state from `VV37`. |
+| `0582h-09C1h` | Interrupt handlers and mechanism dispatch | ISRs buffer data from `F000h`/`RXB`, manipulate `F001h/F002h`, update timers, pulse carriage timing, and run the likely head-data burst ISR. |
 | `0A0Bh-0B3Fh` | Input consumer and small helpers | Includes the shared host-input byte reader at `0A0Bh`, parameter readers, F001 disable sequence, nibble shifts, delay loops, and a direct `F002` write helper at `0B23h`. |
 | `0E8Bh-0F15h` | Buffer/window bounds helpers | Uses `FF00h`, `EE4Ch`, `EE5Ch`, `EE5Eh`, and `EFBF`; likely print-buffer/string bounds logic. |
 | `0F16h-2DE2h` | Core text/render/print logic | Many small mode-flag helpers and high-fan-in rendering routines. This is the least-labeled large code body so far. |
@@ -53,7 +53,7 @@ firmware uses external windows and buffers outside this ROM:
 | `6100h-67FFh` | Self-test/data-dump/menu strings and tables | Contains `L5217B`, `Data Dump Mode`, CSF messages, DIP-switch menu text, pitch text, and pointer/table data. |
 | `6854h-6A59h` | Character set / translation tables | Non-code table data with visible character-set fragments. |
 | `6A5Ah-6FFFh` | Fill | All `0xFF`. |
-| `7007h-721Fh` | Mechanism/output tables | `540Dh` indexes a jump table at `7007h`; `0668h` indexes a CR0 lookup table around `7219h`. |
+| `7007h-721Fh` | Mechanism/output tables | `540Dh` indexes a PA/PB output jump table at `7007h`; `0668h` indexes a CR0 lookup table around `7219h`. |
 | `739Bh-7B73h` | Service/self-test/adjustment code | Includes data-dump mode and bidirectional adjustment mode routines, string printer, and PA/PB output helpers. |
 | `7B74h-7FFFh` | Fill | All `0xFF`. |
 
@@ -66,9 +66,15 @@ firmware uses external windows and buffers outside this ROM:
 | `049Ch` | `memclear_hl_bc` | Simple `A=0; STAX (HL+); DCR C/B` clear loop. |
 | `0582h` | `isr_gate_f000_input_capture_buffer` | Interrupt path reads `F000h` through the gate-array window and stores the byte into the shared `EE20h` input buffer. Candidate parallel-port data path. |
 | `05E2h` | `isr_rxb_host_receive_buffer` | Reads `RXB`, checks `ER`, stores received byte into the `EE20h` buffer with temporary `F002` bank changes. |
+| `08D0h` | `arm_head_f005_burst_output` | Writes `F004=0C0h`, presets alternate-register `BC=F005h`, loads head-data/timing pointers, and arms the timer path. Strong candidate head-fire setup. |
+| `0908h` | `carriage_step_timing_pulse` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters; called by the print ISR and timed motion sequence. |
+| `093Eh` | `carriage_phase_and_position_update` | Rotates carriage phase via `0953h`/`095Fh`, then updates position/state helpers. |
+| `096Ah` | `write_carriage_phase_to_pb18` | Maps `VV16 & 18h` directly to `PB & 18h`; high-confidence carriage phase output. |
+| `0978h` | `isr_head_f005_burst_transfer_reload` | Writes three bytes through alternate-register `BC`, which `08D0h` presets to `F005h`; likely 24-pin head data burst. |
 | `0A0Bh` | `read_next_host_input_byte` | Consumes from the shared input buffer using `EE22h` as the read pointer and `EE1Eh` as the pending count. This is `CALT ($0080)`. |
 | `0B23h` | `write_bank_register_f002` | Single-purpose helper: `MOV ($F002),A; RET`. |
 | `2530h` | `esc_J_immediate_forward_feed` | `ESC J n`: reads one byte and enters the immediate-feed path with a positive distance. |
+| `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry; marks `VV:C1` bits `E0h` and jumps through `1FEAh` into the broader render/advance logic at `256Eh`. |
 | `2568h` | `esc_j_immediate_reverse_feed_fx80_compat` | `ESC j n`: FX-80 compatibility reverse feed; reads one byte and enters the same immediate-feed path with the high byte set to `80h`. |
 | `400Bh` | `main_input_decode_loop` | Top-level loop: read host byte, classify with `4038h`, print if printable, dispatch if command/control. |
 | `4038h` | `classify_input_character_and_select_style_state` | Classifies printable bytes and sets font/style state; printable bytes skip over the command dispatcher. |
@@ -78,6 +84,14 @@ firmware uses external windows and buffers outside this ROM:
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup DIP/panel read. Uses table-driven ADC switch reads and then folds in direct PA bits. |
 | `4F54h` | `read_adc_switch_table_bits` | Consumes compact tables at `4F96h`/`4F9Fh`, samples ADC via `508Dh`, and builds switch bitfields. |
 | `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages/clamps ADC-derived adjustment values used at startup and by bidirectional adjustment mode. |
+| `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`; branches on `PA bit 20h`, sets `VV61` motion mode/direction values, and calls the timed sequence at `5253h`. |
+| `5253h` | `mechanism_pa20_timed_step_sequence` | Drives table-based delays, samples `PA bit 20h` via `5306h`, and selects PA/PB phase states through `546Ah`/`547Eh`. |
+| `540Dh` | `mechanism_output_state_dispatch` | Selects PA/PB phase-output states from `VV37`/`EFxx` state bytes and the jump table at `7007h`. |
+| `546Ah` | `mechanism_phase_state_0_pa_pb_candidate` | One PA/PB actuator state: `PB20=1`, `PA02=1`, `PB40=1`. |
+| `5474h` | `mechanism_phase_state_1_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=1`, `PB40=1`. |
+| `547Eh` | `mechanism_phase_state_2_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=1`, `PB40=0`. |
+| `5488h` | `mechanism_phase_state_3_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=0`, `PB40=1`; target of the `7007h` jump table. |
+| `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before writing `F004=20h`; likely head-fire setup state. |
 | `6944h` | `dispatch_control_or_esc_command` | Count-prefixed command-table scanner; primary table starts at `696Eh`, ESC table at `699Ch`. |
 | `755Dh` | `print_ff_or_nul_terminated_string` | Reads bytes from `HL` until `00h` or `FFh`, outputting through character helpers. |
 | `7719h` | `data_dump_mode_routine` | Uses strings at `6116h`, `612Eh`, `613Ch`, and `615Eh`; clearly handles data-dump paper length messaging. |
@@ -93,13 +107,31 @@ The most important hardware anchors for CG/ROM-bank work are:
   `064Ah`, `065Eh`, `06EEh`) and helper paths (`084Eh`, `086Eh`, `089Fh`,
   `08C6h`, `0A46h`, `0A4Eh`, `0B23h`, `508Dh`, `7594h` reads it).
 - `F003h`: initialized at `0497h`; updated at `0315h`, `0497h`, and `51F2h`.
-- `F004h/F005h`: initialized at `0487h-0492h`, later used around `08D0h` and
-  `5681h`.
+- `F004h/F005h`: initialized at `0487h-0492h`; `08D0h` writes `F004=0C0h`
+  and presets alternate-register `BC=F005h`, while `0978h` writes three bytes
+  through that pointer. `5681h` writes the idle/arm value `F004=20h`.
 
 The `4C` CG dump has a plausible pin-1-low and pin-1-high bank. Firmware
 analysis should look for values written to `F002h` before reads from
 `8000h-9FFFh`/`A000h`, especially routines that call `0B23h`, `508Dh`, or
 directly write `F002h`.
+
+## Mechanical Output Anchors
+
+The current mechanical priority order is paper advance/retard, carriage
+movement, and pin firing. Option mechanisms such as the cut-sheet feeder remain
+lower priority unless they share these paths.
+
+| Mechanism | Best current anchors | Firmware evidence |
+| --- | --- | --- |
+| Carriage movement | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah` | `0908h` pulses `PC bit 7`; `0953h`/`095Fh` rotate `VV16`; `096Ah` maps `VV16 & 18h` to `PB & 18h`. |
+| Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
+| Paper feed / retard candidate | `2530h`, `2534h`, `2568h`, `51F7h`, `5253h`, `5306h`, `540Dh`, `546Ah-5488h` | `ESC J` and FX-80-compatible `ESC j` enter shared feed/advance logic at `2534h`; separately, startup reaches `51F7h-5253h`, which branches on/samples `PA20h` and selects PA/PB phase-output states. |
+
+The paper-feed assignment is still a candidate. The immediate-feed command path
+and the PA20 phase-output path are not yet statically connected, so the PA/PB
+phase table should stay named generically until it is tied to documented feed
+commands or board-level signals.
 
 ## Host Input To Command Parser
 
@@ -174,13 +206,16 @@ Important FF-delimited strings:
    defaults, and VR/adjustment reads.
 2. Correlate `VV00`/`VV01` bits from `4F37h` against the documented DIP switch
    defaults in `docs/lq500_reference.md`.
-3. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
-4. Split `0F16h-2DE2h` into command parsing, font/style state, and glyph fetch
+3. Follow the immediate-feed path from `ESC J`/`ESC j` through `2534h`,
+   `1FEAh`, and `256Eh`, then compare it with the PA20 mechanism sequence at
+   `51F7h-5253h` before deciding whether the PA/PB phase table is paper feed.
+4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
+5. Split `0F16h-2DE2h` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,
    `24D4h`, `26F1h`).
-5. Align and label the `CALT` service stubs.
-6. Cross-reference ESC/P command constants from `data/lq500_commands.json`
+6. Align and label the `CALT` service stubs.
+7. Cross-reference ESC/P command constants from `data/lq500_commands.json`
    against immediate comparisons in the disassembly.
-7. Recover the computed `JEA` targets, add confirmed targets to
+8. Recover the computed `JEA` targets, add confirmed targets to
    `data/lq500_3c_trace_roots.tsv`, and rerun
    `tools/trace_upd7810_unidasm.py`.

@@ -19,7 +19,7 @@ manual notes, or hardware measurements.
 - `docs/lq500_3c_program_rom_map.md`: conservative program ROM map.
 - `docs/lq500_3c_design_overview.md`: architecture notes and current theory.
 - `docs/lq500_reference.md`: extracted manual facts.
-- `data/lq500_3c_program_labels.csv`: working symbol labels.
+- `data/lq500_3c_program_labels.tsv`: working symbol labels.
 - `data/lq500_3c_command_dispatch_tables.tsv`: parsed primary/ESC command
   dispatch tables.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.

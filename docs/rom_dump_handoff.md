@@ -19,7 +19,7 @@ the workspace loss.
     mismatch/`0x0000`, so reads used `-y`.
 - `3C` program ROM disassembly/labeling has started:
   - first-pass code map: `docs/lq500_3c_program_rom_map.md`
-  - first-pass labels: `data/lq500_3c_program_labels.csv`
+  - first-pass labels: `data/lq500_3c_program_labels.tsv`
   - parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
   - recursive vector trace roots: `data/lq500_3c_trace_roots.tsv`
   - recursive vector trace output: `data/lq500_3c_vector_trace.md`
@@ -27,7 +27,8 @@ the workspace loss.
   - high-confidence labels now cover reset/init, interrupt stubs, F000-F005
     gate-array access anchors, string/output helpers, self-test/data-dump mode,
     and bidirectional adjustment mode.
-  - current naming focus is control-panel, DIP-switch, and host-input code:
+  - previous naming focus covered control-panel, DIP-switch, and host-input
+    code:
     - `0582h` is now labeled `isr_gate_f000_input_capture_buffer`, a candidate
       parallel-port/gate-array host data interrupt path into the shared `EE20h`
       input buffer.
@@ -54,6 +55,25 @@ the workspace loss.
       whose LQ-500 table entry consumes one byte only. `ESC r n` and `ESC h n`
       were not found in the checked FX-80 notes and currently look like
       one-byte compatibility/no-op consumers.
+  - current naming focus is mechanical outputs, in priority order:
+    paper advance/retard, carriage movement, and pin firing. Cut-sheet feeder
+    and other option mechanisms are lower priority unless they share these
+    output paths.
+    - carriage anchor: `0908h` pulses `PC bit 7`; `093Eh` selects a direction
+      phase update; `0953h`/`095Fh` rotate `VV16`; `096Ah` maps `VV16 & 18h`
+      directly to `PB & 18h`.
+    - pin-firing/head anchor: `08D0h` writes `F004=0C0h`, presets alternate
+      `BC=F005h`, and arms timer state; vector `0978h` writes three bytes
+      through that `F005h` pointer. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`
+      and `5681h` writes `F004=20h`.
+    - paper-feed candidate: `ESC J` at `2530h` and FX-80-compatible `ESC j` at
+      `2568h` converge at `2534h`, then run through `1FEAh` and the broader
+      render/advance path at `256Eh`. Separately, startup calls
+      `51F7h-5253h`, which branches on and samples `PA bit 20h`, walks timing
+      tables around `7287h`/`72AFh`, and selects four PA/PB output states at
+      `546Ah`, `5474h`, `547Eh`, and `5488h`. Keep this named as a candidate
+      until the command feed path is connected to that mechanism sequence or
+      to board signals.
 - `4C` resident CG/font ROM candidate has been dumped successfully:
   - chip markings: `EPSON (C) 1997 / JAPAN 871 / M10A10LA EDH`
   - board marking under chip: `IM/256 Kbit MASK` and `?256PROM`

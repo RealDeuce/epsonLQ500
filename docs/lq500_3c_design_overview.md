@@ -128,6 +128,77 @@ This strongly suggests that the 4C CG data is not a single direct framebuffer
 layout. The program ROM contains multiple format converters for different pitch,
 quality, width, and style combinations.
 
+## Mechanical Outputs
+
+Current priority is paper advance/retard, carriage movement, and pin firing.
+Cut-sheet feeder and other option-specific mechanisms should stay secondary
+unless they share one of these output paths.
+
+### Carriage Movement
+
+The strongest carriage anchor is the `0908h`/`093Eh` pair in the print-engine
+ISR region:
+
+| Address | Working label | Evidence |
+| --- | --- | --- |
+| `0908h` | `carriage_step_timing_pulse` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates `VV61`/position counters. It is called directly by the print ISR and by the timed motion sequence at `5303h`. |
+| `093Eh` | `carriage_phase_and_position_update` | Chooses phase direction from `VV61 bit 0`, calls `0953h` or `095Fh`, then updates position/state through `54A0h`, `54C9h`, and `5538h`. |
+| `0953h` | `rotate_carriage_phase_positive` | Rotates `VV16` right with wrap and sets `EA=+1`. |
+| `095Fh` | `rotate_carriage_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
+| `096Ah` | `write_carriage_phase_to_pb18` | Stores the new `VV16` phase and maps `VV16 & 18h` directly onto `PB & 18h`. |
+
+The direct `VV16 -> PB bits 3/4` mapping makes `PB18h` a high-confidence
+carriage phase output. The exact motor-driver polarity is still a board-level
+question, but the firmware-side phase sequencer is now named.
+
+### Head / Pin Firing
+
+`F004h/F005h` look like the head-interface registers. `045Dh` initializes
+`F004=20h` and clears three writes through `F005h`; the print path later uses
+the same registers as a burst-output target.
+
+| Address | Working label | Evidence |
+| --- | --- | --- |
+| `08D0h` | `arm_head_f005_burst_output` | Writes `F004=0C0h`, presets alternate-register `BC=F005h`, loads source/count pointers from `EF75h`/`EF79h`, programs `TM1/TMM`, and jumps back into the print timer path. |
+| `0978h` | `isr_head_f005_burst_transfer_reload` | In alternate registers, writes three bytes from `DE` to `BC`; because `08D0h` set `BC=F005h`, this is a strong candidate 24-pin data burst. Direction follows `VV61 bit 0`; `ETM0` is reloaded from `ECNT + EE3Ah`. |
+| `563Ch` | `setup_head_fire_timing_and_data_pointers` | Derives `EF79h` from `EF64h`, stores alternate-register source pointers at `EF75h`/`EF77h`, seeds timing constants `001Bh` and `000Eh`, and writes `F004=20h` via `5681h`. |
+| `5681h` | `write_f004_head_idle_or_arm_value` | Writes the same `20h` value to `F004` used during CPU/port initialization. |
+
+The main unresolved detail is whether `F005h` is a direct 24-pin latch or a
+gate-array staging port. Firmware evidence says the data is emitted as three
+successive bytes, forward or reverse depending print direction.
+
+### Paper Feed / Retard Candidate
+
+Paper advance and reverse feed should be followed through the immediate-feed
+commands and the PA/PB phase table:
+
+| Address | Working label | Evidence |
+| --- | --- | --- |
+| `2530h` | `esc_J_immediate_forward_feed` | Builds a positive `HL=00nn` immediate-feed distance for `ESC J n`. |
+| `2568h` | `esc_j_immediate_reverse_feed_fx80_compat` | Builds `HL=80nn` and enters the same feed path; this matches FX-80 `ESC j n` reverse-feed compatibility. |
+| `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry. Marks `VV:C1` bits `E0h`, then jumps to `1FEAh` and the broader render/advance logic at `256Eh`. The final hardware feed endpoint is not resolved yet. |
+| `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed sequence at `5253h` with short or long distances. |
+| `5253h` | `mechanism_pa20_timed_step_sequence` | Starts by selecting output state `547Eh`, walks timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, then restores output state `546Ah`. |
+| `5306h` | `sample_pa20_during_motion_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
+| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and indexes the `7007h` jump table when `VV62 != 0`. |
+| `546Ah`/`5474h`/`547Eh`/`5488h` | `mechanism_phase_state_*_pa_pb_candidate` | Four PA/PB output states involving `PB20h`, `PA02h`, and `PB40h`. These are likely actuator phases, but the exact paper-feed assignment still needs confirmation. |
+
+The candidate phase outputs are:
+
+| State | Final PA/PB effect |
+| --- | --- |
+| `546Ah` | `PB20=1`, `PA02=1`, `PB40=1` |
+| `5474h` | `PB20=0`, `PA02=1`, `PB40=1` |
+| `547Eh` | `PB20=0`, `PA02=1`, `PB40=0` |
+| `5488h` | `PB20=0`, `PA02=0`, `PB40=1` |
+
+Because `ESC J`/`ESC j` prove a software feed-distance path and `51F7h-5253h`
+prove a PA20-driven mechanism sequence, these are the two best current starting
+points for paper advance/retard. They are not yet statically connected; that
+middle layer should be resolved before renaming the PA/PB phase table as paper
+feed.
+
 ## Service/Test Path
 
 The `739Bh-7B73h` block is a service UI layer:
@@ -151,4 +222,5 @@ The `739Bh-7B73h` block is a service UI layer:
   render code, so it should be treated as a resident secondary body, not
   necessarily as an external option ROM.
 - The `JEA` computed jumps at `02DCh`, `240Ah`, `5468h`, and `761Ch` need
-  target recovery. `761Ch` is clearly part of service/status string assembly.
+  target recovery. `5468h` indexes the PA/PB mechanism-output table at `7007h`;
+  `761Ch` is clearly part of service/status string assembly.
