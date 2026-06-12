@@ -12,6 +12,7 @@ Source dump:
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Carriage path trace: `data/lq500_3c_carriage_path.tsv`
 - Carriage sequence records: `data/lq500_3c_carriage_sequence_records.tsv`
+- Carriage scheduler contexts: `data/lq500_3c_carriage_scheduler_contexts.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
@@ -108,9 +109,9 @@ firmware uses external windows and buffers outside this ROM:
 | `547Eh` | `carriage_current_drive_mid_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=0`, mapping to the 0.61 A row; used by startup home seek. |
 | `5488h` | `carriage_current_drive_low_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`, mapping to the 0.23 A row; target of the `7007h` jump table. |
 | `558Dh` | `arm_timed_mechanism_record` | Sets `VV37=1`, loads a timing/control record via `55B1h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
-| `55B1h` | `load_mechanism_timing_record_into_ef49` | Copies a `17h`-byte timing/control record from the selected `7005h`/`7088h` table into `EF49h`. |
-| `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before writing `F004=20h`; likely head-fire setup state. |
-| `5676h` | `schedule_output_from_ef38_state` | Shared output scheduler reached from vertical advance and head/setup paths; copies `EF38h` state to `EF6Dh`, writes `F004=20h`, and branches on copied `VV6D.3`. Command feed takes the `569Ah-56C5h` path and sets `VV62=1` before timed-record setup. |
+| `55B1h` | `load_mechanism_timing_record_into_ef49` | Stores the selected timing-record head in `VV4D`, then `BLOCK` with `C=17h` copies 24 bytes into `EF49h..EF60h`. |
+| `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before entering the normal `VV62=0` scheduler through `567Fh`; it ORs `VV6F.2`, so the immediate `72B3h` record index is in `4..7`. |
+| `5676h` | `schedule_output_from_ef38_state` | Shared output scheduler reached from vertical advance and render/head paths; copies 15 bytes from `EF38h..EF46h` to `EF6Dh..EF7Bh`, writes `F004=20h`, and branches on copied `VV6D.3`. Command feed takes the `569Ah-56C5h` path and sets `VV62=1` before timed-record setup. |
 | `6944h` | `dispatch_control_or_esc_command` | Count-prefixed command-table scanner; primary table starts at `696Eh`, ESC table at `699Ch`. |
 | `739Bh` | `power_on_panel_mode_dispatch` | Dispatches `VV0C` startup panel mode: Draft self-test, LQ self-test, data dump, or bidirectional adjustment. |
 | `74CBh` | `draft_self_test_entry` | Power-on LINE FEED/AUTO LOAD self-test path; sets `VV23.2` before the common self-test printer. |

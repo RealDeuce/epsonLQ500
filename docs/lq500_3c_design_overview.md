@@ -284,6 +284,18 @@ to `EF7C..EF80`; `EF7C` can become `VV63`, `EF7D` is the `TM1` reload-cycle
 length, and `EF7E..EF80` are the cyclic `TM1` reload bytes used at
 `09AC-09BCh`.
 
+The normal carriage scheduler path is now separated from the paper-feed
+`5676h` callers. `5676h` copies fifteen bytes from `EF38..EF46` to
+`EF6D..EF7B`; the byte mapping makes `EF3A` become `VV6F`, which is the record
+selector masked by `5715h`. The currently traced external `5676h` callers all
+set `VV38.3` first, so they take the `569Ah-56C5h` path rather than `56C8h`.
+The confirmed normal-scheduler entry is the print ISR path `086Ah->563Ch`,
+which enters through `567Fh` without setting `VV6D.3` and ORs `VV6F` with
+`04h`, constraining the immediate `72B3h` record selection to indices `4..7`.
+The runtime queue around `FFB0h + 15*slot` can restore the same 15-byte state
+into either `EF38..EF46` or the live `EF6D..EF7B` window; see
+`data/lq500_3c_carriage_scheduler_contexts.tsv`.
+
 ### Head / Pin Firing
 
 `F004h/F005h` look like the head-interface registers. `045Dh` initializes

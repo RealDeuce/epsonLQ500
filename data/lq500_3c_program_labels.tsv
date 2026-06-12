@@ -57,6 +57,7 @@ address	label	kind	confidence	notes
 0x2864	process_pending_vertical_advance_distance	code	medium	Bridge from the render/advance state machine to timed output scheduling. If EE7A has a nonzero distance, stores it in EF40, sets VV38 bit 3, and calls 0x5676 after scheduler-availability checks.
 0x26F1	initialize_print_geometry_state	code	low	Called during reset and adjustment-mode initialization.
 0x2824	classify_extended_printable_character	code	medium	Range ladder over 0xAF-0xDE and 0xF4 using RET/RETS as boolean result; used before selecting font/state tables.
+0x28CE	restore_scheduler_snapshot_to_ef38	code	medium	When VV82 reaches 04h, copies 15 bytes from FFB0h+15*VV83 into EF38..EF46, increments VV83, and wraps at five slots.
 0x29B3	setup_8000_render_window_state	code	medium	Seeds EE46/EE48/EE4A/EE4C/EE4E/EE50 around the 0x8000 work window before the main render loop.
 0x2DCE	inline_calt_dispatch_tail_table	data	medium	Inline byte table reached by 0x2DC8/0x0FC3 dispatch; disassembles as instructions but is table-like tail data before the 0xFF fill.
 0x2DE3	unused_ff_gap_2de3_3fff	data	high	Long 0xFF fill from 0x2DE3 through 0x3FFF.
@@ -108,8 +109,9 @@ address	label	kind	confidence	notes
 0x558D	arm_timed_mechanism_record	code	medium	Sets VV37=1, loads a timing/control record via 0x55B1, dispatches initial output state through 0x540D, then arms ETM1/FE1.
 0x55B1	load_mechanism_timing_record_into_ef49	code	medium	Loads a timing/control record from the selected 0x7005/0x7088 table. After storing the record head in VV4D, BLOCK with C=0x17 copies 24 bytes to EF49..EF60 and updates EF64/EF51/VV36 according to VV62/VV63/VV61.
 0x5631	select_mechanism_timing_record_base	code	medium	Uses VV62 as a two-byte index into the 0x7001 pointer table, returning the selected timing record base in HL.
-0x563C	setup_head_fire_timing_and_data_pointers	code	medium	Sets VV6D/VV6F flags, derives EF79 from EF64, stores alternate-register source pointer at EF75/EF77, seeds EF70/EF73, and writes F004=0x20.
-0x5676	schedule_output_from_ef38_state	code	medium	Shared timed output scheduler reached from vertical advance and head/setup paths. Copies EF38 state to EF6D, writes F004=0x20, then builds an EF61/EF7C record and reaches 0x558D or the equivalent timed-record arm path.
+0x563C	setup_head_fire_timing_and_data_pointers	code	medium	Sets VV6D/VV6F flags, derives EF79 from EF64, stores alternate-register source pointer at EF75/EF77, seeds EF70=001Bh/EF73=000Eh/VV72=00h, and enters the normal VV62=0 scheduler through 567Fh.
+0x5676	schedule_output_from_ef38_state	code	medium	Shared timed output scheduler reached from vertical advance and render/head paths. Copies 15 bytes from EF38..EF46 to EF6D..EF7B through the 5679h helper, writes F004=0x20, then branches on copied VV6D.3.
+0x5679	restore_scheduler_state_to_ef6d	code	medium	Helper entered with HL as source; copies 15 bytes to EF6D..EF7B using BLOCK with C=0Eh. Used by 5676h with source EF38h and by FE1/runtime queue restore paths with source FFB0h+15*slot.
 0x5681	write_f004_head_idle_or_arm_value	code	medium	Writes 0x20 to F004 after head timing/data pointer setup; same idle/init value written at 0x0487.
 0x5794	unused_ff_gap_5794_5fff	data	high	Long 0xFF fill from 0x5794 through 0x5FFF.
 0x6000	byte_identity_table_00_ff	data	high	Full 0x00-0xFF byte table used by 0x4038 to remap host bytes before printable/control classification.
