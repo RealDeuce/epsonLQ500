@@ -21,6 +21,7 @@ the workspace loss.
   - first-pass code map: `docs/lq500_3c_program_rom_map.md`
   - first-pass labels: `data/lq500_3c_program_labels.tsv`
   - parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
+  - audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
   - recursive vector trace roots: `data/lq500_3c_trace_roots.tsv`
   - recursive vector trace output: `data/lq500_3c_vector_trace.md`
   - disassembly source: `roms/lq500_3c_m25a10pa_internal_prom.asm`

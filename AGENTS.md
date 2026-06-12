@@ -22,6 +22,8 @@ manual notes, or hardware measurements.
 - `data/lq500_3c_program_labels.tsv`: working symbol labels.
 - `data/lq500_3c_command_dispatch_tables.tsv`: parsed primary/ESC command
   dispatch tables.
+- `data/lq500_3c_command_behaviors.tsv`: audited command behavior notes,
+  parameter consumption, state updates, and evidence.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 
 ## Trace Workflow

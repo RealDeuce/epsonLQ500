@@ -88,6 +88,29 @@ FX-80 compatibility cross-checks:
 | `ESC r n` | `0A0Bh` | Not found in the FX-80 notes checked so far. LQ-500 consumes one parameter only, likely preserving stream sync for a compatibility command. |
 | `ESC h n` | `0A0Bh` | Not found in the FX-80 notes checked so far. LQ-500 consumes one parameter only, likely preserving stream sync for a compatibility command. |
 
+## Command Behavior Audit
+
+Detailed command behavior is tracked in
+`data/lq500_3c_command_behaviors.tsv`. That table mirrors all 76 entries from
+`data/lq500_3c_command_dispatch_tables.tsv` and records parameter consumption,
+raw state updates, evidence addresses, and audit status.
+
+Current split:
+
+| Status | Meaning |
+| --- | --- |
+| `audited` | Handler is small enough or direct enough that parameter consumption and state effects are recorded as raw firmware behavior. |
+| `audited_partial` | Entry behavior is traced far enough to identify parameters and key state updates, but shared render/feed/graphics/user-character machinery still needs deeper decomposition. |
+| `needs_hardware_correlation` | Firmware behavior is known, but the documented command effect depends on external signal meaning. |
+
+High-confidence simple handlers now include the style/pitch flags (`ESC E/F`,
+`ESC G/H`, `ESC 4/5`, `ESC P/M/g`, `ESC p`, `ESC W`, `SO/SI/DC2/DC4`), MSB
+control (`ESC #`, `ESC =`, `ESC >`), tab selection (`ESC /`), line-spacing raw updates
+(`ESC 0/2/3/A`), and compatibility/no-op consumers (`ESC s/r/h`). Larger
+paths that still need follow-up are the shared feed/advance path
+(`LF/CR/FF/VT`, `ESC J/j`), graphics (`ESC *` and `ESC K/L/Y/Z`), and
+user-defined character commands (`ESC &`, `ESC :`).
+
 ## Character Path
 
 The probable normal character flow is:

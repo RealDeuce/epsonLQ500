@@ -8,6 +8,7 @@ Source dump:
 - Disassembly: `roms/lq500_3c_m25a10pa_internal_prom.asm`
 - First-pass labels: `data/lq500_3c_program_labels.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
+- Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
 - Editable trace roots: `data/lq500_3c_trace_roots.tsv`
 
