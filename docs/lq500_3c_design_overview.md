@@ -203,7 +203,7 @@ unless they share one of these output paths.
 
 ### Paper Feed Stepper Phase
 
-The service manual identifies the paper-feed motor as a 4-phase, 48-pole motor
+The service manual identifies the paper-feed motor as a 4-phase, 48-step motor
 driven with 2-2 phase excitation. Each phase switch advances paper by `1/180`
 inch, and the CPU controls it open loop. The motor drive frequency is `400 PPS`,
 matching one phase switch every `2.5 ms`. Figure 2-47 also identifies `PB2` as
@@ -212,34 +212,39 @@ supplies `+24 V`; when not driven, `+5 V` is supplied through `R36`/`D11` to
 hold the motor. The same text identifies `PB3` as phase A/B and `PB4` as phase
 C/D.
 
-That makes the firmware's `PB04h` and `PB18h` paths the strongest paper-feed
-hardware anchors:
+That makes the firmware's `PB mask 04h` and `PB mask 18h` paths the strongest
+paper-feed hardware anchors. These are bit masks on the 8-bit `PB` port, not
+schematic pin names:
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
 | `0908h` | `paper_feed_step_timing_pulse_candidate` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates `VV61`/position counters. It is called directly by the print ISR and by the timed motion sequence at `5303h`. |
-| `093Eh` | `paper_feed_pb18_phase_update_candidate` | Chooses phase direction from `VV61 bit 0`, calls `0953h` or `095Fh`, then updates position/state through `54A0h`, `54C9h`, and `5538h`. |
-| `0953h` | `rotate_pb18_phase_positive` | Rotates `VV16` right with wrap and sets `EA=+1`. |
-| `095Fh` | `rotate_pb18_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
-| `096Ah` | `write_pb18_stepper_phase_outputs` | Stores the new `VV16` phase and maps `VV16 & 18h` directly onto `PB & 18h`; if service-manual bit numbering is zero-based, this is `PB3`/`PB4`. |
-| `5498h`/`549Ch` | `PB04h` drive/hold control inside `540Dh` | `549Ch` clears `PB04h` and `5498h` sets `PB04h`. This matches service-manual `PB2` active-low +24 V paper-feed drive enable versus +5 V hold. |
+| `093Eh` | `paper_feed_pb_bits_3_4_phase_update_candidate` | Chooses phase direction from `VV61 bit 0`, calls `0953h` or `095Fh`, then updates position/state through `54A0h`, `54C9h`, and `5538h`. |
+| `0953h` | `rotate_pb_bits_3_4_phase_positive` | Rotates `VV16` right with wrap and sets `EA=+1`. |
+| `095Fh` | `rotate_pb_bits_3_4_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
+| `096Ah` | `write_pb_bits_3_4_stepper_phase_outputs` | Stores the new `VV16` phase and maps `VV16 & 18h` directly onto `PB & 18h`; if service-manual bit numbering is zero-based, this is `PB3`/`PB4`. |
+| `5498h`/`549Ch` | `PB mask 04h` drive/hold control inside `540Dh` | `549Ch` clears `PB & 04h` low and `5498h` sets `PB & 04h` high. This matches service-manual `PB2` active-low +24 V paper-feed drive enable versus +5 V hold. In the command-feed `VV62!=0` branch, record value `01h` takes the `549Ch` drive-on path; other values take the `5498h` hold path. |
 
-The service-manual excitation sequence makes the `PB18h` states concrete:
+The service-manual excitation sequence makes the `PB & 18h` masked states
+concrete:
 
-| Step | `PB18h` | `PB3` | `PB4` | Energized phases |
+| Step | `PB & 18h` | `PB3` | `PB4` | Energized phases |
 | --- | --- | --- | --- | --- |
 | 0 | `18h` | H | H | A + C |
 | 1 | `08h` | H | L | A + D |
 | 2 | `00h` | L | L | B + D |
 | 3 | `10h` | L | H | B + C |
 
-Reset initializes `VV16=CCh`, so the masked output starts at `08h` / step 1.
+Reset initializes `VV16=CCh`, so `PB & 18h` starts at `08h` / step 1.
 The manual labels the table order as clockwise and says clockwise feeds paper
 forward, while counterclockwise feeds paper in reverse. The `0953h`
 rotate-right path advances `08h -> 00h -> 10h -> 18h -> 08h`, matching the
 increasing manual step order; the `095Fh` rotate-left path reverses that order.
+The command path preserves the sign bit into `EF61`/`VV61`: `ESC J` clears
+`VV61.0` and therefore selects `0953h`, while `ESC j` sets `VV61.0` and selects
+`095Fh`.
 
-The previous working label treated `PB18h` as carriage phase output. Figure
+The previous working label treated `PB mask 18h` as carriage phase output. Figure
 2-47 makes that unlikely unless the schematic's `PB3`/`PB4` labels are not
 CPU-port bit labels. Carriage movement should be re-found after paper feed is
 settled.
@@ -278,28 +283,34 @@ with carriage motion.
 | `2048h` | `shared_vertical_advance_dispatch` | Common LF/FF/ESC J dispatch. It can divert to the render path, but the pure advance route snapshots `EE44h`/`EE50h`/`EE4Eh` and jumps to `256Eh`. |
 | `256Eh` | `setup_signed_vertical_advance_state` | Stores signed distance in `EE7Ah`, normalizes reverse distances into `EE86h`, and updates `VV38h`/`VV39h` flags. |
 | `2864h` | `process_pending_vertical_advance_distance` | Bridge from pending distance to scheduler: a nonzero `EE7Ah` magnitude is stored in `EF40h`, `VV38h` bit `08h` is set, and `5676h` is called when the scheduler is available. |
-| `5676h` | `schedule_output_from_ef38_state` | Copies `EF38h` state to `EF6Dh`, writes `F004h=20h`, and routes into the timed-record arm path. |
-| `558Dh`/`55B1h` | `arm_timed_mechanism_record` / `load_mechanism_timing_record_into_ef49` | Loads timing/control records from `7005h`/`7088h` into `EF49h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
-| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and indexes the `7007h` jump table when `VV62 != 0`; with `VV62 == 0`, it uses the simple `PB04h` output case, matching the service-manual paper-feed motor drive/hold control. |
+| `5676h` | `schedule_output_from_ef38_state` | Copies `EF38h` state to `EF6Dh`, writes `F004h=20h`, and branches on copied `VV6D.3`. Since `ESC J`/`ESC j` set `VV38.3`, command feed takes `569Ah-56C5h`, which writes `EF61..EF64` from the `EF75` distance path and sets `VV62=1`, `VV63=0`. |
+| `558Dh`/`55B1h` | `arm_timed_mechanism_record` / `load_mechanism_timing_record_into_ef49` | Loads timing/control records from `7005h`/`7088h` into `EF49h`, calls `540Dh`, and arms `ETM1`/`FE1`. Command feed reaches the `7088h` family because `VV62=1`; the first record at `708Eh` is selected because `VV63=0`. |
+| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and then either indexes the `7007h` PA/PB jump table or uses the simple `PB mask 04h` branch. With uPD7810 skip semantics, `VV62==0` reaches the jump table, while `VV62!=0` reaches the `PB & 04h` branch used by command feed. |
 | `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed sequence at `5253h` with short or long distances. |
 | `5253h` | `mechanism_pa20_timed_step_sequence` | Starts by selecting output state `547Eh`, walks timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, then restores output state `546Ah`. |
 | `5306h` | `sample_pa20_during_motion_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
-| `546Ah`/`5474h`/`547Eh`/`5488h` | `mechanism_phase_state_*_pa_pb_candidate` | Four PA/PB output states involving `PB20h`, `PA02h`, and `PB40h`. These are likely actuator phases, but the exact paper-feed assignment still needs confirmation. |
+| `546Ah`/`5474h`/`547Eh`/`5488h` | `mechanism_phase_state_*_pa_pb_candidate` | Four PA/PB output states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`. These are likely actuator phases, but the exact paper-feed assignment still needs confirmation. |
 
 The candidate phase outputs are:
 
 | State | Final PA/PB effect |
 | --- | --- |
-| `546Ah` | `PB20=1`, `PA02=1`, `PB40=1` |
-| `5474h` | `PB20=0`, `PA02=1`, `PB40=1` |
-| `547Eh` | `PB20=0`, `PA02=1`, `PB40=0` |
-| `5488h` | `PB20=0`, `PA02=0`, `PB40=1` |
+| `546Ah` | `PB & 20h=1`, `PA & 02h=1`, `PB & 40h=1` |
+| `5474h` | `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=1` |
+| `547Eh` | `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=0` |
+| `5488h` | `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1` |
 
 Because `ESC J`/`ESC j` prove a software feed-distance path and the service
-manual says one phase switch equals `1/180` inch, the next paper-feed pass
-should count `PB18h` phase updates and `PB04h` drive-enable windows per
-`EE7Ah`/`EE86h`/`EF40h` unit. The PA20-driven `51F7h-5253h` path still looks
-paper related, but the `PB20h`/`PA02h`/`PB40h` table should remain a separate
+manual says one phase switch equals `1/180` inch, the current trace target is
+to count `PB bits 3/4` phase updates and `PB mask 04h` drive-enable windows per
+`EE7Ah`/`EE86h`/`EF40h` command unit. The command path is now known to set
+`VV62=1` through the `EF61..EF64` block, so the `0668h` FE1 ISR calls `093Eh`
+for `PB` bits 3/4 phase updates during counted feed steps. The entry gate at
+`0675h` handles `VV37=1` before the first phase update: it routes through
+`07BBh`, calls `540Dh` to drive `PB2` low, then jumps back to `067Ah` for the
+first `093Eh` phase update. Thus PB2 drive is enabled before the first counted
+phase change. The PA20-driven `51F7h-5253h` path still looks paper related, but
+the `PB mask 20h`/`PA mask 02h`/`PB mask 40h` table should remain a separate
 mechanism table until it is tied to a schematic signal.
 
 The service manual gives paper-feed acceleration intervals of `3.33`, `2.87`,
@@ -310,15 +321,54 @@ under 10 steps use no acceleration or deceleration. ROM words in the
 about `3.333`, `2.871`, `2.650`, `2.529`, and `2.500 ms`. That implies a timer
 tick of about `0.8138 us` for this table.
 
-The PA20 startup timed-step routine at `5253h` contains an explicit 10-step
-split that matches the manual rule's shape. The loop at `529Ah` walks up to
-nine table-driven intervals from `7287h`, then `52BDh` subtracts `000Ah` from
-the requested count. A zero remainder branches at `52C3h` to the decel/tail
-path, while a nonzero remainder enters the longer steady loop using the
-`72ADh` timing entry. This proves the literal threshold exists in the firmware,
-but it is in the PA20/startup mechanism path; the normal `ESC J` path still
-appears to encode its short/long behavior through the derived `EF3Bh`/`EF3Eh`
-partition fields rather than a traced literal `000Ah` compare.
+The command-feed setup has a traced short-move gate, but its polarity matters.
+After `56ACh-56C3h` stores the command-feed count into `EF64` and sets
+`VV62=1`, `55D4h-55E8h` checks the `VV62=1` path, loads the word at `708Eh`,
+forces `H=00h`, and compares `EF64` against `000Bh`. With uPD7810 `DLT`
+carry-skip semantics, counts below `000Bh` skip the `55E0h` jump, set
+`VV36 & 04h`, load `EF51` from `725Fh`, and continue at `5621h` without
+rewriting `EF64`. Thus command counts `1..10` take this special short-move
+path. They do not walk the `EF4F`/`EF57` lead/tail lists; the FE1 path counts
+down `EF64=n` directly, producing exactly `n` calls to `093Eh`.
+
+Counts `>= 000Bh` take the normal segment setup at `55EEh-560Eh`. For the
+selected `708Eh` record, `VV4C=05h` and `VV54=05h` are subtracted from the
+current count, their high-bit halving flags are clear, and `VV53` does not
+request doubling. The middle segment count stored to `EF64` is therefore
+`count - 10`.
+
+The same `708Eh` record copies `EF4F=725Fh` and `EF57=7269h`. The FE1 ISR walks
+`EF4F` at `0772h` and `EF57` at `0799h`, advancing each pointer by one word.
+The first five words from `725Fh` are `1086h`, `0DC6h`, `0CB8h`, `0C24h`, and
+`0C00h`; the first five from `7269h` are `0C24h`, `0C24h`, `0CB8h`, `0DC6h`,
+and `0FFCh`. These line up with the lead/tail split shape. The command-feed
+first lead word `1086h` is about `3.44 ms`, while the manual-nominal `tc1`
+would be about `0FFCh` / `3.33 ms`; because the later entries line up closely,
+this looks like a ROM-revised first movement interval. The long path phase
+count is five lead steps through `VV37=2` and
+`VV4C`/`EF4F`, then `count-10` middle steps through `VV37=4` and `EF64`, then
+five tail steps through `VV37=8` and `VV54`/`EF57`, again producing exactly
+`n` calls to `093Eh`.
+
+Boundary cases now fall out cleanly: `n=0` does not schedule timed paper
+motion at `2864h`; `n=1` and `n=10` are direct short moves with `EF64=1` or
+`EF64=10`; `n=11` is the first long move and becomes `5 + 1 + 5` counted phase
+updates.
+
+The PB2 drive window is now closed on the firmware side. After the tail
+list/counter finishes, `078Ah-0790h` sets `VV37=10h` and calls `540Dh`; state
+`10h` selects `EF5B=01`, so `PB2` remains low during the `EF59` delay loaded at
+`0793h`. The next FE1 pass takes the `VV37.10h` state at `0699h`, enters
+`07D0h`, changes the state to `VV37=20h`, and calls `540Dh` at `07D6h`. In the
+normal, non-`80h` selector path, `540Dh` maps bits `04h/02h/08h/01h/10h` to
+`EF53`/`EF4D`/`EF55`/`EF4B`/`EF5B`; state `20h` matches none and selects
+`EF60`. `EF60` is outside the `EF49..EF5F` timing-record copy and has no traced
+direct writer, so it remains zero from RAM initialization. That zero record
+value takes the `5498h` path and sets `PB & 04h` high for the +5 V hold state.
+The following `EF5C`/`EF5E` delays and `0836h` interrupt masking do not issue
+another `PB & 04h` write. The PA20 startup timed-step routine at `5253h` contains a
+second explicit 10-step-shaped split: `529Ah` walks up to nine table-driven
+intervals, then `52BDh` subtracts `000Ah` before choosing the steady loop.
 
 ## Service/Test Path
 

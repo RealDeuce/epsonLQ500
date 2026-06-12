@@ -21,12 +21,13 @@ address	label	kind	confidence	notes
 0x0582	isr_gate_f000_input_capture_buffer	code	medium	Reads F000 through the gate-array register window, stores the byte into the EE20 input buffer, restores F002, RETI. Candidate parallel-port data path.
 0x05E2	isr_rxb_host_receive_buffer	code	high	Reads CPU RXB, checks ER, stores received byte into the shared EE20 input buffer while temporarily changing F002.
 0x0668	isr_print_engine_dispatch	code	medium	Large RETI routine dispatching on VV37/VV61 flags; calls motion/print helpers and updates timers.
+0x07D0	paper_feed_pb2_release_delay_state	code	high	FE1 tail-exit state reached when VV37 has bit 0x10 set. Changes VV37 to 0x20, calls 0x540D, and for command feed releases PB2 high/hold because the 0x540D state selector falls through to EF60=00 and then 0x5498.
 0x08D0	arm_head_f005_burst_output	code	medium	Writes F004=0xC0, sets alternate-register BC=F005 and DE/EA pointers from EF75/EF79, programs TM1/TMM, and re-enters print timer flow. Strong candidate head-fire burst setup.
 0x0908	paper_feed_step_timing_pulse_candidate	code	medium	Writes MB=0x03, pulses PC bit 7 low/high with delay slots, updates VV61/VV6C and position counters. Called by print ISR and the 0x5253 timed sequence; service manual says paper feed is stepped by phase switches.
-0x093E	paper_feed_pb18_phase_update_candidate	code	medium	Chooses phase rotation by VV61 bit 0, calls 0x0953/0x095F, then updates position/state through 0x54A0/0x54C9/0x5538. Service manual identifies PB3/PB4 as paper-feed phase A/B and C/D signals.
-0x0953	rotate_pb18_phase_positive	code	medium	Rotates VV16 right with wrap, sets EA=+1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
-0x095F	rotate_pb18_phase_negative	code	medium	Rotates VV16 left with wrap, sets EA=-1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
-0x096A	write_pb18_stepper_phase_outputs	code	high	Stores the new VV16 phase and maps VV16 & 0x18 directly onto PB & 0x18 while preserving other PB bits. Service manual paper-feed phase lines PB3/PB4 correspond to these mask bits if bit numbering is zero-based.
+0x093E	paper_feed_pb_bits_3_4_phase_update_candidate	code	medium	Chooses phase rotation by VV61 bit 0, calls 0x0953/0x095F, then updates position/state through 0x54A0/0x54C9/0x5538. Service manual identifies PB3/PB4 as paper-feed phase A/B and C/D signals.
+0x0953	rotate_pb_bits_3_4_phase_positive	code	medium	Rotates VV16 right with wrap, sets EA=+1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
+0x095F	rotate_pb_bits_3_4_phase_negative	code	medium	Rotates VV16 left with wrap, sets EA=-1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
+0x096A	write_pb_bits_3_4_stepper_phase_outputs	code	high	Stores the new VV16 phase and maps VV16 & 0x18 directly onto PB & 0x18 while preserving other PB bits. 0x18 is a mask, not a pin name; service-manual paper-feed phase lines PB3/PB4 correspond to these mask bits if bit numbering is zero-based.
 0x0978	isr_head_f005_burst_transfer_reload	code	medium	Alternate-register ISR writes three bytes to BC, which 0x08D0 presets to F005; direction follows VV61 bit 0, then reloads ETM0 from ECNT+EE3A.
 0x0A0B	read_next_host_input_byte	code	high	Blocking consumer for the EE20/EE22 input ring: waits for EE1E pending count, reads one byte from EE22 under F002=0xC0, advances EE22, decrements EE1E, and returns byte in A.
 0x0A81	disable_f001_irq_or_strobe	code	medium	DI; clears F001 bits with NOP delays; masks MKL; similar sequence appears in interrupt paths.
@@ -99,11 +100,11 @@ address	label	kind	confidence	notes
 0x51F7	startup_mechanism_pa20_motion_entry	code	low	Only traced caller is startup at 0x0340. Branches on PA bit 0x20, seeds VV61 motion direction/mode values, calls 0x5253 with short or long distances, and exits through the 0x53E1 mechanism path.
 0x5253	mechanism_pa20_timed_step_sequence	code	low	Starts with candidate phase state 2 at 0x547E, walks timing tables around 0x7287/0x72AF, samples PA bit 0x20 via 0x5306, and eventually restores phase state 0 at 0x546A.
 0x5306	sample_pa20_during_motion_delay	code	low	Divides a delay interval into thirds, delays, and samples PA bit 0x20 three times while accumulating a small count in D.
-0x540D	mechanism_output_state_dispatch	code	medium	Maps VV37 flags to EFxx state bytes. With VV62=0 it controls PB04, now matching the service-manual paper-feed +24 V enable/hold line; with VV62!=0 it indexes the 0x7007 PA/PB output table.
-0x546A	mechanism_phase_state_0_pa_pb_candidate	code	medium	Output state: sets PB20, PA02, and PB40, then returns without clearing PB20. Likely one phase of a mechanical actuator.
-0x5474	mechanism_phase_state_1_pa_pb_candidate	code	medium	Output state: sets PB20, PA02, and PB40, then falls through to clear PB20 at 0x5491.
-0x547E	mechanism_phase_state_2_pa_pb_candidate	code	medium	Output state: sets PB20 and PA02, clears PB40, then falls through to clear PB20 at 0x5491. Used by the 0x5253 timed sequence entry.
-0x5488	mechanism_phase_state_3_pa_pb_candidate	code	low	Output state: sets PB20, clears PA02, sets PB40, then falls through to clear PB20 at 0x5491. Reached by the 0x7007 jump table but not yet traced linearly.
+0x540D	mechanism_output_state_dispatch	code	high	Maps VV37 flags to EFxx state bytes. With uPD7810 skip semantics, VV62!=0 reaches the PB mask 04h drive/hold branch matching the service-manual paper-feed +24 V enable line; VV62=0 indexes the 0x7007 PA/PB output table. For command-feed tail exit, VV37=0x20 selects EF60=00 and reaches 0x5498 to set PB & 04h high/hold.
+0x546A	mechanism_phase_state_0_pa_pb_candidate	code	medium	Output state: sets PB mask 0x20, PA mask 0x02, and PB mask 0x40, then returns without clearing PB mask 0x20. Likely one phase of a mechanical actuator.
+0x5474	mechanism_phase_state_1_pa_pb_candidate	code	medium	Output state: sets PB mask 0x20, PA mask 0x02, and PB mask 0x40, then falls through to clear PB mask 0x20 at 0x5491.
+0x547E	mechanism_phase_state_2_pa_pb_candidate	code	medium	Output state: sets PB mask 0x20 and PA mask 0x02, clears PB mask 0x40, then falls through to clear PB mask 0x20 at 0x5491. Used by the 0x5253 timed sequence entry.
+0x5488	mechanism_phase_state_3_pa_pb_candidate	code	low	Output state: sets PB mask 0x20, clears PA mask 0x02, sets PB mask 0x40, then falls through to clear PB mask 0x20 at 0x5491. Reached by the 0x7007 jump table but not yet traced linearly.
 0x558D	arm_timed_mechanism_record	code	medium	Sets VV37=1, loads a timing/control record via 0x55B1, dispatches initial output state through 0x540D, then arms ETM1/FE1.
 0x55B1	load_mechanism_timing_record_into_ef49	code	medium	Copies a 0x17-byte timing/control record from the selected 0x7005/0x7088 table into EF49 and updates EF64/EF51/VV36 according to VV62/VV63/VV61.
 0x5631	select_mechanism_timing_record_base	code	medium	Uses VV62 as a two-byte index into the 0x7001 pointer table, returning the selected timing record base in HL.
@@ -130,10 +131,10 @@ address	label	kind	confidence	notes
 0x7005	mechanism_timing_record_table_a	data	medium	Timing/control record table selected directly by 0x570F or through the 0x7001 pointer table; 0x55B1 copies 0x17-byte records into EF49.
 0x7007	mechanism_output_jump_table	data	medium	Overlapping jump table consumed by 0x540D after indexing from EFxx state byte; targets 0x546A, 0x5474, 0x547E, and 0x5488.
 0x7088	mechanism_timing_record_table_b	data	medium	Alternate timing/control record table selected through the 0x7001 pointer table when VV62 chooses the second record set.
-0x708E	mechanism_threshold_word_overlap	data	low	Word loaded directly by 0x55D8 from inside the 0x7088 record table and compared against the current EA/state value.
+0x708E	paper_feed_short_move_threshold_overlap	data	medium	Word loaded directly by 0x55D8 from inside the 0x7088 record table. 55DC forces H=00h, so command feed compares the current count against low byte 0x0B; counts below 0x0B take the VV36 mask 04h/EF51=725Fh special path.
 0x70BF	mechanism_head_timing_word_table	data	low	Dense timing/control words following the selected mechanism records; exact sub-record boundaries still need runtime confirmation.
 0x7219	cr0_lookup_table	data	medium	Indexed from ISR at 0x06DF using CR0 range 0xC1-0xEE.
-0x725F	print_timing_threshold_word_overlap	data	low	Word loaded directly by 0x55E4 from inside the CR0 lookup range and stored into EF51.
+0x725F	paper_feed_timing_list_start_overlap	data	medium	Word loaded directly by 0x55E4 into EF51 for command-feed counts below the 0x708E threshold; also the first word of the 725Fh timing-list region matching service-manual paper-feed acceleration timing.
 0x7287	mechanism_delay_table	data	medium	Delay/compare table consumed by the 0x5253 PA20 timed mechanism sequence through offsets at 0x7287, 0x729B, and 0x72AD.
 0x72AF	mechanism_sequence_table	data	medium	Mechanism sequence/state table consumed by 0x5253; 0x72B3 is also indexed by 0x5719 using a small stride.
 0x72D9	unclassified_descending_lookup_table	data	low	Table-like bytes between mechanism sequence data and render geometry tables; no direct consumer confirmed yet.

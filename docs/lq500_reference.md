@@ -319,7 +319,7 @@ normal weight.
 
 Paper-feed motor details from service manual Figure 2-47:
 
-- The paper-feed motor is a 4-phase, 48-pole stepper motor.
+- The paper-feed motor is a 4-phase, 48-step stepper motor.
 - Drive voltage is `24 VDC +10%`; coil resistance is `58 ohms +/- 7%` at
   `25 C`.
 - Current is `1.1 A` max/rush, `0.30 A` typical while driving, and

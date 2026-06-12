@@ -64,17 +64,20 @@ the workspace loss.
     and other option mechanisms are lower priority unless they share these
     output paths.
     - paper-feed hardware anchor from service manual Figure 2-47: the paper
-      feed motor is a 4-phase, 48-pole motor using 2-2 phase excitation. One
+      feed motor is a 4-phase, 48-step motor using 2-2 phase excitation. One
       phase switch advances paper `1/180` inch. `PB2` is active-low drive:
       low turns Q27 on and supplies `+24 V`; when not driven, `+5 V` is
       supplied through `R36`/`D11` for hold. `PB3` is phase A/B and `PB4` is
       phase C/D.
-    - firmware match for Figure 2-47: `540Dh` has a `VV62=0` branch at
-      `5498h`/`549Ch` that sets/clears `PB04h`, matching `PB2` if bit
-      numbering is zero-based. `0908h`/`093Eh`/`0953h`/`095Fh`/`096Ah` rotate
-      `VV16` and map `VV16 & 18h` directly to `PB18h`, matching `PB3`/`PB4`.
-      The old "carriage PB18" label should be treated as stale; re-find
-      carriage after paper feed is settled.
+    - firmware match for Figure 2-47: `540Dh` has a `VV62!=0` branch at
+      `5498h`/`549Ch` that sets/clears `PB mask 04h`, matching `PB2` if bit
+      numbering is zero-based. `549Ch` clears `PB & 04h` low for +24 V drive;
+      `5498h` sets it high for hold. `093Eh`/`0953h`/`095Fh`/`096Ah` rotate
+      `VV16` and map `VV16 & 18h` directly to `PB & 18h`, matching
+      `PB3`/`PB4`. Here `18h` and `04h` are bit masks on the 8-bit `PB` port,
+      not pin names. `0908h` is the alternate `VV62==0` FE1 path and pulses
+      `PC bit 7`. The old "carriage PB mask 18h" label should be treated as
+      stale; re-find carriage after paper feed is settled.
     - pin-firing/head anchor: `08D0h` writes `F004=0C0h`, presets alternate
       `BC=F005h`, and arms timer state; vector `0978h` writes three bytes
       through that `F005h` pointer. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`
@@ -82,19 +85,44 @@ the workspace loss.
     - paper-feed candidate: `ESC J` at `2530h` and FX-80-compatible `ESC j` at
       `2568h` converge at `2534h`, then run through `1FEAh`, `2048h`, and the
       signed vertical-advance setup at `256Eh`. Nonzero pending distance can
-      reach `2864h`, which stores the magnitude in `EF40h` and calls the timed
-      output scheduler at `5676h`; that path reaches `558Dh`/`55B1h` and
-      `540Dh`. Correlate this with `PB04h` low drive windows and `PB18h` phase
-      switches. Separately, startup calls `51F7h-5253h`, which branches on and
+      reach `2864h`, which stores the magnitude in `EF40h`, sets `VV38.3`, and
+      calls the timed output scheduler at `5676h`. The copied `VV6D.3` path at
+      `569Ah-56C5h` sets `VV62=1`, `VV63=0`, and `EF64` from the feed-distance
+      state before reaching `558Dh`/`55B1h` and `540Dh`. Correlate this with
+      `PB mask 04h` low drive windows and `PB mask 18h` phase switches.
+      The command-feed short-move gate is at `55D8h-55E8h`: counts below
+      `000Bh` set `VV36 & 04h`, load `EF51` from `725Fh`, and leave `EF64` as
+      the command count. These `n=1..10` short moves do not walk the lead/tail
+      timing lists; FE1 counts `EF64=n` directly, producing exactly `n`
+      `093Eh` phase updates. Counts `>=000Bh` fall through `55EEh-560Eh`,
+      where the `708Eh` record subtracts five lead and five tail steps so
+      `EF64=count-10`. Long moves therefore produce `5 + (n-10) + 5 = n`
+      `PB3`/`PB4` phase changes. `n=0` does not schedule timed paper motion at
+      `2864h`.
+      The same record seeds `EF4F=725Fh` and `EF57=7269h`; FE1 walks those at
+      `0772h` and `0799h`. First five lead words from `725Fh`: `1086h`,
+      `0DC6h`, `0CB8h`, `0C24h`, `0C00h`; first five tail words from `7269h`:
+      `0C24h`, `0C24h`, `0CB8h`, `0DC6h`, `0FFCh`. The command-feed first
+      lead word is about `3.44 ms`, so it appears to be a ROM-revised first
+      movement interval relative to the manual's `3.33 ms` `tc1`. `ESC J`
+      selects the `0953h` forward phase order; `ESC j` selects the `095Fh`
+      reverse phase order. The initial `VV37=1` gate enables active-low `PB2`
+      drive before the first counted phase change. The final `PB2` release is
+      now traced: after the tail steps, `VV37=10h` selects `EF5B=01` and keeps
+      drive low for the `EF59` delay; the next FE1 pass changes to
+      `VV37=20h`, whose `540Dh` selector falls through to `EF60=00`, taking
+      `5498h` and setting `PB & 04h` high for hold before the later
+      `EF5C`/`EF5E` delays and final FE1 masking.
+      Separately, startup calls `51F7h-5253h`, which branches on and
       samples `PA bit 20h`, walks timing tables around `7287h`/`72AFh`, and
       selects four PA/PB output states at `546Ah`, `5474h`, `547Eh`, and
-      `5488h`. Keep that `PB20h`/`PA02h`/`PB40h` table separate until tied to
-      a schematic signal.
+      `5488h`. Keep that `PB mask 20h`/`PA mask 02h`/`PB mask 40h` table
+      separate until tied to a schematic signal.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
-      model. The key unresolved firmware question is now the counter mapping:
-      the service manual says each phase switch is `1/180` inch, so count how
-      `EE7Ah`/`EE86h`/`EF40h` and `EF64h` advance through the `FE1` timed
-      output path into `PB18h` phase changes.
+      model. The command-distance-to-phase mapping is now resolved for
+      immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`
+      phase change per command unit, so each unit is one `1/180` inch phase
+      switch on the service-manual model.
 - `4C` resident CG/font ROM candidate has been dumped successfully:
   - chip markings: `EPSON (C) 1997 / JAPAN 871 / M10A10LA EDH`
   - board marking under chip: `IM/256 Kbit MASK` and `?256PROM`

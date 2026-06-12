@@ -53,6 +53,13 @@ computed targets to `data/lq500_3c_trace_roots.tsv`, then rerun the tracer.
 Do not automatically promote every untraced gap; many are tables, fill bytes,
 or skipped-over instruction bytes.
 
+Treat `data/lq500_3c_vector_trace.instructions.tsv` as the source of truth for
+decoded program-ROM instructions that are already covered by the recursive
+trace. Do not rerun `unidasm` just to inspect an address range that is already
+present in that TSV; read/filter the TSV instead. Rerun the tracer only after
+adding missing roots, such as hand-confirmed computed jump/table targets, to
+`data/lq500_3c_trace_roots.tsv`.
+
 ## Current Code Anchors
 
 - `0582h`: candidate parallel/gate-array host input ISR into the shared buffer.
@@ -73,3 +80,17 @@ or skipped-over instruction bytes.
   `unknown` when the behavior is not proven.
 - Keep hardware measurements separate from firmware inference, and note which
   is which.
+- When describing CPU port writes, distinguish bit masks from schematic signal
+  names. Use wording such as `PB mask 18h` or `PB & 18h` for firmware masks,
+  and reserve names like `PB3`/`PB4` for actual port bit lines from the
+  schematic/manual.
+- uPD7810 conditional operations skip the following instruction when their
+  predicate is true. In the local MAME implementation, `ONI/ONIW` skip when
+  any masked bit is set, `OFFI/OFFIW` skip when masked bits are clear,
+  `NEI/NEIW` skip when not equal, `EQI/EQIW` skip when equal, and `DLT` skips
+  on carry after subtraction, which corresponds to the left operand being less
+  than the right operand.
+- uPD7810 `MVI A,xx` uses the CPU `L1` overlay flag: the first consecutive
+  `MVI A,xx` loads `A` and sets `L1`; later consecutive `MVI A,xx`
+  instructions act as NOPs until an instruction that clears `L1`. Firmware uses
+  this for compact selector lists such as `540Dh`.
