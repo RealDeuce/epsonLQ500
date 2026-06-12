@@ -106,7 +106,7 @@ address	label	kind	confidence	notes
 0x547E	carriage_current_drive_mid_candidate	code	high	Sets PB mask 0x20 and PA mask 0x02, clears PB mask 0x40, then falls through to clear PB mask 0x20 at 0x5491. Final PB5 low / PB6 low / PA1 high maps to the 0.61 A row; used by the 0x5253 home-seek timed sequence entry.
 0x5488	carriage_current_drive_low_candidate	code	high	Sets PB mask 0x20, clears PA mask 0x02, sets PB mask 0x40, then falls through to clear PB mask 0x20 at 0x5491. Final PB5 low / PB6 high / PA1 low maps to the 0.23 A row; reached by the 0x7007 jump table.
 0x558D	arm_timed_mechanism_record	code	medium	Sets VV37=1, loads a timing/control record via 0x55B1, dispatches initial output state through 0x540D, then arms ETM1/FE1.
-0x55B1	load_mechanism_timing_record_into_ef49	code	medium	Copies a 0x17-byte timing/control record from the selected 0x7005/0x7088 table into EF49 and updates EF64/EF51/VV36 according to VV62/VV63/VV61.
+0x55B1	load_mechanism_timing_record_into_ef49	code	medium	Loads a timing/control record from the selected 0x7005/0x7088 table. After storing the record head in VV4D, BLOCK with C=0x17 copies 24 bytes to EF49..EF60 and updates EF64/EF51/VV36 according to VV62/VV63/VV61.
 0x5631	select_mechanism_timing_record_base	code	medium	Uses VV62 as a two-byte index into the 0x7001 pointer table, returning the selected timing record base in HL.
 0x563C	setup_head_fire_timing_and_data_pointers	code	medium	Sets VV6D/VV6F flags, derives EF79 from EF64, stores alternate-register source pointer at EF75/EF77, seeds EF70/EF73, and writes F004=0x20.
 0x5676	schedule_output_from_ef38_state	code	medium	Shared timed output scheduler reached from vertical advance and head/setup paths. Copies EF38 state to EF6D, writes F004=0x20, then builds an EF61/EF7C record and reaches 0x558D or the equivalent timed-record arm path.
@@ -128,7 +128,7 @@ address	label	kind	confidence	notes
 0x699C	esc_command_table	data	high	Count-prefixed table of 62 ESC command bytes and handler addresses, including ESC @, ESC J, ESC K/L/Y/Z, ESC U, ESC C, ESC N/O, and style commands.
 0x6A5A	unused_ff_gap_6a5a_6fff	data	high	Long 0xFF fill from 0x6A5A through 0x6FFF.
 0x7001	mechanism_timing_record_pointer_table	data	medium	Two-word pointer table consumed by 0x5635/0x558D; selects timing record bases 0x7005 or 0x7088 from VV62.
-0x7005	mechanism_timing_record_table_a	data	medium	Timing/control record table selected directly by 0x570F or through the 0x7001 pointer table; 0x55B1 copies 0x17-byte records into EF49.
+0x7005	mechanism_timing_record_table_a	data	medium	Timing/control record table selected directly by 0x570F or through the 0x7001 pointer table; 0x55B1 stores the selected record head in VV4D and copies the following 24 bytes into EF49..EF60.
 0x7007	mechanism_output_jump_table	data	medium	Overlapping jump table consumed by 0x540D after indexing from EFxx state byte; targets 0x546A, 0x5474, 0x547E, and 0x5488.
 0x7088	mechanism_timing_record_table_b	data	medium	Alternate timing/control record table selected through the 0x7001 pointer table when VV62 chooses the second record set.
 0x708E	paper_feed_short_move_threshold_overlap	data	medium	Word loaded directly by 0x55D8 from inside the 0x7088 record table. 55DC forces H=00h, so command feed compares the current count against low byte 0x0B; counts below 0x0B take the VV36 mask 04h/EF51=725Fh special path.
@@ -136,7 +136,7 @@ address	label	kind	confidence	notes
 0x7219	cr0_lookup_table	data	medium	Indexed from ISR at 0x06DF using CR0 range 0xC1-0xEE.
 0x725F	paper_feed_timing_list_start_overlap	data	medium	Word loaded directly by 0x55E4 into EF51 for command-feed counts below the 0x708E threshold; also the first word of the 725Fh timing-list region matching service-manual paper-feed acceleration timing.
 0x7287	mechanism_delay_table	data	medium	Delay/compare table consumed by the 0x5253 PA20 timed mechanism sequence through offsets at 0x7287, 0x729B, and 0x72AD.
-0x72AF	mechanism_sequence_table	data	medium	Mechanism sequence/state table consumed by 0x5253; 0x72B3 is also indexed by 0x5719 using a small stride.
+0x72AF	carriage_sequence_table	data	medium	Carriage sequence/state table. 0x5253 uses 0x72AF for startup home seek; 0x5719 indexes 0x72B3 by (VV6F & 7) * 5 to select five-byte normal carriage TM1 sequence records.
 0x72D9	unclassified_descending_lookup_table	data	low	Table-like bytes between mechanism sequence data and render geometry tables; no direct consumer confirmed yet.
 0x7307	render_geometry_byte_table	data	medium	Byte lookup consumed by 0x22DB using VV3A & 7 before downstream geometry table lookups.
 0x7317	render_geometry_word_table_7317	data	medium	Render/layout table consumed by 0x22E4 through the shared 0x23F1-style lookup path.

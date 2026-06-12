@@ -1,0 +1,9 @@
+index	address	vv7c_record_select	vv7d_tm1_cycle_len	ef7e_ef80_tm1_sequence	likely_speed	evidence	notes
+0	0x72B3	0x00	0x02	15 15 00	900 PPS family	5715h indexes this table with (VV6F & 07h) * 5; 56CE-56D3 copies five bytes to EF7C..EF80 because uPD7810 BLOCK repeats until C underflows. FE1 at 09AC loads TM1 from EF7E + VV81 and wraps VV81 when it reaches VV7D.	Third sequence byte is copied but not used while VV7D=02h.
+1	0x72B8	0x01	0x03	15 15 16	900 PPS family	09AC-09BC cycles TM1 through three values: 15h, 15h, 16h.	Small dither around the 900 PPS interval; exact mode assignment depends on VV6F caller context.
+2	0x72BD	0x02	0x02	15 15 00	900 PPS family	Same two-entry TM1 sequence as record 0, with a different VV7C record selector.	Third sequence byte is copied but not used while VV7D=02h.
+3	0x72C2	0x03	0x03	15 15 16	900 PPS family	Same three-entry TM1 sequence as record 1, with a different VV7C record selector.	Small dither around the 900 PPS interval; exact mode assignment depends on VV6F caller context.
+4	0x72C7	0x01	0x02	20 20 00	600 PPS family	09AC-09BC cycles TM1 through two 20h values.	Third sequence byte is copied but not used while VV7D=02h.
+5	0x72CC	0x03	0x03	2A 2A 2C	slower/intermediate family	09AC-09BC cycles TM1 through three values: 2Ah, 2Ah, 2Ch.	Slower than the manual 600 PPS constant-speed family under the same timer scale; likely transition/low-speed profile until caller context is decoded.
+6	0x72D1	0x03	0x02	20 20 00	600 PPS family	Same two-entry TM1 sequence as record 4, with a different VV7C record selector.	Third sequence byte is copied but not used while VV7D=02h.
+7	0x72D6	0x04	0x03	20 20 20	600 PPS family	09AC-09BC cycles TM1 through three identical 20h values.	Three-cycle variant of the 600 PPS family; exact mode assignment depends on VV6F caller context.

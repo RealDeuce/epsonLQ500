@@ -11,6 +11,7 @@ Source dump:
 - `7000h-7FFFh` data/code usage: `data/lq500_3c_7000_block_usage.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Carriage path trace: `data/lq500_3c_carriage_path.tsv`
+- Carriage sequence records: `data/lq500_3c_carriage_sequence_records.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
@@ -205,10 +206,10 @@ steady loop.
 The final `PB2` release is in the `VV37=20h` state. `VV37=10h` selects
 `EF5B=01` and keeps `PB2` low during the `EF59` delay. On the next FE1 pass,
 `07D0h-07D6h` changes the state to `20h` and calls `540Dh`; that state falls
-through the selector to `EF60`. `EF60` is outside the `EF49..EF5F` record copy
-and has no traced direct writer, so it remains zeroed. The zero value takes the
-`5498h` branch and sets `PB & 04h` high for hold before the later `EF5C`/`EF5E`
-delays and final FE1 masking.
+through the selector to `EF60`. `55CBh` uses `BLOCK` with `C=17h`, which copies
+`24` bytes into `EF49..EF60`; for the selected `708Eh` command-feed record,
+`EF60=00`. The zero value takes the `5498h` branch and sets `PB & 04h` high for
+hold before the later `EF5C`/`EF5E` delays and final FE1 masking.
 
 ## Host Input To Command Parser
 
@@ -304,8 +305,9 @@ Startup panel mode dispatch:
 2. Correlate `VV00`/`VV01` bits from `4F37h` against the documented DIP switch
    defaults in `docs/lq500_reference.md`.
 3. Continue carriage tracing from the service manual's driver signals by
-   decoding the `72B3h-72D8h` carriage control records and the normal scheduler
-   callers around `56C8h-5712h`.
+   mapping `VV6F` caller contexts to the decoded `72B3h-72D8h` carriage
+   sequence records and tracing the normal scheduler callers around
+   `56C8h-5712h`.
 4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
 5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,

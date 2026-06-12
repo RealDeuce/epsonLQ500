@@ -112,7 +112,9 @@ the workspace loss.
       drive low for the `EF59` delay; the next FE1 pass changes to
       `VV37=20h`, whose `540Dh` selector falls through to `EF60=00`, taking
       `5498h` and setting `PB & 04h` high for hold before the later
-      `EF5C`/`EF5E` delays and final FE1 masking.
+      `EF5C`/`EF5E` delays and final FE1 masking. `EF60` is copied by
+      `55CBh` because uPD7810 `BLOCK` copies `C+1` bytes; for the selected
+      `708Eh` command-feed record, the copied `EF60` value is `00`.
       Separately, startup calls the carriage home-seek path at `51F7h-5253h`.
       It branches on and samples the `PA bit 20h` HOME candidate, walks
       carriage timing tables around `7287h`/`72AFh`, pulses `0908h`/`PC7`/`TM`,

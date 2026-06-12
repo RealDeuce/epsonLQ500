@@ -278,8 +278,11 @@ The carriage timing words at `7287h-72AEh` are in 10 us units and line up with
 the manual carriage acceleration/deceleration tables: examples include `0162h`
 near `3.56 ms`, `00E7h` at `2.31 ms`, `00C8h` at `2.00 ms`, `00A6h` at
 `1.66 ms`, and `007Ah` at `1.22 ms`. The adjacent five-byte records at
-`72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the carriage scheduler and
-still need field decoding.
+`72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the carriage scheduler; see
+`data/lq500_3c_carriage_sequence_records.tsv`. `56CE-56D3h` copies each record
+to `EF7C..EF80`; `EF7C` can become `VV63`, `EF7D` is the `TM1` reload-cycle
+length, and `EF7E..EF80` are the cyclic `TM1` reload bytes used at
+`09AC-09BCh`.
 
 ### Head / Pin Firing
 
@@ -395,13 +398,13 @@ list/counter finishes, `078Ah-0790h` sets `VV37=10h` and calls `540Dh`; state
 `07D0h`, changes the state to `VV37=20h`, and calls `540Dh` at `07D6h`. In the
 normal, non-`80h` selector path, `540Dh` maps bits `04h/02h/08h/01h/10h` to
 `EF53`/`EF4D`/`EF55`/`EF4B`/`EF5B`; state `20h` matches none and selects
-`EF60`. `EF60` is outside the `EF49..EF5F` timing-record copy and has no traced
-direct writer, so it remains zero from RAM initialization. That zero record
-value takes the `5498h` path and sets `PB & 04h` high for the +5 V hold state.
-The following `EF5C`/`EF5E` delays and `0836h` interrupt masking do not issue
-another `PB & 04h` write. The carriage home-seek routine at `5253h` contains a
-separate 10-step-shaped split: `529Ah` walks up to nine table-driven intervals,
-then `52BDh` subtracts `000Ah` before choosing the steady loop.
+`EF60`. `55CBh` uses `BLOCK` with `C=17h`, which copies `24` bytes into
+`EF49..EF60`; for the selected `708Eh` command-feed record, `EF60=00`. That
+zero record value takes the `5498h` path and sets `PB & 04h` high for the +5 V
+hold state. The following `EF5C`/`EF5E` delays and `0836h` interrupt masking do
+not issue another `PB & 04h` write. The carriage home-seek routine at `5253h`
+contains a separate 10-step-shaped split: `529Ah` walks up to nine table-driven
+intervals, then `52BDh` subtracts `000Ah` before choosing the steady loop.
 
 ## Service/Test Path
 

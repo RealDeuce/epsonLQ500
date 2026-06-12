@@ -29,13 +29,15 @@ manual notes, or hardware measurements.
 - `data/lq500_3c_7000_block_usage.tsv`: consumer map for the `7000h-7FFFh`
   mechanism/render/service block.
 - `data/lq500_3c_mechanism_timing_records.tsv`: decoded timing-record bytes
-  copied by `55B1h` into `EF49h..EF5Fh`.
+  copied by `55B1h` into `EF49h..EF60h`.
 - `data/lq500_3c_paper_advance_path.tsv`: paper-feed command path from
   ESC/P distance setup to PB2/PB3/PB4 timed output.
 - `data/lq500_3c_paper_feed_timing.tsv`: service-manual paper-feed
   acceleration/deceleration timings and ROM timing-word matches.
 - `data/lq500_3c_carriage_path.tsv`: carriage manual anchors, home seek,
   current-control states, and PC7/TM timing-path notes.
+- `data/lq500_3c_carriage_sequence_records.tsv`: decoded five-byte
+  `72B3h-72D8h` carriage scheduler records copied to `EF7C..EF80`.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 - `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
   for custom `4C` pin-22/A16 read experiments.
@@ -98,3 +100,6 @@ adding missing roots, such as hand-confirmed computed jump/table targets, to
   `MVI A,xx` loads `A` and sets `L1`; later consecutive `MVI A,xx`
   instructions act as NOPs until an instruction that clears `L1`. Firmware uses
   this for compact selector lists such as `540Dh`.
+- uPD7810 `BLOCK` copies one byte, increments source/destination, decrements
+  `C`, and repeats by backing up `PC` until `C` underflows to `FFh`. Thus an
+  initial `C=n` copies `n+1` bytes.
