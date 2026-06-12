@@ -80,9 +80,9 @@ address	label	kind	confidence	notes
 0x4EB9	clear_f001_bit3	code	medium	DI; read F001; ANI 0xF7; write F001; clears VV0A bit 0x10.
 0x4ECF	set_f001_bit3	code	medium	DI; read F001; ORI 0x08; write F001; sets VV0A bit 0x10.
 0x4EE4	txb_send_byte_wait_fst	code	high	Waits SKIT FST then writes TXB.
-0x4EEA	read_panel_buttons_debounced	code	medium	Combines stable PC bits from 0x4EF9 with the 0x4F21 PC08/F2 path; bidirectional-adjustment mode treats return bits 0x01/0x02/0x04 as panel actions.
-0x4EF9	read_pc_bits_30_stable	code	medium	Debounces PC & 0x30 and maps them to return bits 0x02 and 0x01.
-0x4F21	sample_panel_pc08_or_f2_button	code	medium	Uses SKIT F2 plus a PC bit 0x08 wait loop; returns with/without caller skip so 0x4EEA can set panel-action bit 0x04.
+0x4EEA	read_panel_buttons_debounced	code	high	Combines stable PC bits from 0x4EF9 with the 0x4F21 PC08/F2 path; returns 0x01 LINE FEED/AUTO LOAD, 0x02 FORM FEED, and 0x04 ON LINE.
+0x4EF9	read_pc_bits_30_stable	code	high	Debounces PC & 0x30 and maps PC bit 0x20 to LINE FEED/AUTO LOAD return bit 0x01 and PC bit 0x10 to FORM FEED return bit 0x02.
+0x4F21	sample_on_line_pc08_or_f2_button	code	high	Uses SKIT F2 plus a PC bit 0x08 wait loop; returns with/without caller skip so 0x4EEA can set ON LINE return bit 0x04.
 0x4F2F	delay_03e8	code	high	BC=0x03E8 delay via CALT 0x0090.
 0x4F37	read_dip_switches_and_panel_pa_bits	code	medium	Calls table-driven ADC switch reader 0x4F54 twice, stores VV00/VV01, then folds PA bits 0x04/0x08 into VV01.
 0x4F54	read_adc_switch_table_bits	code	medium	Walks compact tables at 0x4F96/0x4F9F, selects F002/ANM modes through 0x508D, and builds one switch bit per threshold comparison.
@@ -112,11 +112,13 @@ address	label	kind	confidence	notes
 0x6A5A	unused_ff_gap_6a5a_6fff	data	high	Long 0xFF fill from 0x6A5A through 0x6FFF.
 0x7007	mechanism_output_jump_table	data	medium	Jump table consumed by 0x540D after indexing from EFxx state byte.
 0x7219	cr0_lookup_table	data	medium	Indexed from ISR at 0x06DF using CR0 range 0xC1-0xEE.
-0x739B	service_or_mode_entry	code	low	Reachable from 0x0385; exact mode unknown.
+0x739B	power_on_panel_mode_dispatch	code	high	Dispatches startup panel mode from VV0C: 0x01 draft self-test, 0x02 LQ self-test, 0x03 data dump, and remapped 0x08 bidirectional adjustment.
 0x73AF	data_dump_grid_printer	code	medium	Prints rows through the 0x8000 work window, converts nibbles to ASCII, and emits dot placeholders via 0x4038/0x2011.
 0x746F	nibble_to_ascii_hex_digit	code	high	Converts 0-15 to ASCII hex digit using +7/+0x30 adjustment.
 0x7476	print_hex_digit_or_data_dump_cell	code	medium	Saves HL to EE46, prints one cell through 0x4038, advances by seven bytes, and restores registers.
 0x7493	select_print_state_for_character	code	medium	Selects current/alternate font state into VV21/VV22 based on character range, then checks bounds via 0x4173.
+0x74CB	draft_self_test_entry	code	high	Power-on LINE FEED/AUTO LOAD self-test path; sets VV23 bit 0x04 before common self-test printing.
+0x74CF	letter_quality_self_test_entry	code	high	Power-on FORM FEED self-test path; clears VV23 bit 0x04 before common self-test printing.
 0x755D	print_ff_or_nul_terminated_string	code	high	Prints bytes from HL until 0x00/0xFF, using A/C mode and char-output helpers.
 0x7557	print_string_then_output_advance	code	medium	Calls 0x755D then jumps to 0x2011.
 0x7594	copy_string_to_ff00_then_print	code	medium	Copies a source string to 0xFF00 then prints via 0x755D.

@@ -80,7 +80,7 @@ firmware uses external windows and buffers outside this ROM:
 | `400Bh` | `main_input_decode_loop` | Top-level loop: read host byte, classify with `4038h`, print if printable, dispatch if command/control. |
 | `4038h` | `classify_input_character_and_select_style_state` | Classifies printable bytes and sets font/style state; printable bytes skip over the command dispatcher. |
 | `4EE4h` | `txb_send_byte_wait_fst` | Waits for `FST`, then writes `TXB`. |
-| `4EEAh` | `read_panel_buttons_debounced` | Returns service-panel action bits from debounced `PC`/`F2` inputs; used directly by bidirectional adjustment. |
+| `4EEAh` | `read_panel_buttons_debounced` | Returns panel bits `01h` LINE FEED/AUTO LOAD, `02h` FORM FEED, and `04h` ON LINE from debounced `PC`/`F2` inputs. |
 | `4F2Fh` | `delay_03e8` | Loads `BC=03E8h`, delays via `CALT ($0090)`. |
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup DIP/panel read. Uses table-driven ADC switch reads and then folds in direct PA bits. |
 | `4F54h` | `read_adc_switch_table_bits` | Consumes compact tables at `4F96h`/`4F9Fh`, samples ADC via `508Dh`, and builds switch bitfields. |
@@ -94,6 +94,9 @@ firmware uses external windows and buffers outside this ROM:
 | `5488h` | `mechanism_phase_state_3_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=0`, `PB40=1`; target of the `7007h` jump table. |
 | `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before writing `F004=20h`; likely head-fire setup state. |
 | `6944h` | `dispatch_control_or_esc_command` | Count-prefixed command-table scanner; primary table starts at `696Eh`, ESC table at `699Ch`. |
+| `739Bh` | `power_on_panel_mode_dispatch` | Dispatches `VV0C` startup panel mode: Draft self-test, LQ self-test, data dump, or bidirectional adjustment. |
+| `74CBh` | `draft_self_test_entry` | Power-on LINE FEED/AUTO LOAD self-test path; sets `VV23.2` before the common self-test printer. |
+| `74CFh` | `letter_quality_self_test_entry` | Power-on FORM FEED self-test path; clears `VV23.2` before the common self-test printer. |
 | `755Dh` | `print_ff_or_nul_terminated_string` | Reads bytes from `HL` until `00h` or `FFh`, outputting through character helpers. |
 | `7719h` | `data_dump_mode_routine` | Uses strings at `6116h`, `612Eh`, `613Ch`, and `615Eh`; clearly handles data-dump paper length messaging. |
 | `7818h` | `bidirectional_adjustment_mode` | Prints `7A18h` string `Bi-d Adjustment Mode`, then `VR1`, `VR2`, and out-of-range strings. |
@@ -184,6 +187,15 @@ Important FF-delimited strings:
 | `7A2Dh` | `VR1 = ` |
 | `7A34h` | `VR2 = ` |
 | `7A3Dh` | ` (out of range)` |
+
+Startup panel mode dispatch:
+
+| `VV0C` | Held button(s) | Mode |
+| ---: | --- | --- |
+| `01h` | LINE FEED/AUTO LOAD | Draft self-test at `74CBh` |
+| `02h` | FORM FEED | Letter Quality self-test at `74CFh` |
+| `03h` | LINE FEED/AUTO LOAD + FORM FEED | Data dump at `73AFh` |
+| `08h` | ON LINE + FORM FEED + LINE FEED/AUTO LOAD, remapped from raw `07h` | Bidirectional adjustment at `7818h` |
 
 ## Current Uncertainties
 

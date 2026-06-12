@@ -27,7 +27,7 @@ The most useful hardware-facing split so far is:
 | --- | --- | --- |
 | `0582h` | `isr_gate_f000_input_capture_buffer` | Interrupt path that reads `F000h`, stores the byte into the shared `EE20h` input buffer, restores `F002h`, and toggles `F001h` bits when the buffer state changes. Candidate parallel-port data path. |
 | `05E2h` | `isr_rxb_host_receive_buffer` | CPU `RXB` receive interrupt path. It checks `ER`, handles NUL/error cases, and writes into the same `EE20h` input buffer as the `F000h` path. |
-| `4EEAh` | `read_panel_buttons_debounced` | Returns a compact button/action bitfield. Bidirectional-adjustment mode treats returned values `01h`, `02h`, and `04h` as panel actions and waits for a return to zero before accepting another action. |
+| `4EEAh` | `read_panel_buttons_debounced` | Returns a compact button/action bitfield: `01h` = LINE FEED/AUTO LOAD, `02h` = FORM FEED, `04h` = ON LINE. Bidirectional-adjustment mode waits for return to zero before accepting another action. |
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup switch read. Calls the ADC/table reader twice, writes `VV00`/`VV01`, then folds PA bits `04h` and `08h` into `VV01`. |
 | `4F54h` | `read_adc_switch_table_bits` | Walks compact tables at `4F96h`/`4F9Fh`; each entry chooses an `F002h`/ADC mode through `508Dh` and compares the resulting sample against a threshold. |
 | `4FB1h` | `sample_vr_adjustment_adc_offsets` | Startup and bidirectional-adjustment sampler. It averages ADC channels and stores signed/clamped offsets in the `EE28h` area used by the adjustment UI. |
@@ -40,8 +40,9 @@ Known bit-level handles:
 
 | Signal in code | Current meaning |
 | --- | --- |
-| `PC & 30h` | Debounced by `4EF9h`, returned from `4EEAh` as action bits `02h` and `01h`. |
-| `PC bit 08h` plus `F2` | Sampled by `4F21h`, returned from `4EEAh` as action bit `04h`. |
+| `PC bit 20h` | Debounced by `4EF9h`; returned from `4EEAh` as `01h` = LINE FEED/AUTO LOAD. |
+| `PC bit 10h` | Debounced by `4EF9h`; returned from `4EEAh` as `02h` = FORM FEED. |
+| `PC bit 08h` plus `F2` | Sampled by `4F21h`; returned from `4EEAh` as `04h` = ON LINE. |
 | `PA bits 04h/08h` | Sampled by `4F37h` after the two ADC switch-table reads and merged into `VV01`. |
 | `PA bit 10h` | Used repeatedly in data-dump and service flows as a wait/confirm-style input. |
 | `PA bit 20h` | Used by feed/mechanism setup flows around `51F7h-5241h`; likely paper/feed related, not fully named yet. |
@@ -226,7 +227,14 @@ feed.
 
 The `739Bh-7B73h` block is a service UI layer:
 
+- Startup builds `VV0C` from the panel bits: `01h` enters Draft self-test
+  (LINE FEED/AUTO LOAD held), `02h` enters LQ self-test (FORM FEED held),
+  `03h` enters data dump (LINE FEED plus FORM FEED), and `07h` is remapped to
+  `08h` for bidirectional adjustment (ON LINE plus FORM FEED plus LINE FEED).
 - `73AFh` prints a data-dump style grid using the `8000h` work window.
+- `74CBh` is the Draft self-test entry; `74CFh` is the Letter Quality self-test
+  entry. They differ by setting or clearing `VV23` bit `04h` before common
+  self-test printing.
 - `746Fh` converts nibbles to ASCII hex.
 - `7476h` prints a single dump cell through the same character classifier used
   by normal text.

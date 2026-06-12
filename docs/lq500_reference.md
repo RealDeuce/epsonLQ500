@@ -294,6 +294,20 @@ Default conditions after initialization:
 
 Power-on or INIT signal also clears the data buffer.
 
+## Power-On Panel Modes
+
+Manual-described button combinations:
+
+| Held during power-on | Mode |
+| --- | --- |
+| LINE FEED/AUTO LOAD | Draft self-test |
+| FORM FEED | Letter Quality self-test |
+| LINE FEED/AUTO LOAD + FORM FEED | Data dump mode |
+| ON LINE + FORM FEED + LINE FEED/AUTO LOAD | Bidirectional adjustment mode |
+
+The service manual says the self-test prints the firmware revision first, then
+the current DIP switch settings.
+
 ## Command Set
 
 The full command list is available as machine-readable data in

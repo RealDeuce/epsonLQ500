@@ -35,8 +35,11 @@ the workspace loss.
       input buffer.
     - `05E2h` is labeled `isr_rxb_host_receive_buffer`, the CPU `RXB` path
       into that same input buffer.
-    - `4EEAh` is labeled `read_panel_buttons_debounced`; bidirectional
-      adjustment treats return bits `01h`, `02h`, and `04h` as panel actions.
+    - `4EEAh` is labeled `read_panel_buttons_debounced`; manual self-test
+      paths identify return bits `01h` = LINE FEED/AUTO LOAD, `02h` =
+      FORM FEED, and `04h` = ON LINE. Startup dispatch uses `VV0C=01h` for
+      Draft self-test, `02h` for LQ self-test, `03h` for data dump, and remaps
+      raw `07h` to `08h` for bidirectional adjustment.
     - `4F37h`/`4F54h` are labeled as startup DIP/panel reads using compact
       ADC switch tables plus direct PA bits, so the switches are not just one
       direct CPU port bank.
