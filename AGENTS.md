@@ -42,6 +42,8 @@ manual notes, or hardware measurements.
   paths around the normal `56C8h-5712h` carriage scheduler.
 - `data/lq500_3c_vv3a_mode_selector.tsv`: shared `VV3A`/`VV6F` selector
   values across carriage TM1 records and render geometry tables.
+- `data/lq500_3c_carriage_mode_state.tsv`: state plumbing from `VV1F` through
+  `VV31`/`VV32`/`VV3A` to `VV6F` and `F003h` control-bit notes.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 - `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
   for custom `4C` pin-22/A16 read experiments.

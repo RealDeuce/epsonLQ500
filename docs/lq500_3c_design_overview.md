@@ -304,6 +304,15 @@ halved before being saved as `EF79`. The current side-by-side selector map is in
 `data/lq500_3c_vv3a_mode_selector.tsv`; exact user-facing speed/excitation mode
 names still need correlation to the `F003h` helper callers.
 
+The selector state path is now separated from the selector value table in
+`data/lq500_3c_carriage_mode_state.tsv`. `4038h` copies a saved print/style bank
+into `VV1F`; setup paths preserve that value in `VV31` and `VV32`; active
+render/movement paths restore `VV31`/`VV32` into `VV3A`; and the scheduler-state
+copy makes source+2 become `VV6F`. This proves the state plumbing into the
+carriage records, but not the manual Table 2-7 excitation-mode name for each
+record because the `51E9h`/`51EDh`/`51F2h` `F003h` helper callers are still not
+traced.
+
 ### Head / Pin Firing
 
 `F004h/F005h` look like the head-interface registers. `045Dh` initializes
