@@ -37,6 +37,8 @@ address	label	kind	confidence	notes
 0x0EF6	scan_ff00_buffer	code	medium	Scans/copies FF00 buffer; branches to 0x429D when done.
 0x0F16	set_mode_bit_25_from_calt86	code	low	Small mode flag helper, writes VV25 bit 7 then CALT 0x0092.
 0x0F21	set_mode_bit_23_20_from_calt86	code	low	Small mode flag helper, toggles VV23 bit 5 then CALT 0x0092.
+0x1454	esc_R_select_international_character_set	code	high	ESC R n handler: accepts n < 13 and stores n*12 in VVBB for the 0x689C substitution table.
+0x1464	apply_international_character_substitution	code	high	Searches the base row at 0x689C for #/$/@/bracket-style replacement characters, then applies the VVBB country-row offset.
 0x147C	mode_or_geometry_helper	code	low	Called from buffer/geometry routines; returns HL/EA-derived values.
 0x1677	common_render_or_buffer_helper	code	low	High fan-in CALL target in text/graphics region.
 0x1CF2	load_cg_metrics_from_8000_or_8600	code	medium	Reads F002, selects 0x8000/0x8600 window, uses CALT 0x00B4 and VV:A0 to load EF99/EF9B metrics.
@@ -101,11 +103,16 @@ address	label	kind	confidence	notes
 0x563C	setup_head_fire_timing_and_data_pointers	code	medium	Sets VV6D/VV6F flags, derives EF79 from EF64, stores alternate-register source pointer at EF75/EF77, seeds EF70/EF73, and writes F004=0x20.
 0x5681	write_f004_head_idle_or_arm_value	code	medium	Writes 0x20 to F004 after head timing/data pointer setup; same idle/init value written at 0x0487.
 0x5794	unused_ff_gap_5794_5fff	data	high	Long 0xFF fill from 0x5794 through 0x5FFF.
-0x6000	byte_identity_table_00_ff	data	high	Full 0x00-0xFF byte table.
-0x6100	selftest_and_menu_strings	data	high	String/data block: L5217B, Data Dump Mode, CSF messages, DIP-switch/menu text.
+0x6000	byte_identity_table_00_ff	data	high	Full 0x00-0xFF byte table used by 0x4038 to remap host bytes before printable/control classification.
+0x6100	service_diagnostic_strings	data	high	String/data block: self-test firmware header, data-dump strings, CSF messages, pitch strings, DIP/status menu text.
 0x61AA	selftest_status_string_pointer_table	data	high	Two-column pointer table consumed by 0x75C7; each row supplies left and right status strings, ending with 0000h.
 0x6230	selftest_status_selector_strings	data	high	Fixed-width DIP/status strings; first byte is a selector ID, followed by FF-delimited printable text.
-0x6854	character_set_or_translation_tables	data	medium	Non-code tables after menu strings; includes visible character-set fragments.
+0x67F0	print_style_setup_pointer_table	data	medium	Pointer table consumed by 0x264F to select print/render setup records at 0x6800-0x682D.
+0x6800	print_style_setup_records	data	medium	Variable-length setup records loaded through the 0x67F0 pointer table into VV88/VV89 and related print state.
+0x682E	render_spacing_lookup_overlap	data	medium	Small lookup consumed by 0x26A0 after masking B with 0x07; overlaps the startup timer table at 0x6834.
+0x6834	startup_timer0_table_overlap	data	medium	Startup table indexed at 0x026E from VV0B and written to TM0; overlaps the 0x682E lookup.
+0x6844	extended_glyph_metric_lookup_base	data	medium	Indexed lookup base consumed by 0x1D3C while deriving glyph metrics/widths for extended character paths.
+0x689C	international_character_substitution_table	data	high	ESC R/self-test character substitution table consumed by 0x1464; base row lists # $ @ [ \\ ] ^ ` { | } ~.
 0x6944	dispatch_control_or_esc_command	code	high	Command-table dispatcher. Pushes 0x400B as the loop return, scans byte/target tables, and jumps to matched command handlers.
 0x695B	dispatch_esc_command_after_esc	code	high	ESC handler from the primary table: reads the next byte with 0x0AB2 and dispatches through the ESC table at 0x699C.
 0x696E	primary_control_command_table	data	high	Count-prefixed table of 14 primary nonprintable commands: ESC, LF, CR, BEL, BS, HT, VT, FF, SO, SI, DC2, DC3, DC4, CAN.

@@ -7,6 +7,7 @@ Source dump:
 - SHA1 `7275ef3547ad1bbb12210d626c796a827f308bb6`
 - Disassembly: `roms/lq500_3c_m25a10pa_internal_prom.asm`
 - First-pass labels: `data/lq500_3c_program_labels.tsv`
+- `6000h-6FFFh` data usage: `data/lq500_3c_6000_block_usage.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
@@ -51,9 +52,13 @@ firmware uses external windows and buffers outside this ROM:
 | `2DE3h-3FFFh` | Fill | All `0xFF`. |
 | `4000h-5793h` | Main input decode and secondary code body | Starts with `PBLS` signature at `4000h`; reset checks this area for external PROM handling. Contains the `400Bh` host-byte decode loop, printable-character setup, and substantial hardware helpers. |
 | `5794h-5FFFh` | Fill | All `0xFF`. |
-| `6000h-60FFh` | Identity byte table | Literal bytes `00h-FFh`; not code. |
-| `6100h-67FFh` | Self-test/data-dump/menu strings and tables | Contains `L5217B`, `Data Dump Mode`, CSF messages, DIP-switch menu text, pitch text, and pointer/table data. |
-| `6854h-6A59h` | Character set / translation tables | Non-code table data with visible character-set fragments. |
+| `6000h-60FFh` | Host-byte remap table | Literal bytes `00h-FFh`, consumed by `4038h` before printable/control classification. |
+| `6100h-67EFh` | Service/diagnostic strings and status tables | Contains `L5217B`, `Data Dump Mode`, CSF messages, pitch text, the self-test status pointer table, and selector-prefixed DIP/status text. |
+| `67F0h-689Bh` | Render/glyph lookup tables | Pointer and setup tables consumed by `264Fh`, overlapping lookup tables at `682Eh`/`6834h`, and an indexed glyph metric lookup base at `6844h`. |
+| `689Ch-6943h` | International character substitution table | Consumed by `1464h`; `ESC R n` sets the country row offset used by this table. |
+| `6944h-695Fh` | Command dispatcher code | Table scanner reached from the main input loop at `400Fh`. |
+| `6960h-696Dh` | Unresolved table/code fragment | No traced xref yet; sits between dispatcher code and the primary command table. |
+| `696Eh-6A59h` | Command dispatch tables | Count-prefixed primary and ESC command tables consumed by `6944h`/`695Bh`. |
 | `6A5Ah-6FFFh` | Fill | All `0xFF`. |
 | `7007h-721Fh` | Mechanism/output tables | `540Dh` indexes a PA/PB output jump table at `7007h`; `0668h` indexes a CR0 lookup table around `7219h`. |
 | `739Bh-7B73h` | Service/self-test/adjustment code | Includes data-dump mode and bidirectional adjustment mode routines, string printer, and PA/PB output helpers. |
@@ -180,11 +185,12 @@ Important FF-delimited strings:
 | `612Eh` | `This is line ` |
 | `613Eh` | `This paper is too long for CSF.` |
 | `615Eh` | `This paper is too short for CSF.` |
-| `617Fh` | `(8.5mm)` |
-| `6187h` | `(22mm)` |
+| `617Fh` | `(8.5mm)`; no traced consumer found yet. |
+| `6187h` | `(22mm)`; no traced consumer found yet. |
 | `6190h-61A8h` | Pitch names: `10`, `12`, `15`, `Proportional` |
 | `61AAh-620Dh` | Self-test status pointer table: two pointers per printed row, ending with `0000h`. |
 | `6230h-67EFh` | Selector-prefixed DIP/status strings. The first byte is matched against selected IDs in `FF00h`; matching rows print emphasized/bold. |
+| `67F0h-6A59h` | Non-string lookup and dispatch data; see `data/lq500_3c_6000_block_usage.tsv`. |
 | `7A18h` | `Bi-d Adjustment Mode` |
 | `7A2Dh` | `VR1 = ` |
 | `7A34h` | `VR2 = ` |

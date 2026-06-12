@@ -1,0 +1,28 @@
+range	kind	consumer	evidence	notes
+0x6000-0x60FF	byte remap table	0x4038 / 0x4063	4063: LXI HL,6000; 4066: LDAX (HL+A)	Identity 00-FF table used before printable/control classification; 0xFF remaps to space and 0x15 has special handling.
+0x6100-0x6105	FF-delimited string	0x7552 / self-test	7552: LXI HL,6100	Firmware header string L5217B.
+0x6107-0x6114	FF-delimited string	0x7538 / data-dump mode	7538: LXI HL,6107	Data Dump Mode title.
+0x6116-0x612C	FF-delimited string	0x7719 / data-dump mode	7723: LXI HL,6116	Initial data-dump sample line: This is the first line.
+0x612E-0x613A	FF-delimited string	0x7719 / data-dump mode	777B: LXI HL,612E	Data-dump generated line prefix: This is line .
+0x613C-0x613C	FF-delimited string	0x7719 / data-dump mode	7792: LXI HL,613C	Data-dump generated line suffix: period.
+0x613E-0x615C	FF-delimited string	0x7719 / CSF/data-dump paper check	77CC: LXI HL,613E	This paper is too long for CSF.
+0x615E-0x617D	FF-delimited string	0x7719 / CSF/data-dump paper check	77B0: LXI HL,615E	This paper is too short for CSF.
+0x617F-0x6185	FF-delimited string	no traced xref	No direct immediate or pointer hit found in traced code.	(8.5mm), likely leftover/manual-related CSF label until a computed consumer is found.
+0x6187-0x618C	FF-delimited string	no traced xref	No direct immediate or pointer hit found in traced code.	(22mm), likely leftover/manual-related CSF label until a computed consumer is found.
+0x618E-0x618F	FF-delimited string	0x76DE / self-test status table spacing	76E8: LXI HL,618E	Single-space FF-delimited string repeated for status table column spacing.
+0x6190-0x61A8	NUL-delimited strings	0x75B6-0x75C4 / self-test pitch/status	75B6/75B9/75BC/75BF direct loads	Pitch names selected from VV23 flags: 10, 12, 15, Proportional.
+0x61AA-0x620D	pointer table	0x75C7 / self-test status table	75DD: LXI DE,61AA	Two pointers per printed row; left/right status strings, ending with 0000.
+0x6210-0x622F	selector-prefixed blank string	0x75C7 / self-test status table	0x61AA pointer rows 0 and 24	Blank status row used as top/bottom spacing.
+0x6230-0x67EF	selector-prefixed strings	0x75C7 / 0x76C2	0x61AA pointer table and 76C2 selector scan	DIP/status alternatives; matching selector IDs print emphasized/bold.
+0x67F0-0x67FF	pointer table	0x264F / render setup	264F: LXI EA,67F0; 265A: LDEAX (HL)	Eight pointers to setup records at 0x6800-0x6824.
+0x6800-0x682D	setup records	0x264F / render setup	265D-2663 load VV88/VV89 and a flags byte	Variable-length print/render style setup records selected by 0x67F0.
+0x682E-0x6835	lookup table	0x26A0 / render spacing adjustment	26A0: LXI EA,682E; index B&07	Small spacing/advance lookup; overlaps 0x6834 startup table at bytes 0x6834-0x6835.
+0x6834-0x6843	lookup table	0x026E / startup init	026E: LXI EA,6834; 0274: LDAX; 0275: MOV TM0,A	Startup timer-0 table indexed by VV0B; overlaps the 0x682E table.
+0x6844-0x689B	indexed lookup base	0x1D3C / glyph metric path	1D3C: LXI EA,6844; 1D45: EADD EA,A	Extended glyph metric/width lookup region; consumed by computed index, so boundaries are approximate.
+0x689C-0x6937	substitution table	0x1464 / ESC R and self-test character output	1464: LXI HL,689C; 1473 uses VVBB country offset	International character substitution table. ESC R n stores n*12 in VVBB; row 0 is the searchable base character list.
+0x6938-0x6943	extra substitution row	no direct traced selector	No direct xref beyond adjacent indexed table.	Looks like one more 12-byte substitution row, but ESC R n currently accepts n < 13 and reaches rows 0-12.
+0x6944-0x695F	code	0x400F / command dispatch	400F: JMP 6944	Command-table scanner, not data.
+0x6960-0x696D	untraced bytes	no traced xref	Trace frontier marks 6960-739B as likely data/untraced code.	Small unresolved fragment between dispatcher code and primary command table.
+0x696E-0x699B	command dispatch table	0x6948 / primary command dispatch	6948: LXI HL,696E	Count-prefixed primary control table; parsed in lq500_3c_command_dispatch_tables.tsv.
+0x699C-0x6A59	command dispatch table	0x695C / ESC command dispatch	695C: LXI HL,699C	Count-prefixed ESC table; parsed in lq500_3c_command_dispatch_tables.tsv.
+0x6A5A-0x6FFF	fill	none	All bytes are 0xFF.	Unused fill through the end of the 0x6000-0x6FFF block.

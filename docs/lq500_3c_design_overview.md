@@ -72,6 +72,15 @@ separate `ESC G`/`ESC H` double-strike bit.
 The extracted selector text is mirrored in
 `data/lq500_3c_selftest_status_selectors.tsv`.
 
+The larger `6000h-6FFFh` block is now split by consumer in
+`data/lq500_3c_6000_block_usage.tsv`. The service-visible text runs from
+`6100h` through `67EFh`; the rest of the block is lookup and dispatch data:
+`6000h` is the host-byte remap table used by `4038h`, `67F0h-689Bh` is
+render/glyph setup data, `689Ch-6943h` is the international character
+substitution table used by `1464h`, and `696Eh-6A59h` is the primary/ESC command
+dispatch table area. The two CSF parenthesized strings at `617Fh` and `6187h`
+have no direct traced consumer yet.
+
 ## Input Pipeline
 
 The host input path from the candidate parallel ISR to the parser now has a

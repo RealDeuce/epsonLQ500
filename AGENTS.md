@@ -24,6 +24,8 @@ manual notes, or hardware measurements.
   dispatch tables.
 - `data/lq500_3c_command_behaviors.tsv`: audited command behavior notes,
   parameter consumption, state updates, and evidence.
+- `data/lq500_3c_6000_block_usage.tsv`: consumer map for the `6000h-6FFFh`
+  data/code block.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 
 ## Trace Workflow
