@@ -71,13 +71,20 @@ the workspace loss.
       through that `F005h` pointer. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`
       and `5681h` writes `F004=20h`.
     - paper-feed candidate: `ESC J` at `2530h` and FX-80-compatible `ESC j` at
-      `2568h` converge at `2534h`, then run through `1FEAh` and the broader
-      render/advance path at `256Eh`. Separately, startup calls
-      `51F7h-5253h`, which branches on and samples `PA bit 20h`, walks timing
-      tables around `7287h`/`72AFh`, and selects four PA/PB output states at
-      `546Ah`, `5474h`, `547Eh`, and `5488h`. Keep this named as a candidate
-      until the command feed path is connected to that mechanism sequence or
-      to board signals.
+      `2568h` converge at `2534h`, then run through `1FEAh`, `2048h`, and the
+      signed vertical-advance setup at `256Eh`. Nonzero pending distance can
+      reach `2864h`, which stores the magnitude in `EF40h` and calls the timed
+      output scheduler at `5676h`; that path reaches `558Dh`/`55B1h` and
+      `540Dh`. Separately, startup calls `51F7h-5253h`, which branches on and
+      samples `PA bit 20h`, walks timing tables around `7287h`/`72AFh`, and
+      selects four PA/PB output states at `546Ah`, `5474h`, `547Eh`, and
+      `5488h`. Keep this named as a candidate until the command feed path is
+      connected to board signals.
+    - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
+      model. The key unresolved question is the minimum movement: `ESC J n` is
+      documented as `n/180` inch, but the physical step or microstep count
+      should be derived from how `EE7Ah`/`EE86h`/`EF40h` and `EF64h` advance
+      through the `FE1` timed output path.
 - `4C` resident CG/font ROM candidate has been dumped successfully:
   - chip markings: `EPSON (C) 1997 / JAPAN 871 / M10A10LA EDH`
   - board marking under chip: `IM/256 Kbit MASK` and `?256PROM`

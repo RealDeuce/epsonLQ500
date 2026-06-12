@@ -86,8 +86,9 @@ firmware uses external windows and buffers outside this ROM:
 | `0A0Bh` | `read_next_host_input_byte` | Consumes from the shared input buffer using `EE22h` as the read pointer and `EE1Eh` as the pending count. This is `CALT ($0080)`. |
 | `0B23h` | `write_bank_register_f002` | Single-purpose helper: `MOV ($F002),A; RET`. |
 | `2530h` | `esc_J_immediate_forward_feed` | `ESC J n`: reads one byte and enters the immediate-feed path with a positive distance. |
-| `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry; marks `VV:C1` bits `E0h` and jumps through `1FEAh` into the broader render/advance logic at `256Eh`. |
+| `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry; marks `VV:C1` bits `E0h` and normally jumps through `1FEAh`/`2048h` into the signed vertical-advance setup at `256Eh`. |
 | `2568h` | `esc_j_immediate_reverse_feed_fx80_compat` | `ESC j n`: FX-80 compatibility reverse feed; reads one byte and enters the same immediate-feed path with the high byte set to `80h`. |
+| `2864h` | `process_pending_vertical_advance_distance` | If the pending `EE7Ah` distance is nonzero, stores the magnitude in `EF40h`, sets `VV38h.3`, and calls the timed output scheduler at `5676h`. |
 | `400Bh` | `main_input_decode_loop` | Top-level loop: read host byte, classify with `4038h`, print if printable, dispatch if command/control. |
 | `4038h` | `classify_input_character_and_select_style_state` | Classifies printable bytes and sets font/style state; printable bytes skip over the command dispatcher. |
 | `4EE4h` | `txb_send_byte_wait_fst` | Waits for `FST`, then writes `TXB`. |
@@ -103,7 +104,10 @@ firmware uses external windows and buffers outside this ROM:
 | `5474h` | `mechanism_phase_state_1_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=1`, `PB40=1`. |
 | `547Eh` | `mechanism_phase_state_2_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=1`, `PB40=0`. |
 | `5488h` | `mechanism_phase_state_3_pa_pb_candidate` | One PA/PB actuator state: final `PB20=0`, `PA02=0`, `PB40=1`; target of the `7007h` jump table. |
+| `558Dh` | `arm_timed_mechanism_record` | Sets `VV37=1`, loads a timing/control record via `55B1h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
+| `55B1h` | `load_mechanism_timing_record_into_ef49` | Copies a `17h`-byte timing/control record from the selected `7005h`/`7088h` table into `EF49h`. |
 | `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before writing `F004=20h`; likely head-fire setup state. |
+| `5676h` | `schedule_output_from_ef38_state` | Shared output scheduler reached from vertical advance and head/setup paths; copies `EF38h` state, writes `F004=20h`, and reaches timed-record setup. |
 | `6944h` | `dispatch_control_or_esc_command` | Count-prefixed command-table scanner; primary table starts at `696Eh`, ESC table at `699Ch`. |
 | `739Bh` | `power_on_panel_mode_dispatch` | Dispatches `VV0C` startup panel mode: Draft self-test, LQ self-test, data dump, or bidirectional adjustment. |
 | `74CBh` | `draft_self_test_entry` | Power-on LINE FEED/AUTO LOAD self-test path; sets `VV23.2` before the common self-test printer. |
@@ -141,12 +145,13 @@ lower priority unless they share these paths.
 | --- | --- | --- |
 | Carriage movement | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah` | `0908h` pulses `PC bit 7`; `0953h`/`095Fh` rotate `VV16`; `096Ah` maps `VV16 & 18h` to `PB & 18h`. |
 | Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
-| Paper feed / retard candidate | `2530h`, `2534h`, `2568h`, `51F7h`, `5253h`, `5306h`, `540Dh`, `546Ah-5488h` | `ESC J` and FX-80-compatible `ESC j` enter shared feed/advance logic at `2534h`; separately, startup reaches `51F7h-5253h`, which branches on/samples `PA20h` and selects PA/PB phase-output states. |
+| Paper feed / retard candidate | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh`, `51F7h`, `5253h`, `5306h`, `546Ah-5488h` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance can reach the timed output scheduler through `2864h`/`5676h`. Separately, startup reaches `51F7h-5253h`, which branches on/samples `PA20h` and selects PA/PB phase-output states. |
 
 The paper-feed assignment is still a candidate. The immediate-feed command path
-and the PA20 phase-output path are not yet statically connected, so the PA/PB
-phase table should stay named generically until it is tied to documented feed
-commands or board-level signals.
+now reaches the generic timed output scheduler, but the exact paper actuator and
+minimum physical movement remain unresolved. The next pass should count how
+`EE7Ah`/`EE86h`/`EF40h` and `EF64h` progress through `FE1` interrupt service and
+how many `PB04h` or PA/PB phase changes occur per documented `ESC J` unit.
 
 ## Host Input To Command Parser
 
@@ -167,6 +172,11 @@ The parsed primary and ESC tables are mirrored in
 
 FX-80 comparison notes:
 
+- `ESC J n` is documented for the LQ-500 as `n/180` inch. The firmware injects
+  `n` directly as `HL=00nn`, but LF and programmable line spacing use `EF8Bh`
+  and `50EBh` before reaching the same vertical-advance path, so the physical
+  step/microstep unit should be proven from the scheduler counters rather than
+  assumed from the command parameter.
 - `ESC j n` is documented in the FX-80 notes as immediate reverse feed by
   `n/216` inch. LQ-500's `2568h` handler has the expected paired shape with
   `ESC J`: `ESC J` builds `HL=00nn`, while `ESC j` builds `HL=80nn`, then both

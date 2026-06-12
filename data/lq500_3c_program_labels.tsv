@@ -45,11 +45,15 @@ address	label	kind	confidence	notes
 0x1D65	fit_glyph_width_and_update_bitmap_pointers	code	medium	Compares EF97/EF9B/EE88-derived pointers, adjusts EE88 and EF9B, and normalizes VV99 width/count.
 0x1DDF	save_ee88_then_recompute_glyph_source	code	medium	Saves EE88 to EE8A, calls 0x1DFE, stores computed source pointer back to EE88, then clears a 0x021C-byte work area.
 0x1DFE	compute_glyph_source_pointer_from_ee88	code	medium	High fan-in companion to 0x1DDF; starts from EE88 and returns a computed pointer in EA/HL.
-0x2011	advance_or_flush_print_buffer	code	medium	High fan-in output routine; clears VV24 bit 0, checks EF8B/EF8D state, then enters the render/advance path through 0x105A/0x256E.
+0x2011	line_feed_vertical_advance_entry	code	medium	High fan-in line-output routine; clears VV24 bit 0, converts current line spacing EF8B through 0x50EB, then enters the shared vertical advance path at 0x2048.
+0x2048	shared_vertical_advance_dispatch	code	medium	Common LF/FF/ESC J entry after distance setup. Calls 0x105A, chooses render path 0x299D only for a flag combination, otherwise snapshots EE44/EE50/EE4E and jumps to 0x256E.
+0x2428	update_page_position_after_advance	code	medium	Updates vertical/page position state from EF42/EF44/EF3E/EF47 and VV38 flags, storing the resulting current offset at EF11.
 0x24D4	clear_vv24_bit0	code	high	Tiny high-fan-in helper: ANIW VV24,0xFE; RET.
 0x2530	esc_J_immediate_forward_feed	code	medium	ESC J handler: reads one byte, builds positive immediate feed distance in HL, and enters shared feed path at 0x2534.
-0x2534	shared_immediate_feed_or_advance_entry	code	medium	Shared ESC J/ESC j entry: marks VV:C1 bits 0xE0 then jumps to 0x1FEA/0x256E render-advance logic. Hardware feed endpoint still needs tracing.
+0x2534	shared_immediate_feed_or_advance_entry	code	medium	Shared ESC J/ESC j entry: marks VV:C1 bits 0xE0, then normally jumps through 0x1FEA/0x2048 into the 0x256E signed vertical-advance setup.
 0x2568	esc_j_immediate_reverse_feed_fx80_compat	code	medium	ESC j compatibility handler: reads one byte, sets H=0x80 for reverse/negative immediate feed, and enters the same 0x2534 path used by ESC J.
+0x256E	setup_signed_vertical_advance_state	code	medium	Shared advance setup. Stores signed distance in EE7A, normalizes reverse distances into EE86, updates VV38/VV39 flags, snapshots render window state, and later calls 0x2864.
+0x2864	process_pending_vertical_advance_distance	code	medium	Bridge from the render/advance state machine to timed output scheduling. If EE7A has a nonzero distance, stores it in EF40, sets VV38 bit 3, and calls 0x5676 after scheduler-availability checks.
 0x26F1	initialize_print_geometry_state	code	low	Called during reset and adjustment-mode initialization.
 0x2824	classify_extended_printable_character	code	medium	Range ladder over 0xAF-0xDE and 0xF4 using RET/RETS as boolean result; used before selecting font/state tables.
 0x29B3	setup_8000_render_window_state	code	medium	Seeds EE46/EE48/EE4A/EE4C/EE4E/EE50 around the 0x8000 work window before the main render loop.
@@ -100,7 +104,11 @@ address	label	kind	confidence	notes
 0x5474	mechanism_phase_state_1_pa_pb_candidate	code	medium	Output state: sets PB20, PA02, and PB40, then falls through to clear PB20 at 0x5491.
 0x547E	mechanism_phase_state_2_pa_pb_candidate	code	medium	Output state: sets PB20 and PA02, clears PB40, then falls through to clear PB20 at 0x5491. Used by the 0x5253 timed sequence entry.
 0x5488	mechanism_phase_state_3_pa_pb_candidate	code	low	Output state: sets PB20, clears PA02, sets PB40, then falls through to clear PB20 at 0x5491. Reached by the 0x7007 jump table but not yet traced linearly.
+0x558D	arm_timed_mechanism_record	code	medium	Sets VV37=1, loads a timing/control record via 0x55B1, dispatches initial output state through 0x540D, then arms ETM1/FE1.
+0x55B1	load_mechanism_timing_record_into_ef49	code	medium	Copies a 0x17-byte timing/control record from the selected 0x7005/0x7088 table into EF49 and updates EF64/EF51/VV36 according to VV62/VV63/VV61.
+0x5631	select_mechanism_timing_record_base	code	medium	Uses VV62 as a two-byte index into the 0x7001 pointer table, returning the selected timing record base in HL.
 0x563C	setup_head_fire_timing_and_data_pointers	code	medium	Sets VV6D/VV6F flags, derives EF79 from EF64, stores alternate-register source pointer at EF75/EF77, seeds EF70/EF73, and writes F004=0x20.
+0x5676	schedule_output_from_ef38_state	code	medium	Shared timed output scheduler reached from vertical advance and head/setup paths. Copies EF38 state to EF6D, writes F004=0x20, then builds an EF61/EF7C record and reaches 0x558D or the equivalent timed-record arm path.
 0x5681	write_f004_head_idle_or_arm_value	code	medium	Writes 0x20 to F004 after head timing/data pointer setup; same idle/init value written at 0x0487.
 0x5794	unused_ff_gap_5794_5fff	data	high	Long 0xFF fill from 0x5794 through 0x5FFF.
 0x6000	byte_identity_table_00_ff	data	high	Full 0x00-0xFF byte table used by 0x4038 to remap host bytes before printable/control classification.

@@ -1,10 +1,10 @@
 # LQ-500 3C Recursive Trace Map
 
-Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x2568`
+Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x2530`, `0x2568`
 
-- Decoded instructions: `7010`
-- Reached code bytes: `14058`
-- Not reached bytes: `18710`
+- Decoded instructions: `7013`
+- Reached code bytes: `14062`
+- Not reached bytes: `18706`
 
 ## Reached Code Ranges
 
@@ -55,8 +55,7 @@ Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x
 | `0x1FE4` | `0x23E9` | 1029 |
 | `0x23F1` | `0x240C` | 27 |
 | `0x2428` | `0x2475` | 77 |
-| `0x24AD` | `0x2530` | 131 |
-| `0x2534` | `0x2785` | 593 |
+| `0x24AD` | `0x2785` | 728 |
 | `0x27A1` | `0x27B0` | 15 |
 | `0x27D1` | `0x2895` | 196 |
 | `0x289D` | `0x2DCE` | 1329 |
@@ -141,7 +140,6 @@ Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x
 | `0x23E9` | `0x23F1` | 8 | likely_data_or_untraced_code |
 | `0x240C` | `0x2428` | 28 | likely_text_or_table |
 | `0x2475` | `0x24AD` | 56 | likely_data_or_untraced_code |
-| `0x2530` | `0x2534` | 4 | likely_data_or_untraced_code |
 | `0x2785` | `0x27A1` | 28 | likely_data_or_untraced_code |
 | `0x27B0` | `0x27D1` | 33 | likely_data_or_untraced_code |
 | `0x2895` | `0x289D` | 8 | likely_data_or_untraced_code |

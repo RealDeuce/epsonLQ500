@@ -6,4 +6,5 @@ address	status
 0x0018	decoded
 0x0028	decoded
 0x0060	decoded
+0x2530	decoded
 0x2568	decoded

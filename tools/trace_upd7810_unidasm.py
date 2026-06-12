@@ -380,7 +380,7 @@ def write_outputs(
         writer = csv.writer(f, delimiter=TABULAR_DELIMITER, lineterminator="\n")
         writer.writerow(["start", "end_exclusive", "size", "kind", "classification"])
         for lo, hi in code_ranges:
-            writer.writerow([f"0x{lo:04X}", f"0x{hi:04X}", hi - lo, "trace_code", ""])
+            writer.writerow([f"0x{lo:04X}", f"0x{hi:04X}", hi - lo, "trace_code", "-"])
         for lo, hi in data_ranges:
             writer.writerow([f"0x{lo:04X}", f"0x{hi:04X}", hi - lo, "not_reached", classify_gap(rom_data, lo, hi)])
 

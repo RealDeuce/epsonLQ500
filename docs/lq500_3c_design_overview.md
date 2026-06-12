@@ -238,17 +238,26 @@ successive bytes, forward or reverse depending print direction.
 ### Paper Feed / Retard Candidate
 
 Paper advance and reverse feed should be followed through the immediate-feed
-commands and the PA/PB phase table:
+commands, then through the vertical-distance counters and timed output
+scheduler. The useful target is the minimum countable movement: timing records
+may determine rate and settling, but paper feed should eventually reduce to a
+step or microstep count rather than the kind of position/timing ambiguity seen
+with carriage motion.
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
 | `2530h` | `esc_J_immediate_forward_feed` | Builds a positive `HL=00nn` immediate-feed distance for `ESC J n`. |
 | `2568h` | `esc_j_immediate_reverse_feed_fx80_compat` | Builds `HL=80nn` and enters the same feed path; this matches FX-80 `ESC j n` reverse-feed compatibility. |
-| `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry. Marks `VV:C1` bits `E0h`, then jumps to `1FEAh` and the broader render/advance logic at `256Eh`. The final hardware feed endpoint is not resolved yet. |
+| `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry. Marks `VV:C1` bits `E0h`, then normally jumps through `1FEAh` and `2048h` into the broader advance setup at `256Eh`. |
+| `2048h` | `shared_vertical_advance_dispatch` | Common LF/FF/ESC J dispatch. It can divert to the render path, but the pure advance route snapshots `EE44h`/`EE50h`/`EE4Eh` and jumps to `256Eh`. |
+| `256Eh` | `setup_signed_vertical_advance_state` | Stores signed distance in `EE7Ah`, normalizes reverse distances into `EE86h`, and updates `VV38h`/`VV39h` flags. |
+| `2864h` | `process_pending_vertical_advance_distance` | Bridge from pending distance to scheduler: a nonzero `EE7Ah` magnitude is stored in `EF40h`, `VV38h` bit `08h` is set, and `5676h` is called when the scheduler is available. |
+| `5676h` | `schedule_output_from_ef38_state` | Copies `EF38h` state to `EF6Dh`, writes `F004h=20h`, and routes into the timed-record arm path. |
+| `558Dh`/`55B1h` | `arm_timed_mechanism_record` / `load_mechanism_timing_record_into_ef49` | Loads timing/control records from `7005h`/`7088h` into `EF49h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
+| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and indexes the `7007h` jump table when `VV62 != 0`; with `VV62 == 0`, it uses the simple `PB04h` output case. |
 | `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed sequence at `5253h` with short or long distances. |
 | `5253h` | `mechanism_pa20_timed_step_sequence` | Starts by selecting output state `547Eh`, walks timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, then restores output state `546Ah`. |
 | `5306h` | `sample_pa20_during_motion_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
-| `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and indexes the `7007h` jump table when `VV62 != 0`. |
 | `546Ah`/`5474h`/`547Eh`/`5488h` | `mechanism_phase_state_*_pa_pb_candidate` | Four PA/PB output states involving `PB20h`, `PA02h`, and `PB40h`. These are likely actuator phases, but the exact paper-feed assignment still needs confirmation. |
 
 The candidate phase outputs are:
@@ -262,9 +271,11 @@ The candidate phase outputs are:
 
 Because `ESC J`/`ESC j` prove a software feed-distance path and `51F7h-5253h`
 prove a PA20-driven mechanism sequence, these are the two best current starting
-points for paper advance/retard. They are not yet statically connected; that
-middle layer should be resolved before renaming the PA/PB phase table as paper
-feed.
+points for paper advance/retard. The command path now reaches the generic timed
+output scheduler through `2864h`/`5676h`, but the exact actuator assignment is
+still open. The next paper-feed pass should trace `EE7Ah`/`EE86h`/`EF40h` and
+`EF64h` through the `FE1` interrupt progression to count output-state advances
+per documented feed unit.
 
 ## Service/Test Path
 
