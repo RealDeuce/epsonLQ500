@@ -13,6 +13,7 @@ Source dump:
 - Carriage path trace: `data/lq500_3c_carriage_path.tsv`
 - Startup carriage home seek: `data/lq500_3c_carriage_home_seek.tsv`
 - Carriage sequence records: `data/lq500_3c_carriage_sequence_records.tsv`
+- Carriage output-state records: `data/lq500_3c_carriage_output_state_records.tsv`
 - Carriage scheduler contexts: `data/lq500_3c_carriage_scheduler_contexts.tsv`
 - Shared `VV3A`/`VV6F` mode selector: `data/lq500_3c_vv3a_mode_selector.tsv`
 - Carriage mode-state plumbing: `data/lq500_3c_carriage_mode_state.tsv`
@@ -106,11 +107,11 @@ firmware uses external windows and buffers outside this ROM:
 | `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages/clamps ADC-derived adjustment values used at startup and by bidirectional adjustment mode. |
 | `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`; branches on raw `PA20` set/clear state, sets `VV61` carriage direction/mode values, and calls the timed home-seek sequence at `5253h` with `0004h`, `000Ah`, or `13ECh`. |
 | `5253h` | `startup_carriage_home_seek_timed_sequence` | Drives table-based carriage delays, samples `PA20` via `5306h`, pulses PC7 through `0908h`, selects `547Eh` drive current, restores `546Ah` hold current, and waits through `72AFh`/`72B1h` delay words. |
-| `540Dh` | `mechanism_output_state_dispatch` | Selects output states from `VV37`/`EFxx`. With uPD7810 skip semantics, `VV62!=0` reaches the `PB mask 04h` set/clear branch matching the service-manual active-low `PB2` paper-feed drive/hold control; `VV62==0` indexes the `7007h` PA/PB jump table. |
+| `540Dh` | `mechanism_output_state_dispatch` | Selects output states from `VV37`/`EFxx`. With uPD7810 skip semantics, `VV62!=0` reaches the `PB mask 04h` set/clear branch matching the service-manual active-low `PB2` paper-feed drive/hold control; `VV62==0` strips bit 7 from the selected state byte and indexes the `7007h` PA/PB jump table. |
 | `546Ah` | `carriage_current_hold_state` | Carriage current state: `PB & 20h=1`, `PA & 02h=1`, `PB & 40h=1`. Manual says PB5 high is hold current; schematic review shows PB1 is AFXT/AUTOFEED and PA1 goes through a transistor to STK69818 pins 9/11, so PA1 is the SPDH speed-high selector despite the manual table's PB1 label. |
 | `5474h` | `carriage_current_drive_high_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=1`, mapping to the 0.67 A row. |
 | `547Eh` | `carriage_current_drive_mid_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=0`, mapping to the 0.61 A row; used by startup home seek. |
-| `5488h` | `carriage_current_drive_low_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`, mapping to the 0.23 A row; confirmed trace root from the `7007h` computed jump table. |
+| `5488h` | `carriage_current_drive_low_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`, mapping to the 0.23 A row; confirmed trace root from the `7007h` computed jump table. Normal `7005h` records select it with raw state bytes `03h` or `83h`. |
 | `558Dh` | `arm_timed_mechanism_record` | Sets `VV37=1`, loads a timing/control record via `55B1h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
 | `55B1h` | `load_mechanism_timing_record_into_ef49` | Stores the selected timing-record head in `VV4D`, then `BLOCK` with `C=17h` copies 24 bytes into `EF49h..EF60h`. |
 | `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before entering the normal `VV62=0` scheduler through `567Fh`; it ORs `VV6F.2`, so the immediate `72B3h` record index is in `4..7`. |
@@ -161,7 +162,7 @@ lower priority unless they share these paths.
 | Mechanism | Best current anchors | Firmware evidence |
 | --- | --- | --- |
 | Paper feed phase / drive | `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch, with a `400 PPS` drive frequency matching the `2.5 ms` steady timing word. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB & 18h` and controls `PB & 04h` in `540Dh`. The `18h`/`04h` values are PB port masks, not pin names. `549Ch` clears `PB & 04h` low for +24 V drive; `5498h` sets it high for hold. The manual labels the excitation-table order clockwise/paper-forward, and firmware `0953h` follows that order from the reset-start phase. |
-| Carriage phase / current | `0908h`, `51E9h`, `51EDh`, `51F2h`, `51F7h`, `5253h`, `5306h`, `546Ah`, `5474h`, `547Eh`, `5488h`, `7287h`, `72B3h` | Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input; firmware `0908h` pulses that bit when `VV62=0`. Startup `51F7h-5253h` samples the `PA bit 20h` HOME candidate while walking carriage timing tables and pulsing `TM`. The root-confirmed `51E9h`/`51EDh`/`51F2h` helpers maintain `VV15` and write carriage control state to `F003h`, although their callers are not traced yet. The `546Ah-5488h` states match the manual's carriage-current control shape; schematic review shows PB1 is AFXT/AUTOFEED and PA1 goes through a transistor to STK69818 pins 9/11, so PA1 is the SPDH speed-high selector despite the manual table's PB1 label. |
+| Carriage phase / current | `0908h`, `51E9h`, `51EDh`, `51F2h`, `51F7h`, `5253h`, `5306h`, `546Ah`, `5474h`, `547Eh`, `5488h`, `7287h`, `72B3h` | Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input; firmware `0908h` pulses that bit when `VV62=0`. Startup `51F7h-5253h` samples raw `PA20` while walking carriage timing tables and pulsing `TM`; active HOME polarity still depends on the switch circuit. The root-confirmed `51E9h`/`51EDh`/`51F2h` helpers maintain `VV15` and write carriage control state to `F003h`, although their callers are not traced yet. The `546Ah-5488h` states match the manual's carriage-current control shape; schematic review shows PB1 is AFXT/AUTOFEED and PA1 goes through a transistor to STK69818 pins 9/11, so PA1 is the SPDH speed-high selector despite the manual table's PB1 label. |
 | Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
 | Paper feed / retard command path | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance reaches the timed output scheduler through `2864h`/`5676h`. Because `2864h` sets `VV38.3`, `5676h` copies that to `VV6D.3` and takes the `569Ah-56C5h` path, setting `VV62=1`, `VV63=0`, and `EF64` from the feed-distance state. |
 
@@ -312,7 +313,8 @@ Startup panel mode dispatch:
    defaults in `docs/lq500_reference.md`.
 3. Continue carriage tracing by assigning exact speed/excitation mode names to
    the decoded `72B3h-72D8h` records and finding the indirect/computed callers
-   that reach the `51E9h`/`51EDh`/`51F2h` `F003h` control helpers.
+   that reach the `51E9h`/`51EDh`/`51F2h` `F003h` control helpers. The normal
+   `7005h` record bytes that select current states are already decoded.
 4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
 5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,

@@ -40,6 +40,8 @@ manual notes, or hardware measurements.
   PA20/HOME branch sequence and timed seek core.
 - `data/lq500_3c_carriage_sequence_records.tsv`: decoded five-byte
   `72B3h-72D8h` carriage scheduler records copied to `EF7C..EF80`.
+- `data/lq500_3c_carriage_output_state_records.tsv`: decoded normal
+  `7005h` record bytes that `540Dh` maps to carriage current states.
 - `data/lq500_3c_carriage_scheduler_contexts.tsv`: callers and runtime-state
   paths around the normal `56C8h-5712h` carriage scheduler.
 - `data/lq500_3c_vv3a_mode_selector.tsv`: shared `VV3A`/`VV6F` selector

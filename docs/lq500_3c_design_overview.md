@@ -46,7 +46,7 @@ Known bit-level handles:
 | `PC bit 08h` plus `F2` | Sampled by `4F21h`; returned from `4EEAh` as `04h` = ON LINE. |
 | `PA bits 04h/08h` | Sampled by `4F37h` after the two ADC switch-table reads and merged into `VV01`. |
 | `PA bit 10h` | Used repeatedly in data-dump and service flows as a wait/confirm-style input. |
-| `PA bit 20h` | Used by feed/mechanism setup flows around `51F7h-5241h`; likely paper/feed related, not fully named yet. |
+| `PA bit 20h` | Raw input sampled by startup carriage home-seek code around `51F7h-5241h`; active HOME polarity still depends on the switch circuit. |
 | `PA bit 00h` / `PB bit 80h` | Written by `7B52h` during service/adjustment UI setup. |
 
 ## Self-Test Status Header
@@ -271,7 +271,7 @@ The carriage startup seek now explains the old PA20 path. The service manual
 describes checking the HOME signal during initialization after a timed 2-2 phase
 excitation interval, and Figure 2-44 says the printing area starts 22 phase
 switches after home. That fits `51F7h-5253h`: it is startup-only in the current
-trace, samples `PA bit 20h`, runs carriage timing tables, and pulses the
+trace, samples raw `PA20`, runs carriage timing tables, and pulses the
 gate-array `TM` input rather than the paper-feed `PB3`/`PB4` phase bits.
 The startup branch sequence is decoded in
 `data/lq500_3c_carriage_home_seek.tsv`: the firmware distinguishes raw PA20
@@ -293,6 +293,16 @@ to `EF7C..EF80`; `EF7C` can become `VV63`, `EF7D` is the `TM1` reload-cycle
 length, and `EF7E..EF80` are the cyclic `TM1` reload bytes used at
 `09AC-09BCh`.
 
+The `VV63` value selects one of the normal `7005h` timing/output records copied
+to `EF49..EF60`; decoded output bytes are in
+`data/lq500_3c_carriage_output_state_records.tsv`. `540Dh` maps `VV37` state
+bits to slots such as `EF4Bh`, `EF4Dh`, `EF4Eh`, `EF53h`, `EF55h`, `EF56h`,
+`EF5Bh`, or `EF60h`. In normal carriage mode (`VV62=0`), it strips bit 7 from
+the copied byte and indexes the `7007h` current-state jump table. Thus raw
+bytes `03h` and `83h` select normalized index 3 and reach `5488h`; records
+`0` and `1` use the low-current state through `EF4Dh`/`EF4Eh`, while records
+`2` through `4` use it through `EF4Dh=83h`.
+
 The normal carriage scheduler path is now separated from the paper-feed
 `5676h` callers. `5676h` copies fifteen bytes from `EF38..EF46` to
 `EF6D..EF7B`; the byte mapping makes `EF3A` become `VV6F`, which is the record
@@ -311,7 +321,8 @@ state copies put the same selector byte into `VV6F` for the carriage TM1 record
 selection. `563Ch` also uses `VV6F.1` as a count-scale bit: when set, `EF64` is
 halved before being saved as `EF79`. The current side-by-side selector map is in
 `data/lq500_3c_vv3a_mode_selector.tsv`; exact user-facing speed/excitation mode
-names still need correlation to the `F003h` helper callers.
+names still need correlation to the `F003h` helper callers, but the current
+states selected by the normal `7005h` records are now decoded separately.
 
 The selector state path is now separated from the selector value table in
 `data/lq500_3c_carriage_mode_state.tsv`. `4038h` copies a saved print/style bank

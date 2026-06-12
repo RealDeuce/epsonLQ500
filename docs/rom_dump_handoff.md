@@ -133,6 +133,11 @@ the workspace loss.
       CNI/parallel `AUTOFEED`, while `PA1` goes through a transistor to
       STK69818 pins 9/11, so the table's `PB1` label is treated as a manual
       typo and firmware `PA1`/`PA & 02h` is the `SPDH` selector.
+      `data/lq500_3c_carriage_output_state_records.tsv` decodes the normal
+      `7005h` record bytes that `540Dh` maps to those current states. In
+      `VV62=0` carriage mode, `540Dh` strips bit 7 before indexing the `7007h`
+      jump table, so raw bytes `03h` and `83h` both select `5488h`; bit 7 is
+      handled separately as a direction/phase-control side effect.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`
