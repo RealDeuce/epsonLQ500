@@ -40587,6 +40587,27 @@
     "rest": "$5491",
     "text": "5487: c9        JR      $5491"
   },
+  "0x5488": {
+    "addr": 21640,
+    "size": 3,
+    "op": "ORI",
+    "rest": "PB,$20",
+    "text": "5488: 64 19 20  ORI     PB,$20"
+  },
+  "0x548B": {
+    "addr": 21643,
+    "size": 3,
+    "op": "ANI",
+    "rest": "PA,$FD",
+    "text": "548b: 64 08 fd  ANI     PA,$FD"
+  },
+  "0x548E": {
+    "addr": 21646,
+    "size": 3,
+    "op": "ORI",
+    "rest": "PB,$40",
+    "text": "548e: 64 19 40  ORI     PB,$40"
+  },
   "0x5491": {
     "addr": 21649,
     "size": 3,

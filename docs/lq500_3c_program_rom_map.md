@@ -11,6 +11,7 @@ Source dump:
 - `7000h-7FFFh` data/code usage: `data/lq500_3c_7000_block_usage.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Carriage path trace: `data/lq500_3c_carriage_path.tsv`
+- Startup carriage home seek: `data/lq500_3c_carriage_home_seek.tsv`
 - Carriage sequence records: `data/lq500_3c_carriage_sequence_records.tsv`
 - Carriage scheduler contexts: `data/lq500_3c_carriage_scheduler_contexts.tsv`
 - Shared `VV3A`/`VV6F` mode selector: `data/lq500_3c_vv3a_mode_selector.tsv`
@@ -103,13 +104,13 @@ firmware uses external windows and buffers outside this ROM:
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup DIP/panel read. Uses table-driven ADC switch reads and then folds in direct PA bits. |
 | `4F54h` | `read_adc_switch_table_bits` | Consumes compact tables at `4F96h`/`4F9Fh`, samples ADC via `508Dh`, and builds switch bitfields. |
 | `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages/clamps ADC-derived adjustment values used at startup and by bidirectional adjustment mode. |
-| `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`; branches on `PA bit 20h`, sets `VV61` carriage direction/mode values, and calls the timed home-seek sequence at `5253h`. |
-| `5253h` | `startup_carriage_home_seek_timed_sequence` | Drives table-based carriage delays, samples `PA bit 20h` via `5306h`, pulses PC7 through `0908h`, and selects carriage current states through `546Ah`/`547Eh`. |
+| `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`; branches on raw `PA20` set/clear state, sets `VV61` carriage direction/mode values, and calls the timed home-seek sequence at `5253h` with `0004h`, `000Ah`, or `13ECh`. |
+| `5253h` | `startup_carriage_home_seek_timed_sequence` | Drives table-based carriage delays, samples `PA20` via `5306h`, pulses PC7 through `0908h`, selects `547Eh` drive current, restores `546Ah` hold current, and waits through `72AFh`/`72B1h` delay words. |
 | `540Dh` | `mechanism_output_state_dispatch` | Selects output states from `VV37`/`EFxx`. With uPD7810 skip semantics, `VV62!=0` reaches the `PB mask 04h` set/clear branch matching the service-manual active-low `PB2` paper-feed drive/hold control; `VV62==0` indexes the `7007h` PA/PB jump table. |
 | `546Ah` | `carriage_current_hold_state` | Carriage current state: `PB & 20h=1`, `PA & 02h=1`, `PB & 40h=1`. Manual says PB5 high is hold current; schematic review shows PB1 is AFXT/AUTOFEED and PA1 goes through a transistor to STK69818 pins 9/11, so PA1 is the SPDH speed-high selector despite the manual table's PB1 label. |
 | `5474h` | `carriage_current_drive_high_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=1`, mapping to the 0.67 A row. |
 | `547Eh` | `carriage_current_drive_mid_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=0`, mapping to the 0.61 A row; used by startup home seek. |
-| `5488h` | `carriage_current_drive_low_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`, mapping to the 0.23 A row; target of the `7007h` jump table. |
+| `5488h` | `carriage_current_drive_low_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`, mapping to the 0.23 A row; confirmed trace root from the `7007h` computed jump table. |
 | `558Dh` | `arm_timed_mechanism_record` | Sets `VV37=1`, loads a timing/control record via `55B1h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
 | `55B1h` | `load_mechanism_timing_record_into_ef49` | Stores the selected timing-record head in `VV4D`, then `BLOCK` with `C=17h` copies 24 bytes into `EF49h..EF60h`. |
 | `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before entering the normal `VV62=0` scheduler through `567Fh`; it ORs `VV6F.2`, so the immediate `72B3h` record index is in `4..7`. |

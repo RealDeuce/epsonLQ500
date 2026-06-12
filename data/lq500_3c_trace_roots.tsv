@@ -11,3 +11,4 @@ address	source	note
 0x51E9	mechanical_trace	carriage F003 control helper; ORs A into VV15 before F003 write
 0x51ED	mechanical_trace	carriage F003 control helper; ANDs A into VV15 before F003 write
 0x51F2	mechanical_trace	carriage F003 control helper; writes VV15-derived value to F003
+0x5488	mechanical_trace	confirmed 7007h computed jump-table target; carriage low-current output state

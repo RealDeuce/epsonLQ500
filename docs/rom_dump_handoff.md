@@ -116,14 +116,22 @@ the workspace loss.
       `55CBh` because uPD7810 `BLOCK` copies `C+1` bytes; for the selected
       `708Eh` command-feed record, the copied `EF60` value is `00`.
       Separately, startup calls the carriage home-seek path at `51F7h-5253h`.
-      It branches on and samples the `PA bit 20h` HOME candidate, walks
-      carriage timing tables around `7287h`/`72AFh`, pulses `0908h`/`PC7`/`TM`,
-      and selects four carriage-current states at `546Ah`, `5474h`, `547Eh`,
-      and `5488h`. The current-control shape matches the service manual's
-      `PB5`/`PB6 SPDM`/`PB1 SPDH` table, with `SPDM`/`SPDH` likely meaning
-      speed medium/high current-select inputs. Schematic review shows `PB1` is
-      `AFXT` to CNI/parallel `AUTOFEED`, while `PA1` goes through a transistor
-      to STK69818 pins 9/11, so the table's `PB1` label is treated as a manual
+      It branches on raw `PA20` set/clear state, performs a short `0004h`
+      probe when PA20 starts clear, a fixed `000Ah` confirmation move across
+      the edge, and long `13ECh` seeks on the other legs; the branch map is in
+      `data/lq500_3c_carriage_home_seek.tsv`. `5306h` samples PA20 three times
+      per timing interval and increments `D` only for PA20-clear samples. The
+      success path seeds `EF0F=EF11=0003h`; `53B9h` later compares targets
+      against `EF0F` with a `001Ah` limit, but the firmware expression of the
+      manual's 22 phase-switch print-area offset is not yet proven.
+      The trace now includes confirmed `7007h` computed jump-table target
+      `5488h`, so all four carriage-current states (`546Ah`, `5474h`, `547Eh`,
+      `5488h`) are in `data/lq500_3c_vector_trace.instructions.tsv`. Their
+      current-control shape matches the service manual's `PB5`/`PB6 SPDM`/`PB1
+      SPDH` table, with `SPDM`/`SPDH` likely meaning speed medium/high
+      current-select inputs. Schematic review shows `PB1` is `AFXT` to
+      CNI/parallel `AUTOFEED`, while `PA1` goes through a transistor to
+      STK69818 pins 9/11, so the table's `PB1` label is treated as a manual
       typo and firmware `PA1`/`PA & 02h` is the `SPDH` selector.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for

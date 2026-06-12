@@ -11,11 +11,12 @@
     "0x2568",
     "0x51E9",
     "0x51ED",
-    "0x51F2"
+    "0x51F2",
+    "0x5488"
   ],
-  "decoded_instruction_count": 7019,
-  "code_bytes": 14076,
-  "not_reached_bytes": 18692,
+  "decoded_instruction_count": 7022,
+  "code_bytes": 14085,
+  "not_reached_bytes": 18683,
   "code_ranges": [
     [
       "0x0000",
@@ -359,13 +360,8 @@
     ],
     [
       "0x53FE",
-      "0x5488",
-      138
-    ],
-    [
-      "0x5491",
       "0x5794",
-      771
+      918
     ],
     [
       "0x6944",
@@ -838,12 +834,6 @@
       "0x53FD",
       "0x53FE",
       1,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x5488",
-      "0x5491",
-      9,
       "likely_data_or_untraced_code"
     ],
     [
