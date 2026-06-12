@@ -97,7 +97,9 @@ address	label	kind	confidence	notes
 0x4FB1	sample_vr_adjustment_adc_offsets	code	medium	Startup and bidirectional-adjustment sampler; averages ADC channels, stores signed offsets at EE28/EE2E-related slots, and clamps them to small ranges.
 0x506D	average_adc_sample_127_times	code	medium	Calls 0x508D 0x7F times for the selected F002/ANM mode and returns the averaged sample.
 0x508D	write_f002_select_adc_average_cr0_cr3	code	medium	Writes F002 from A, configures ANM from B, waits FAD, then averages CR0-CR3 into one ADC value.
-0x51F2	write_gate_array_f003_from_vv15	code	medium	Stores A to VV15 and F003.
+0x51E9	or_gate_array_f003_control_bits	code	high	Root-confirmed helper: ORs A with VV15, stores the result back to VV15 at 51F0h, then writes F003 at 51F2h.
+0x51ED	and_gate_array_f003_control_bits	code	high	Root-confirmed helper: ANDs A with VV15, stores the result back to VV15 at 51F0h, then writes F003 at 51F2h.
+0x51F2	write_gate_array_f003_from_a	code	high	Root-confirmed helper tail: writes A to F003 and returns. 51E9h/51EDh update VV15 before falling through here.
 0x51F7	startup_carriage_home_seek_entry	code	high	Only traced caller is startup at 0x0340. Branches on PA bit 0x20 HOME candidate, seeds VV61 carriage direction/mode values, calls 0x5253 with short or long distances, and exits through the 0x53E1 post-home path.
 0x5253	startup_carriage_home_seek_timed_sequence	code	high	Starts with carriage current state 0x547E, walks 10-us-scaled timing tables around 0x7287/0x72AF, samples PA bit 0x20 via 0x5306, pulses the gate-array TM input through 0x0908, and eventually restores hold state 0x546A.
 0x5306	sample_home_pa20_during_carriage_delay	code	high	Divides a delay interval into thirds, delays, and samples PA bit 0x20 HOME candidate three times while accumulating a small count in D.

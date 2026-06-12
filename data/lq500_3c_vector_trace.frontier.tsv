@@ -52,7 +52,7 @@ address	kind	size	classification	text
 0x5059	untraced_gap_start	20	likely_data_or_untraced_code	-
 0x50BC	untraced_gap_start	47	likely_data_or_untraced_code	-
 0x50FE	untraced_gap_start	38	likely_data_or_untraced_code	-
-0x51E4	untraced_gap_start	19	likely_data_or_untraced_code	-
+0x51E4	untraced_gap_start	5	likely_data_or_untraced_code	-
 0x534F	untraced_gap_start	10	likely_data_or_untraced_code	-
 0x5367	untraced_gap_start	72	likely_data_or_untraced_code	-
 0x53FD	untraced_gap_start	1	likely_data_or_untraced_code	-

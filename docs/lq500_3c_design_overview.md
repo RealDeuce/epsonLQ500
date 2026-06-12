@@ -261,7 +261,7 @@ manual table address instead.
 | Address | Working label | Evidence |
 | --- | --- | --- |
 | `0908h` | `carriage_gate_array_tm_pulse` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates motion counters. Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input. |
-| `51F2h` | `write_carriage_control_f003_from_vv15` | Writes `VV15` to `F003h`; helpers at `51E9h`/`51EDh` OR/AND bits into `VV15` before this write. Manual carriage-control bits are enable, phase polarity, direction, and excitation mode. |
+| `51E9h`/`51EDh`/`51F2h` | `write_carriage_control_f003_from_vv15` | Root-confirmed helpers: `51E9h` ORs `A` into `VV15`, `51EDh` ANDs `A` with `VV15`, `51F0h` stores the result, and `51F2h` writes `F003h`. Manual carriage-control bits are enable, phase polarity, direction, and excitation mode. No traced caller or literal `CALL` byte sequence to these helpers is identified yet. |
 | `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed seek sequence at `5253h`. |
 | `5253h` | `startup_carriage_home_seek_timed_sequence` | Selects current state `547Eh`, walks carriage timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, pulses `PC7` through `0908h`, then restores hold state `546Ah`. |
 | `5306h` | `sample_home_pa20_during_carriage_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times, matching the manual's startup home-position sampling description. |

@@ -8,3 +8,6 @@ address	source	note
 0x0060	vector	interrupt vector
 0x2530	command_table	ESC J immediate forward-feed handler from ESC dispatch table
 0x2568	command_table	ESC j compatibility handler from ESC dispatch table
+0x51E9	mechanical_trace	carriage F003 control helper; ORs A into VV15 before F003 write
+0x51ED	mechanical_trace	carriage F003 control helper; ANDs A into VV15 before F003 write
+0x51F2	mechanical_trace	carriage F003 control helper; writes VV15-derived value to F003

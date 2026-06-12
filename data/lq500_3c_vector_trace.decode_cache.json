@@ -38480,6 +38480,48 @@
     "rest": "",
     "text": "51e3: b8        RET"
   },
+  "0x51E9": {
+    "addr": 20969,
+    "size": 3,
+    "op": "ORAW",
+    "rest": "VV:15",
+    "text": "51e9: 74 98 15  ORAW    VV:15"
+  },
+  "0x51EC": {
+    "addr": 20972,
+    "size": 1,
+    "op": "JR",
+    "rest": "$51F0",
+    "text": "51ec: c3           JR      $51F0"
+  },
+  "0x51ED": {
+    "addr": 20973,
+    "size": 3,
+    "op": "ANAW",
+    "rest": "VV:15",
+    "text": "51ed: 74 88 15     ANAW    VV:15"
+  },
+  "0x51F0": {
+    "addr": 20976,
+    "size": 2,
+    "op": "STAW",
+    "rest": "VV:15",
+    "text": "51f0: 63 15        STAW    VV:15"
+  },
+  "0x51F2": {
+    "addr": 20978,
+    "size": 4,
+    "op": "MOV",
+    "rest": "($F003),A",
+    "text": "51f2: 70 79 03 f0  MOV     ($F003),A"
+  },
+  "0x51F6": {
+    "addr": 20982,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "51f6: b8        RET"
+  },
   "0x51F7": {
     "addr": 20983,
     "size": 3,

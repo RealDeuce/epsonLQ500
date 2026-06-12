@@ -63,7 +63,7 @@ start	end_exclusive	size	kind	classification
 0x506D	0x50BC	79	trace_code	-
 0x50EB	0x50FE	19	trace_code	-
 0x5124	0x51E4	192	trace_code	-
-0x51F7	0x534F	344	trace_code	-
+0x51E9	0x534F	358	trace_code	-
 0x5359	0x5367	14	trace_code	-
 0x53AF	0x53DF	48	trace_code	-
 0x53E1	0x53FD	28	trace_code	-
@@ -144,7 +144,7 @@ start	end_exclusive	size	kind	classification
 0x5059	0x506D	20	not_reached	likely_data_or_untraced_code
 0x50BC	0x50EB	47	not_reached	likely_data_or_untraced_code
 0x50FE	0x5124	38	not_reached	likely_data_or_untraced_code
-0x51E4	0x51F7	19	not_reached	likely_data_or_untraced_code
+0x51E4	0x51E9	5	not_reached	likely_data_or_untraced_code
 0x534F	0x5359	10	not_reached	likely_data_or_untraced_code
 0x5367	0x53AF	72	not_reached	likely_data_or_untraced_code
 0x53DF	0x53E1	2	not_reached	likely_text_or_table
