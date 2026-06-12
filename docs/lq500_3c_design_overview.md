@@ -218,7 +218,6 @@ schematic pin names:
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
-| `0908h` | `paper_feed_step_timing_pulse_candidate` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates `VV61`/position counters. It is called directly by the print ISR and by the timed motion sequence at `5303h`. |
 | `093Eh` | `paper_feed_pb_bits_3_4_phase_update_candidate` | Chooses phase direction from `VV61 bit 0`, calls `0953h` or `095Fh`, then updates position/state through `54A0h`, `54C9h`, and `5538h`. |
 | `0953h` | `rotate_pb_bits_3_4_phase_positive` | Rotates `VV16` right with wrap and sets `EA=+1`. |
 | `095Fh` | `rotate_pb_bits_3_4_phase_negative` | Rotates `VV16` left with wrap and sets `EA=-1`. |
@@ -246,8 +245,41 @@ The command path preserves the sign bit into `EF61`/`VV61`: `ESC J` clears
 
 The previous working label treated `PB mask 18h` as carriage phase output. Figure
 2-47 makes that unlikely unless the schematic's `PB3`/`PB4` labels are not
-CPU-port bit labels. Carriage movement should be re-found after paper feed is
-settled.
+CPU-port bit labels. Carriage movement is now anchored separately through the
+gate-array `TM` pulse on CPU `PC7`.
+
+### Carriage Movement
+
+Service-manual pages 68-85 identify the carriage motor as a gate-array mediated
+stepper path. CPU `CO1`/`PC7` feeds the E01A05KA `TM` input; after each pulse,
+the gate array performs the carriage phase switching. The manual's carriage
+control table is printed as `WR F002H`, while surrounding text says the carriage
+motor control port is assigned to `F003h`. Firmware writes `F003h` through
+`51F2h`, so `F003h` is the working ROM anchor unless the schematic proves the
+manual table address instead.
+
+| Address | Working label | Evidence |
+| --- | --- | --- |
+| `0908h` | `carriage_gate_array_tm_pulse` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates motion counters. Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input. |
+| `51F2h` | `write_carriage_control_f003_from_vv15` | Writes `VV15` to `F003h`; helpers at `51E9h`/`51EDh` OR/AND bits into `VV15` before this write. Manual carriage-control bits are enable, phase polarity, direction, and excitation mode. |
+| `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed seek sequence at `5253h`. |
+| `5253h` | `startup_carriage_home_seek_timed_sequence` | Selects current state `547Eh`, walks carriage timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, pulses `PC7` through `0908h`, then restores hold state `546Ah`. |
+| `5306h` | `sample_home_pa20_during_carriage_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times, matching the manual's startup home-position sampling description. |
+| `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four PA/PB output states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`. These match the manual's carriage-current control shape, except the manual labels the third selector as `PB1`/`SPDH` while firmware manipulates `PA & 02h`. |
+
+The carriage startup seek now explains the old PA20 path. The service manual
+describes checking the HOME signal during initialization after a timed 2-2 phase
+excitation interval, and Figure 2-44 says the printing area starts 22 phase
+switches after home. That fits `51F7h-5253h`: it is startup-only in the current
+trace, samples `PA bit 20h`, runs carriage timing tables, and pulses the
+gate-array `TM` input rather than the paper-feed `PB3`/`PB4` phase bits.
+
+The carriage timing words at `7287h-72AEh` are in 10 us units and line up with
+the manual carriage acceleration/deceleration tables: examples include `0162h`
+near `3.56 ms`, `00E7h` at `2.31 ms`, `00C8h` at `2.00 ms`, `00A6h` at
+`1.66 ms`, and `007Ah` at `1.22 ms`. The adjacent five-byte records at
+`72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the carriage scheduler and
+still need field decoding.
 
 ### Head / Pin Firing
 
@@ -286,10 +318,10 @@ with carriage motion.
 | `5676h` | `schedule_output_from_ef38_state` | Copies `EF38h` state to `EF6Dh`, writes `F004h=20h`, and branches on copied `VV6D.3`. Since `ESC J`/`ESC j` set `VV38.3`, command feed takes `569Ah-56C5h`, which writes `EF61..EF64` from the `EF75` distance path and sets `VV62=1`, `VV63=0`. |
 | `558Dh`/`55B1h` | `arm_timed_mechanism_record` / `load_mechanism_timing_record_into_ef49` | Loads timing/control records from `7005h`/`7088h` into `EF49h`, calls `540Dh`, and arms `ETM1`/`FE1`. Command feed reaches the `7088h` family because `VV62=1`; the first record at `708Eh` is selected because `VV63=0`. |
 | `540Dh` | `mechanism_output_state_dispatch` | Maps `VV37` state bits to `EFxx` state bytes and then either indexes the `7007h` PA/PB jump table or uses the simple `PB mask 04h` branch. With uPD7810 skip semantics, `VV62==0` reaches the jump table, while `VV62!=0` reaches the `PB & 04h` branch used by command feed. |
-| `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`. Branches on `PA bit 20h`, seeds `VV61` with direction/mode values, and calls the timed sequence at `5253h` with short or long distances. |
-| `5253h` | `mechanism_pa20_timed_step_sequence` | Starts by selecting output state `547Eh`, walks timing tables around `7287h`/`72AFh`, samples `PA bit 20h` through `5306h`, then restores output state `546Ah`. |
-| `5306h` | `sample_pa20_during_motion_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
-| `546Ah`/`5474h`/`547Eh`/`5488h` | `mechanism_phase_state_*_pa_pb_candidate` | Four PA/PB output states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`. These are likely actuator phases, but the exact paper-feed assignment still needs confirmation. |
+| `51F7h` | `startup_carriage_home_seek_entry` | Startup-only carriage home-seek path. Branches on the `PA bit 20h` HOME candidate, seeds `VV61` with carriage direction/mode values, and calls the timed seek sequence at `5253h`. |
+| `5253h` | `startup_carriage_home_seek_timed_sequence` | Walks carriage timing tables around `7287h`/`72AFh`, samples HOME through `5306h`, pulses the carriage gate-array `TM` input through `0908h`, and selects carriage current states through `546Ah`/`547Eh`. |
+| `5306h` | `sample_home_pa20_during_carriage_delay` | Splits a delay interval into thirds and samples `PA bit 20h` three times. |
+| `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four carriage-current control states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`; this matches the service-manual current-control shape aside from the unresolved `PA02` versus manual `PB1`/`SPDH` label mismatch. |
 
 The candidate phase outputs are:
 
@@ -305,13 +337,14 @@ manual says one phase switch equals `1/180` inch, the current trace target is
 to count `PB bits 3/4` phase updates and `PB mask 04h` drive-enable windows per
 `EE7Ah`/`EE86h`/`EF40h` command unit. The command path is now known to set
 `VV62=1` through the `EF61..EF64` block, so the `0668h` FE1 ISR calls `093Eh`
-for `PB` bits 3/4 phase updates during counted feed steps. The entry gate at
+for `PB` bits 3/4 phase updates during counted feed steps. The separate
+`VV62=0` FE1 branch calls `0908h`, the carriage gate-array `TM` pulse. The
+entry gate at
 `0675h` handles `VV37=1` before the first phase update: it routes through
 `07BBh`, calls `540Dh` to drive `PB2` low, then jumps back to `067Ah` for the
 first `093Eh` phase update. Thus PB2 drive is enabled before the first counted
-phase change. The PA20-driven `51F7h-5253h` path still looks paper related, but
-the `PB mask 20h`/`PA mask 02h`/`PB mask 40h` table should remain a separate
-mechanism table until it is tied to a schematic signal.
+phase change. The `PA20`-sampled `51F7h-5253h` path is now treated as carriage
+home seek, not paper feed.
 
 The service manual gives paper-feed acceleration intervals of `3.33`, `2.87`,
 `2.65`, `2.53`, and steady `2.50 ms`; deceleration is the reverse, and moves
@@ -366,9 +399,9 @@ normal, non-`80h` selector path, `540Dh` maps bits `04h/02h/08h/01h/10h` to
 direct writer, so it remains zero from RAM initialization. That zero record
 value takes the `5498h` path and sets `PB & 04h` high for the +5 V hold state.
 The following `EF5C`/`EF5E` delays and `0836h` interrupt masking do not issue
-another `PB & 04h` write. The PA20 startup timed-step routine at `5253h` contains a
-second explicit 10-step-shaped split: `529Ah` walks up to nine table-driven
-intervals, then `52BDh` subtracts `000Ah` before choosing the steady loop.
+another `PB & 04h` write. The carriage home-seek routine at `5253h` contains a
+separate 10-step-shaped split: `529Ah` walks up to nine table-driven intervals,
+then `52BDh` subtracts `000Ah` before choosing the steady loop.
 
 ## Service/Test Path
 

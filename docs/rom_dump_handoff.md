@@ -75,9 +75,9 @@ the workspace loss.
       `5498h` sets it high for hold. `093Eh`/`0953h`/`095Fh`/`096Ah` rotate
       `VV16` and map `VV16 & 18h` directly to `PB & 18h`, matching
       `PB3`/`PB4`. Here `18h` and `04h` are bit masks on the 8-bit `PB` port,
-      not pin names. `0908h` is the alternate `VV62==0` FE1 path and pulses
-      `PC bit 7`. The old "carriage PB mask 18h" label should be treated as
-      stale; re-find carriage after paper feed is settled.
+      not pin names. The old "carriage PB mask 18h" label should be treated as
+      stale; carriage is now anchored separately through the `VV62==0` FE1 path
+      at `0908h`, which pulses CPU `PC7` / gate-array `TM`.
     - pin-firing/head anchor: `08D0h` writes `F004=0C0h`, presets alternate
       `BC=F005h`, and arms timer state; vector `0978h` writes three bytes
       through that `F005h` pointer. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`
@@ -113,11 +113,13 @@ the workspace loss.
       `VV37=20h`, whose `540Dh` selector falls through to `EF60=00`, taking
       `5498h` and setting `PB & 04h` high for hold before the later
       `EF5C`/`EF5E` delays and final FE1 masking.
-      Separately, startup calls `51F7h-5253h`, which branches on and
-      samples `PA bit 20h`, walks timing tables around `7287h`/`72AFh`, and
-      selects four PA/PB output states at `546Ah`, `5474h`, `547Eh`, and
-      `5488h`. Keep that `PB mask 20h`/`PA mask 02h`/`PB mask 40h` table
-      separate until tied to a schematic signal.
+      Separately, startup calls the carriage home-seek path at `51F7h-5253h`.
+      It branches on and samples the `PA bit 20h` HOME candidate, walks
+      carriage timing tables around `7287h`/`72AFh`, pulses `0908h`/`PC7`/`TM`,
+      and selects four carriage-current states at `546Ah`, `5474h`, `547Eh`,
+      and `5488h`. The current-control shape matches the service manual's
+      `PB5`/`PB6`/`SPDH` table, except firmware uses `PA & 02h` where the
+      manual labels the third selector as `PB1`/`SPDH`.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`

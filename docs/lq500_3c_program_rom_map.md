@@ -10,6 +10,7 @@ Source dump:
 - `6000h-6FFFh` data usage: `data/lq500_3c_6000_block_usage.tsv`
 - `7000h-7FFFh` data/code usage: `data/lq500_3c_7000_block_usage.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
+- Carriage path trace: `data/lq500_3c_carriage_path.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
@@ -80,7 +81,7 @@ firmware uses external windows and buffers outside this ROM:
 | `05E2h` | `isr_rxb_host_receive_buffer` | Reads `RXB`, checks `ER`, stores received byte into the `EE20h` buffer with temporary `F002` bank changes. |
 | `07D0h` | `paper_feed_pb2_release_delay_state` | FE1 tail-exit state reached from `VV37=10h`; changes the state to `20h`, calls `540Dh`, and releases active-low `PB2` to high/hold through the `EF60=00` / `5498h` path. |
 | `08D0h` | `arm_head_f005_burst_output` | Writes `F004=0C0h`, presets alternate-register `BC=F005h`, loads head-data/timing pointers, and arms the timer path. Strong candidate head-fire setup. |
-| `0908h` | `paper_feed_step_timing_pulse_candidate` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters; called by the print ISR and timed motion sequence. Figure 2-47 makes this a paper-feed step candidate. |
+| `0908h` | `carriage_gate_array_tm_pulse` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters. Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input. |
 | `093Eh` | `paper_feed_pb_bits_3_4_phase_update_candidate` | Rotates the `VV16` phase via `0953h`/`095Fh`, then updates position/state helpers. |
 | `096Ah` | `write_pb_bits_3_4_stepper_phase_outputs` | Maps `VV16 & 18h` directly to `PB & 18h`; `18h` is a port mask, not a pin name. Service manual Figure 2-47 identifies paper-feed phase signals as `PB3`/`PB4`, matching these mask bits if bit numbering is zero-based. |
 | `0978h` | `isr_head_f005_burst_transfer_reload` | Writes three bytes through alternate-register `BC`, which `08D0h` presets to `F005h`; likely 24-pin head data burst. |
@@ -98,13 +99,13 @@ firmware uses external windows and buffers outside this ROM:
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup DIP/panel read. Uses table-driven ADC switch reads and then folds in direct PA bits. |
 | `4F54h` | `read_adc_switch_table_bits` | Consumes compact tables at `4F96h`/`4F9Fh`, samples ADC via `508Dh`, and builds switch bitfields. |
 | `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages/clamps ADC-derived adjustment values used at startup and by bidirectional adjustment mode. |
-| `51F7h` | `startup_mechanism_pa20_motion_entry` | Only traced caller is startup at `0340h`; branches on `PA bit 20h`, sets `VV61` motion mode/direction values, and calls the timed sequence at `5253h`. |
-| `5253h` | `mechanism_pa20_timed_step_sequence` | Drives table-based delays, samples `PA bit 20h` via `5306h`, and selects PA/PB phase states through `546Ah`/`547Eh`. |
+| `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`; branches on `PA bit 20h`, sets `VV61` carriage direction/mode values, and calls the timed home-seek sequence at `5253h`. |
+| `5253h` | `startup_carriage_home_seek_timed_sequence` | Drives table-based carriage delays, samples `PA bit 20h` via `5306h`, pulses PC7 through `0908h`, and selects carriage current states through `546Ah`/`547Eh`. |
 | `540Dh` | `mechanism_output_state_dispatch` | Selects output states from `VV37`/`EFxx`. With uPD7810 skip semantics, `VV62!=0` reaches the `PB mask 04h` set/clear branch matching the service-manual active-low `PB2` paper-feed drive/hold control; `VV62==0` indexes the `7007h` PA/PB jump table. |
-| `546Ah` | `mechanism_phase_state_0_pa_pb_candidate` | One PA/PB actuator state: `PB & 20h=1`, `PA & 02h=1`, `PB & 40h=1`. |
-| `5474h` | `mechanism_phase_state_1_pa_pb_candidate` | One PA/PB actuator state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=1`. |
-| `547Eh` | `mechanism_phase_state_2_pa_pb_candidate` | One PA/PB actuator state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=0`. |
-| `5488h` | `mechanism_phase_state_3_pa_pb_candidate` | One PA/PB actuator state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`; target of the `7007h` jump table. |
+| `546Ah` | `carriage_current_hold_state` | Carriage current state: `PB & 20h=1`, `PA & 02h=1`, `PB & 40h=1`. Manual says PB5 high is hold current; PA02 versus manual PB1/SPDH still needs schematic confirmation. |
+| `5474h` | `carriage_current_drive_high_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=1`. |
+| `547Eh` | `carriage_current_drive_mid_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=1`, `PB & 40h=0`; used by startup home seek. |
+| `5488h` | `carriage_current_drive_low_candidate` | Carriage current state: final `PB & 20h=0`, `PA & 02h=0`, `PB & 40h=1`; target of the `7007h` jump table. |
 | `558Dh` | `arm_timed_mechanism_record` | Sets `VV37=1`, loads a timing/control record via `55B1h`, calls `540Dh`, and arms `ETM1`/`FE1`. |
 | `55B1h` | `load_mechanism_timing_record_into_ef49` | Copies a `17h`-byte timing/control record from the selected `7005h`/`7088h` table into `EF49h`. |
 | `563Ch` | `setup_head_fire_timing_and_data_pointers` | Seeds `EF75h`/`EF77h`/`EF79h` and timing constants before writing `F004=20h`; likely head-fire setup state. |
@@ -152,8 +153,8 @@ lower priority unless they share these paths.
 
 | Mechanism | Best current anchors | Firmware evidence |
 | --- | --- | --- |
-| Paper feed phase / drive | `0908h`, `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch, with a `400 PPS` drive frequency matching the `2.5 ms` steady timing word. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB & 18h` and controls `PB & 04h` in `540Dh`. The `18h`/`04h` values are PB port masks, not pin names. `549Ch` clears `PB & 04h` low for +24 V drive; `5498h` sets it high for hold. The manual labels the excitation-table order clockwise/paper-forward, and firmware `0953h` follows that order from the reset-start phase. |
-| Carriage movement | unresolved after PB mask 18h reassignment | The prior `PB mask 18h` carriage label conflicts with the service-manual paper-feed phase signals; find carriage through the carriage motor driver schematic next. |
+| Paper feed phase / drive | `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch, with a `400 PPS` drive frequency matching the `2.5 ms` steady timing word. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB & 18h` and controls `PB & 04h` in `540Dh`. The `18h`/`04h` values are PB port masks, not pin names. `549Ch` clears `PB & 04h` low for +24 V drive; `5498h` sets it high for hold. The manual labels the excitation-table order clockwise/paper-forward, and firmware `0953h` follows that order from the reset-start phase. |
+| Carriage phase / current | `0908h`, `51F2h`, `51F7h`, `5253h`, `5306h`, `546Ah`, `5474h`, `547Eh`, `5488h`, `7287h`, `72B3h` | Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input; firmware `0908h` pulses that bit when `VV62=0`. Startup `51F7h-5253h` samples the `PA bit 20h` HOME candidate while walking carriage timing tables and pulsing `TM`. `51F2h` writes carriage control state to `F003h`. The `546Ah-5488h` states match the manual's carriage-current control shape, with one unresolved label mismatch: firmware uses `PA & 02h` where the manual table labels `PB1`/`SPDH`. |
 | Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
 | Paper feed / retard command path | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance reaches the timed output scheduler through `2864h`/`5676h`. Because `2864h` sets `VV38.3`, `5676h` copies that to `VV6D.3` and takes the `569Ah-56C5h` path, setting `VV62=1`, `VV63=0`, and `EF64` from the feed-distance state. |
 
@@ -164,9 +165,9 @@ FE1 ISR calls `093Eh` for `PB` bits 3/4 phase updates and then decrements/reload
 schedule timed paper motion at `2864h`; `n=1..10` uses the short path with
 `EF64=n`; `n>=11` uses five lead steps, `EF64=n-10` middle steps, and five tail
 steps. Both active paths therefore produce exactly `n` calls to `093Eh` and
-exactly `n` `PB3`/`PB4` phase changes. The `PB mask 20h`/`PA mask 02h`/`PB mask
-40h` jump table remains a separate mechanism candidate until it is tied to a
-schematic signal.
+exactly `n` `PB3`/`PB4` phase changes. The `VV62=0` branch is now treated as
+carriage/head timed output: it pulses `0908h`/`PC7`/`TM` instead of calling the
+paper `PB3`/`PB4` phase helper.
 
 The service-manual 2-2 excitation table maps firmware `PB & 18h` states to phase
 pairs as `18h=A+C`, `08h=A+D`, `00h=B+D`, and `10h=B+C`. Reset seeds
@@ -196,8 +197,8 @@ ISR walks these at `0772h` and `0799h`. The first five words at `725Fh` are
 `1086h`, `0DC6h`, `0CB8h`, `0C24h`, `0C00h`; the first five at `7269h` are
 `0C24h`, `0C24h`, `0CB8h`, `0DC6h`, `0FFCh`. The command-feed first lead word
 is about `3.44 ms`, so it appears to be a ROM-revised first movement interval
-relative to the manual's `3.33 ms` `tc1`. The PA20 startup timed-step routine
-at `5253h` has a second 10-step-shaped split: `52BDh` subtracts `000Ah` after
+relative to the manual's `3.33 ms` `tc1`. The carriage home-seek routine at
+`5253h` has a separate 10-step-shaped split: `52BDh` subtracts `000Ah` after
 the first nine indexed intervals, and the zero-remainder path skips the long
 steady loop.
 
@@ -302,9 +303,9 @@ Startup panel mode dispatch:
    defaults, and VR/adjustment reads.
 2. Correlate `VV00`/`VV01` bits from `4F37h` against the documented DIP switch
    defaults in `docs/lq500_reference.md`.
-3. Follow the immediate-feed path from `ESC J`/`ESC j` through `2534h`,
-   `1FEAh`, and `256Eh`, then compare it with the PA20 mechanism sequence at
-   `51F7h-5253h` before deciding whether the PA/PB phase table is paper feed.
+3. Continue carriage tracing from the service manual's driver signals by
+   decoding the `72B3h-72D8h` carriage control records and the normal scheduler
+   callers around `56C8h-5712h`.
 4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
 5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,
