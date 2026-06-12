@@ -14,10 +14,11 @@ The firmware is organized around a small set of layers:
 | Vector and CALT layer | `0000h-00BFh` | Reset/IRQ stubs plus compact one-byte service calls. |
 | Boot/init | `0180h-0571h` | Clears RAM/windows, probes optional PROM/CG windows, initializes ports/timers/gate-array registers. |
 | Real-time I/O | `0582h-09C1h` | Interrupt handlers for `F000h` gate data, serial RXB, timers, and print mechanism state. |
-| Text/render core | `0F16h-2DCEh` | Character state, glyph metric lookup, work-buffer layout, and render-band advancement. |
+| Text/render core | `0F16h-2DCDh` | Character state, glyph metric lookup, work-buffer layout, and render-band advancement. |
+| Inline render table/fill | `2DCEh-3FFFh` | Small inline dispatch tail at `2DCEh-2DE2h`, then unused `FFh` fill through `3FFFh`. |
 | Character dispatcher and glyph transforms | `4008h-5793h` | `PBLS` secondary body containing character classification, font-state selection, and many bitmap expansion transforms. |
-| Static data/tables | `6000h-73FFh` | Identity/remap table, strings, character-set tables, mechanism tables. |
-| Service/test UI | `739Bh-7B73h` | Data-dump, DIP/status printout, bidirectional adjustment, and string/number formatting helpers. |
+| Static data/tables | `6000h-739Ah` | Identity/remap table, strings, character-set tables, mechanism timing tables, and render geometry tables. |
+| Service/test UI | `739Bh-7B73h` | Data-dump, DIP/status printout, bidirectional adjustment/calibration UI, and string/number formatting helpers. |
 
 ## Panel, DIP, and Host I/O
 
@@ -80,6 +81,15 @@ render/glyph setup data, `689Ch-6943h` is the international character
 substitution table used by `1464h`, and `696Eh-6A59h` is the primary/ESC command
 dispatch table area. The two CSF parenthesized strings at `617Fh` and `6187h`
 have no direct traced consumer yet.
+
+The adjacent `7000h-7B73h` region is split by consumer in
+`data/lq500_3c_7000_block_usage.tsv`. The important split is that
+`7001h-739Ah` is normal mechanism/timing/render lookup data, while
+`739Bh-7B73h` is executable service/test code. The service block contains the
+power-on panel dispatch, data dump, self-test status printing, and the
+bidirectional adjustment/calibration UI. The adjustment UI starts at `7818h`,
+prints `Bi-d Adjustment Mode`, displays `VR1`/`VR2`, reads panel actions via
+`4EEAh`, and refreshes ADC-derived offset values via `4FB1h`.
 
 ## Input Pipeline
 
@@ -258,7 +268,9 @@ feed.
 
 ## Service/Test Path
 
-The `739Bh-7B73h` block is a service UI layer:
+The `739Bh-7B73h` block is a service UI layer. It should be kept separate from
+the preceding `7001h-739Ah` table region, which is consumed by normal
+mechanism/timing and render-layout code:
 
 - Startup builds `VV0C` from the panel bits: `01h` enters Draft self-test
   (LINE FEED/AUTO LOAD held), `02h` enters LQ self-test (FORM FEED held),
@@ -275,6 +287,12 @@ The `739Bh-7B73h` block is a service UI layer:
 - `7719h` handles the documented data dump paper length messaging.
 - `7818h` handles bidirectional adjustment mode and its `VR1`/`VR2` display,
   using `4EEAh` panel-action reads and `4FB1h` ADC offset refreshes.
+- `79D4h`, `79F6h`, and `7A00h` are local adjustment display helpers for
+  marker output, service strings, and value formatting.
+- `7A18h-7A52h` holds the adjustment title, `VR1`/`VR2` labels, plus/minus
+  markers, and the out-of-range string.
+- `7AB2h-7B51h` maintains shared style/typeface selection state used by service
+  and startup flows before `7B52h` reflects the selection on PA/PB outputs.
 
 ## Open Naming Questions
 

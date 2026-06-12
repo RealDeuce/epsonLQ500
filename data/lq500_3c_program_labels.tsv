@@ -118,8 +118,24 @@ address	label	kind	confidence	notes
 0x696E	primary_control_command_table	data	high	Count-prefixed table of 14 primary nonprintable commands: ESC, LF, CR, BEL, BS, HT, VT, FF, SO, SI, DC2, DC3, DC4, CAN.
 0x699C	esc_command_table	data	high	Count-prefixed table of 62 ESC command bytes and handler addresses, including ESC @, ESC J, ESC K/L/Y/Z, ESC U, ESC C, ESC N/O, and style commands.
 0x6A5A	unused_ff_gap_6a5a_6fff	data	high	Long 0xFF fill from 0x6A5A through 0x6FFF.
-0x7007	mechanism_output_jump_table	data	medium	Jump table consumed by 0x540D after indexing from EFxx state byte.
+0x7001	mechanism_timing_record_pointer_table	data	medium	Two-word pointer table consumed by 0x5635/0x558D; selects timing record bases 0x7005 or 0x7088 from VV62.
+0x7005	mechanism_timing_record_table_a	data	medium	Timing/control record table selected directly by 0x570F or through the 0x7001 pointer table; 0x55B1 copies 0x17-byte records into EF49.
+0x7007	mechanism_output_jump_table	data	medium	Overlapping jump table consumed by 0x540D after indexing from EFxx state byte; targets 0x546A, 0x5474, 0x547E, and 0x5488.
+0x7088	mechanism_timing_record_table_b	data	medium	Alternate timing/control record table selected through the 0x7001 pointer table when VV62 chooses the second record set.
+0x708E	mechanism_threshold_word_overlap	data	low	Word loaded directly by 0x55D8 from inside the 0x7088 record table and compared against the current EA/state value.
+0x70BF	mechanism_head_timing_word_table	data	low	Dense timing/control words following the selected mechanism records; exact sub-record boundaries still need runtime confirmation.
 0x7219	cr0_lookup_table	data	medium	Indexed from ISR at 0x06DF using CR0 range 0xC1-0xEE.
+0x725F	print_timing_threshold_word_overlap	data	low	Word loaded directly by 0x55E4 from inside the CR0 lookup range and stored into EF51.
+0x7287	mechanism_delay_table	data	medium	Delay/compare table consumed by the 0x5253 PA20 timed mechanism sequence through offsets at 0x7287, 0x729B, and 0x72AD.
+0x72AF	mechanism_sequence_table	data	medium	Mechanism sequence/state table consumed by 0x5253; 0x72B3 is also indexed by 0x5719 using a small stride.
+0x72D9	unclassified_descending_lookup_table	data	low	Table-like bytes between mechanism sequence data and render geometry tables; no direct consumer confirmed yet.
+0x7307	render_geometry_byte_table	data	medium	Byte lookup consumed by 0x22DB using VV3A & 7 before downstream geometry table lookups.
+0x7317	render_geometry_word_table_7317	data	medium	Render/layout table consumed by 0x22E4 through the shared 0x23F1-style lookup path.
+0x7341	render_geometry_word_table_7341	data	medium	Render/layout table consumed by 0x220B.
+0x735B	render_geometry_word_table_735b	data	medium	Render/layout table consumed by 0x231F.
+0x736B	render_geometry_word_table_736b	data	medium	Render/layout table consumed by 0x2310.
+0x737B	render_geometry_word_table_737b	data	medium	Render/layout table consumed by 0x2239.
+0x738B	render_geometry_word_table_738b	data	medium	Render/layout table consumed by 0x2248.
 0x739B	power_on_panel_mode_dispatch	code	high	Dispatches startup panel mode from VV0C: 0x01 draft self-test, 0x02 LQ self-test, 0x03 data dump, and remapped 0x08 bidirectional adjustment.
 0x73AF	data_dump_grid_printer	code	medium	Prints rows through the 0x8000 work window, converts nibbles to ASCII, and emits dot placeholders via 0x4038/0x2011.
 0x746F	nibble_to_ascii_hex_digit	code	high	Converts 0-15 to ASCII hex digit using +7/+0x30 adjustment.
@@ -139,7 +155,15 @@ address	label	kind	confidence	notes
 0x76C2	print_status_string_bold_if_selected	code	high	Reads a selector-prefixed status string, keeps VV24 bit 0x10 emphasized/bold set only when the selector is present in FF00, then prints the string.
 0x76DE	print_status_column_spacing	code	medium	Prints repeated spacing strings from 0x618E unless the high bit says no spacing.
 0x7719	data_dump_mode_routine	code	high	Prints strings at 0x6116/0x612E/0x613C/0x615E; handles data-dump paper length flow.
+0x77E5	format_decimal_digits_to_ff00	code	medium	Decimal formatting helper used by data-dump/service output before printing through the FF00 scratch buffer.
 0x7818	bidirectional_adjustment_mode	code	high	Prints 0x7A18 'Bi-d Adjustment Mode', VR strings, reads panel/sensor input.
-0x7A18	bidirectional_adjustment_strings	data	high	FF-delimited strings: Bi-d Adjustment Mode, VR1, VR2, out of range.
+0x79D4	print_adjustment_marker_grid	code	medium	Prints repeated marker string 0x7A3B with output advances; used while rendering bidirectional adjustment samples.
+0x79F6	print_service_string_then_advance	code	medium	Prints the FF-delimited string at HL via 0x755D, advances output, then flushes/ends the line.
+0x7A00	format_adjustment_value_to_ff00	code	medium	Formats the low byte of HL through 0x77FC into the FF00 scratch string used by the adjustment value display.
+0x7A18	bidirectional_adjustment_strings	data	high	FF-delimited strings and markers: Bi-d Adjustment Mode, VR1, VR2, out of range, space, plus, minus, and the 0xB3 marker.
+0x7A53	untraced_adjustment_code_fragment	data	low	Code-like bytes after the adjustment strings and before the confirmed 0x7AB2 entry; no real entry point confirmed yet.
+0x7AB2	style_typeface_selection_state_machine	code	medium	Startup/service state machine that updates VV02, VVA4/VVA5, VV1E, and VV23 before falling into the panel output helper.
+0x7B1F	derive_style_selector_from_vv23	code	medium	Maps VV23 style bits into VV1E selector values 0x80-0x83.
+0x7B36	apply_style_selector_to_vv23	code	medium	Maps VV1E low bits back into VV23 style bits 0x20, 0x02, and 0x80 after clearing the previous selector bits.
 0x7B52	update_panel_select_pa_pb_outputs	code	medium	Writes PA bit 0 and PB bit 7 depending VV23/VVA5; used during service/adjustment UI setup.
 0x7B74	unused_ff_gap_7b74_7fff	data	high	Long 0xFF fill from 0x7B74 through end of ROM.

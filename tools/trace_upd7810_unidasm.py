@@ -304,12 +304,51 @@ def classify_gap(data: bytes, lo: int, hi: int) -> str:
     chunk = data[lo:hi]
     if chunk and all(byte == 0xFF for byte in chunk):
         return "fill_ff"
-    if chunk and all(byte == 0x00 for byte in chunk):
-        return "fill_00"
     printable = sum(1 for byte in chunk if byte in (0x00, 0xFF) or 0x20 <= byte < 0x7F)
     if chunk and printable / len(chunk) > 0.75:
         return "likely_text_or_table"
     return "likely_data_or_untraced_code"
+
+
+def split_data_range_by_long_fill(
+    data: bytes, lo: int, hi: int, min_fill_run: int = 16
+) -> list[tuple[int, int]]:
+    """Split large untraced gaps around obvious 0xFF fill runs."""
+    ranges: list[tuple[int, int]] = []
+    start = lo
+    i = lo
+    while i < hi:
+        byte = data[i]
+        if byte != 0xFF:
+            i += 1
+            continue
+
+        run_start = i
+        while i < hi and data[i] == byte:
+            i += 1
+        if i - run_start < min_fill_run:
+            continue
+
+        if start < run_start:
+            ranges.append((start, run_start))
+        ranges.append((run_start, i))
+        start = i
+
+    if start < hi:
+        ranges.append((start, hi))
+    return ranges
+
+
+def split_data_ranges_by_long_fill(
+    data: bytes, ranges: list[tuple[int, int]]
+) -> list[tuple[int, int]]:
+    split_ranges: list[tuple[int, int]] = []
+    for lo, hi in ranges:
+        if classify_gap(data, lo, hi).startswith("fill_"):
+            split_ranges.append((lo, hi))
+            continue
+        split_ranges.extend(split_data_range_by_long_fill(data, lo, hi))
+    return split_ranges
 
 
 def write_outputs(
@@ -325,7 +364,9 @@ def write_outputs(
     out_prefix.parent.mkdir(parents=True, exist_ok=True)
     data_bytes = set(range(len(rom_data))) - code_bytes
     code_ranges = group_ranges(code_bytes, len(rom_data))
-    data_ranges = group_ranges(data_bytes, len(rom_data))
+    data_ranges = split_data_ranges_by_long_fill(
+        rom_data, group_ranges(data_bytes, len(rom_data))
+    )
 
     used_roots_tsv = out_prefix.with_suffix(".used_roots.tsv")
     with used_roots_tsv.open("w", newline="") as f:
@@ -352,7 +393,7 @@ def write_outputs(
         for lo, hi in data_ranges:
             classification = classify_gap(rom_data, lo, hi)
             if classification == "likely_data_or_untraced_code":
-                writer.writerow([f"0x{lo:04X}", "untraced_gap_start", hi - lo, classification, ""])
+                writer.writerow([f"0x{lo:04X}", "untraced_gap_start", hi - lo, classification, "-"])
 
     insn_tsv = out_prefix.with_suffix(".instructions.tsv")
     with insn_tsv.open("w", newline="") as f:

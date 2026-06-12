@@ -501,9 +501,15 @@
     ],
     [
       "0x00BB",
-      "0x00CC",
-      17,
+      "0x00BC",
+      1,
       "likely_text_or_table"
+    ],
+    [
+      "0x00BC",
+      "0x00CC",
+      16,
+      "fill_ff"
     ],
     [
       "0x00CD",
@@ -711,8 +717,20 @@
     ],
     [
       "0x2DCE",
+      "0x2DE3",
+      21,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x2DE3",
+      "0x4000",
+      4637,
+      "fill_ff"
+    ],
+    [
+      "0x4000",
       "0x400B",
-      4669,
+      11,
       "likely_text_or_table"
     ],
     [
@@ -837,14 +855,32 @@
     ],
     [
       "0x5794",
+      "0x6000",
+      2156,
+      "fill_ff"
+    ],
+    [
+      "0x6000",
       "0x6944",
-      4528,
+      2372,
       "likely_text_or_table"
     ],
     [
       "0x6960",
+      "0x6A5A",
+      250,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x6A5A",
+      "0x7000",
+      1446,
+      "fill_ff"
+    ],
+    [
+      "0x7000",
       "0x739B",
-      2619,
+      923,
       "likely_data_or_untraced_code"
     ],
     [

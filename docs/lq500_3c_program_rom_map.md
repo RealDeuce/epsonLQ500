@@ -8,6 +8,7 @@ Source dump:
 - Disassembly: `roms/lq500_3c_m25a10pa_internal_prom.asm`
 - First-pass labels: `data/lq500_3c_program_labels.tsv`
 - `6000h-6FFFh` data usage: `data/lq500_3c_6000_block_usage.tsv`
+- `7000h-7FFFh` data/code usage: `data/lq500_3c_7000_block_usage.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
@@ -48,7 +49,8 @@ firmware uses external windows and buffers outside this ROM:
 | `0582h-09C1h` | Interrupt handlers and mechanism dispatch | ISRs buffer data from `F000h`/`RXB`, manipulate `F001h/F002h`, update timers, pulse carriage timing, and run the likely head-data burst ISR. |
 | `0A0Bh-0B3Fh` | Input consumer and small helpers | Includes the shared host-input byte reader at `0A0Bh`, parameter readers, F001 disable sequence, nibble shifts, delay loops, and a direct `F002` write helper at `0B23h`. |
 | `0E8Bh-0F15h` | Buffer/window bounds helpers | Uses `FF00h`, `EE4Ch`, `EE5Ch`, `EE5Eh`, and `EFBF`; likely print-buffer/string bounds logic. |
-| `0F16h-2DE2h` | Core text/render/print logic | Many small mode-flag helpers and high-fan-in rendering routines. This is the least-labeled large code body so far. |
+| `0F16h-2DCDh` | Core text/render/print logic | Many small mode-flag helpers and high-fan-in rendering routines. This is the least-labeled large code body so far. |
+| `2DCEh-2DE2h` | Inline dispatch tail table | `2DC8h` loads `DE=2DCEh`; this short table-like tail belongs to the preceding render/CALT dispatch path, not to the following fill. |
 | `2DE3h-3FFFh` | Fill | All `0xFF`. |
 | `4000h-5793h` | Main input decode and secondary code body | Starts with `PBLS` signature at `4000h`; reset checks this area for external PROM handling. Contains the `400Bh` host-byte decode loop, printable-character setup, and substantial hardware helpers. |
 | `5794h-5FFFh` | Fill | All `0xFF`. |
@@ -60,8 +62,11 @@ firmware uses external windows and buffers outside this ROM:
 | `6960h-696Dh` | Unresolved table/code fragment | No traced xref yet; sits between dispatcher code and the primary command table. |
 | `696Eh-6A59h` | Command dispatch tables | Count-prefixed primary and ESC command tables consumed by `6944h`/`695Bh`. |
 | `6A5Ah-6FFFh` | Fill | All `0xFF`. |
-| `7007h-721Fh` | Mechanism/output tables | `540Dh` indexes a PA/PB output jump table at `7007h`; `0668h` indexes a CR0 lookup table around `7219h`. |
-| `739Bh-7B73h` | Service/self-test/adjustment code | Includes data-dump mode and bidirectional adjustment mode routines, string printer, and PA/PB output helpers. |
+| `7001h-7218h` | Mechanism/head timing and output tables | `5635h` selects timing records at `7005h`/`7088h`; `540Dh` indexes the overlapping PA/PB output jump table at `7007h`. |
+| `7219h-7286h` | CR0/timing lookup table | `06DFh` indexes the `7219h` table from the CR0 range; `55E4h` directly loads a word at `725Fh`. |
+| `7287h-72D8h` | Mechanism delay/sequence tables | `5253h` walks delay/sequence data around `7287h` and `72AFh`; `5719h` also indexes from `72B3h`. |
+| `72D9h-739Ah` | Render geometry lookup tables | `21F1h-2322h` consume small byte/word tables at `7307h`, `7317h`, `7341h`, `735Bh`, `736Bh`, `737Bh`, and `738Bh`. |
+| `739Bh-7B73h` | Service/self-test/adjustment code | Includes power-on service dispatch, data-dump mode, self-test status printing, bidirectional adjustment/calibration UI, embedded adjustment strings, and PA/PB output helpers. |
 | `7B74h-7FFFh` | Fill | All `0xFF`. |
 
 ## High-Confidence Routines
@@ -191,10 +196,14 @@ Important FF-delimited strings:
 | `61AAh-620Dh` | Self-test status pointer table: two pointers per printed row, ending with `0000h`. |
 | `6230h-67EFh` | Selector-prefixed DIP/status strings. The first byte is matched against selected IDs in `FF00h`; matching rows print emphasized/bold. |
 | `67F0h-6A59h` | Non-string lookup and dispatch data; see `data/lq500_3c_6000_block_usage.tsv`. |
+| `7001h-739Ah` | Mechanism, timing, CR0, and render geometry lookup data; see `data/lq500_3c_7000_block_usage.tsv`. |
 | `7A18h` | `Bi-d Adjustment Mode` |
 | `7A2Dh` | `VR1 = ` |
 | `7A34h` | `VR2 = ` |
 | `7A3Dh` | ` (out of range)` |
+| `7A4Dh` | space marker |
+| `7A4Fh` | `+` |
+| `7A51h` | `-` |
 
 Startup panel mode dispatch:
 
@@ -213,7 +222,7 @@ Startup panel mode dispatch:
   target, not linear decoding.
 - Recursive trace unresolved indirect exits currently include `JEA` at
   `02DCh`, `240Ah`, `5468h`, and `761Ch`; these need manual target recovery.
-- The large core region `0F16h-2DE2h` needs command-parser and glyph-renderer
+- The large core region `0F16h-2DCDh` needs command-parser and glyph-renderer
   separation. The current labels only mark high-fan-in helpers.
 - `4000h-5793h` may be alternate/external-PROM-related code or a second major
   firmware body behind the `PBLS` check. It is real code, not filler.
@@ -231,7 +240,7 @@ Startup panel mode dispatch:
    `1FEAh`, and `256Eh`, then compare it with the PA20 mechanism sequence at
    `51F7h-5253h` before deciding whether the PA/PB phase table is paper feed.
 4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
-5. Split `0F16h-2DE2h` into command parsing, font/style state, and glyph fetch
+5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,
    `24D4h`, `26F1h`).
 6. Align and label the `CALT` service stubs.

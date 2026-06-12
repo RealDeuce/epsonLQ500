@@ -1,0 +1,33 @@
+range	kind	consumer	evidence	notes
+0x7001-0x7004	mechanism timing record pointer table	0x5635 / 0x558D	5635: LXI HL,7001; index is VV62*2; 558D loads the selected pointer.	Two little-endian pointers select the normal timing record bases at 0x7005 and 0x7088.
+0x7005-0x7087	mechanism/head timing record table	0x570F / 0x55B1	570F: LXI HL,7005; 55B1 reads a record header and copies 0x17-byte records into EF49.	Selected directly by the head/mechanism setup path; overlaps the 0x7007 jump table bytes.
+0x7007-0x700E	mechanism output jump table	0x540D / 0x545E	545E: LXI EA,7007; 5466/5468 index and JEA through the table.	Four targets: 0x546A, 0x5474, 0x547E, 0x5488. These write PA/PB phase-output states.
+0x7088-0x70BE	mechanism/head timing record table	0x5635 / 0x55B1	Pointer table at 0x7001 selects 0x7088 when VV62 chooses the alternate record set.	Alternate record set for the same EF49 setup path.
+0x708E-0x708F	overlapping threshold word	0x55D8	55D8: LHLD 708E; compared against the current EA/state value when VV62 is set.	Direct word load inside the 0x7088 record area, so it may be both record data and a named threshold/limit.
+0x70BF-0x7218	mechanism/head timing words	0x55B1 / record references	Record setup around 0x55B1 copies selected table records and later timing setup uses nearby words.	Dense little-endian timing/control data following the selected record headers; exact sub-record boundaries still need dynamic confirmation.
+0x7219-0x7286	CR0 lookup table	0x06DF	06DF: LXI HL,7219 after CR0 range check; index comes from CR0-0xC1.	Interrupt-side lookup for CR0 values in the 0xC1-0xEE range.
+0x725F-0x7260	overlapping timing word	0x55E4	55E4: LHLD 725F; stores the loaded word into EF51.	Directly loaded word inside the CR0 lookup range; keep as an overlap until the table format is known.
+0x7287-0x72AE	mechanism delay table	0x5253 / 0x529D / 0x52B3 / 0x52E7	529D/52B3 load EA,7287; 52E7/52F0 load EA,729B; 52C9/52D1 load EA,72AD.	Shared timed mechanism delay/compare table used by the PA20 startup sequence.
+0x72AF-0x72D8	mechanism sequence table	0x5253 / 0x5719	5258/5266/527C/5284 load EA,72AF; 5719 loads EA,72B3 with a small indexed stride.	Mechanism sequence/state data; 0x72B3 is also indexed by a setup path using (VV6F & 7)*5.
+0x72D9-0x7306	unclassified descending lookup table	no direct traced xref	No immediate or traced pointer has been tied to this span yet.	Looks table-like and adjacent to consumed mechanism/render tables, but consumer is still unknown.
+0x7307-0x7316	render geometry byte table	0x22DB / 0x23F1	22DB: LXI EA,7307; indexed from VV3A & 7 into VV46 before downstream table lookups.	Normal print/render geometry, not service UI.
+0x7317-0x7340	render geometry word table	0x22E4 / 0x23F1	22E4: LXI EA,7317; shared helper uses the current geometry selector.	One of several small layout/spacing tables consumed by the 0x21F1-0x2322 render path.
+0x7341-0x735A	render geometry word table	0x220B	220B: LXI HL,7341.	Render/layout lookup table in the same path as 0x7307 and 0x7317.
+0x735B-0x736A	render geometry word table	0x231F	231F: LXI EA,735B.	Render/layout lookup table.
+0x736B-0x737A	render geometry word table	0x2310	2310: LXI EA,736B.	Render/layout lookup table.
+0x737B-0x738A	render geometry word table	0x2239	2239: LXI EA,737B.	Render/layout lookup table.
+0x738B-0x739A	render geometry word table	0x2248	2248: LXI EA,738B.	Render/layout lookup table immediately before the service-mode dispatch code.
+0x739B-0x744C	service/test code	0x0385 / startup panel dispatch	0385: JMP 739B; 739B dispatches VV0C to self-test, data dump, or bidirectional adjustment.	Start of the power-on service/test layer.
+0x744D-0x74CA	data-dump and self-test helper code	0x73AF / 0x74CB / 0x74CF	Trace reaches this block from data-dump and self-test flows.	Includes hex/dump cell helpers and service print-state selection.
+0x74CB-0x756C	self-test and service string print code	0x739B / 0x75C7	74CB/74CF select draft versus LQ self-test; 755D prints 00h/FFh terminated strings.	Prints firmware header and shared self-test output.
+0x756F-0x761D	self-test status table code	0x75C7 / 0x760A	75C7 calls 760A, then walks the 0x61AA pointer table.	Builds selected DIP/status IDs and prints status strings.
+0x761E-0x7692	inline selector dispatch table/code	no direct linear trace	7615: LXI EA,761E; 761C: JEA after adding a selector-dependent offset.	Computed target area for 0x760A. Keep out of linear code until individual JEA targets are recovered.
+0x7693-0x78B5	self-test selector and adjustment code	0x760A / 0x7818	7693/76A6/76B4 map DIP bits to selector indexes; 7818 enters bidirectional adjustment mode.	Mix of selector helpers and the first half of bidirectional adjustment mode.
+0x78B6-0x79EC	bidirectional adjustment code	0x7818	Adjustment loop reads buttons at 4EEA, refreshes ADC offsets at 4FB1, and prints current VR values.	Service/calibration UI: ON LINE/FORM FEED/LINE FEED actions update or save adjustment values.
+0x79ED-0x79F5	untraced code-like gap	no traced xref	Trace has a gap between 0x79EC RET and 0x79F6 entry.	Bytes decode plausibly but have no confirmed entry yet.
+0x79F6-0x7A17	service print/format helper code	0x781E / 0x7961 / 0x7986	79F6 prints a service string then advances; 7A00 formats adjustment values into FF00.	Formatting helpers used by bidirectional adjustment.
+0x7A18-0x7A52	bidirectional adjustment strings	0x781B / 0x793E / 0x7955 / 0x797C	Immediate loads point at 7A18, 7A2D, 7A34, 7A3B, 7A3D, 7A4D, 7A4F, and 7A51.	FF-delimited strings: title, VR labels, separator/marker bytes, plus/minus/space, and out-of-range warning.
+0x7A53-0x7AB1	untraced service code-like fragment	no confirmed entry	Trace frontier marks 7A18-7AB2 as not reached; strings account for 7A18-7A52 only.	Looks more code-like than string-like, but no real entry point is confirmed yet.
+0x7AB2-0x7B51	style/typeface selection state code	0x03E8 / 0x7AFC	03E8 calls 7AB2; 7AFC loops back to 7AB2; this block updates VV02, VVA4/VVA5, VV1E, and VV23.	Shared style/typeface selection state machine that feeds the panel/output update helper.
+0x7B52-0x7B73	panel select output helper	0x74E2 / 0x7922 / 0x7B00 / 0x7B1D	7B52 writes PA bit 0 and PB bit 7 based on VV23 and VVA5.	Used by self-test and adjustment setup to reflect current selection/state on hardware outputs.
+0x7B74-0x7FFF	fill	none	All bytes are 0xFF.	Unused fill through the end of the 32 KiB program ROM.

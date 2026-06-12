@@ -109,7 +109,8 @@ Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x
 | `0x00AF` | `0x00B0` | 1 | likely_data_or_untraced_code |
 | `0x00B7` | `0x00B8` | 1 | likely_text_or_table |
 | `0x00B9` | `0x00BA` | 1 | likely_text_or_table |
-| `0x00BB` | `0x00CC` | 17 | likely_text_or_table |
+| `0x00BB` | `0x00BC` | 1 | likely_text_or_table |
+| `0x00BC` | `0x00CC` | 16 | fill_ff |
 | `0x00CD` | `0x0180` | 179 | fill_ff |
 | `0x01EC` | `0x0200` | 20 | fill_ff |
 | `0x02DE` | `0x02E4` | 6 | likely_data_or_untraced_code |
@@ -144,7 +145,9 @@ Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x
 | `0x2785` | `0x27A1` | 28 | likely_data_or_untraced_code |
 | `0x27B0` | `0x27D1` | 33 | likely_data_or_untraced_code |
 | `0x2895` | `0x289D` | 8 | likely_data_or_untraced_code |
-| `0x2DCE` | `0x400B` | 4669 | likely_text_or_table |
+| `0x2DCE` | `0x2DE3` | 21 | likely_data_or_untraced_code |
+| `0x2DE3` | `0x4000` | 4637 | fill_ff |
+| `0x4000` | `0x400B` | 11 | likely_text_or_table |
 | `0x4012` | `0x4038` | 38 | likely_data_or_untraced_code |
 | `0x4142` | `0x4173` | 49 | likely_data_or_untraced_code |
 | `0x418F` | `0x425A` | 203 | likely_data_or_untraced_code |
@@ -165,8 +168,11 @@ Roots: `0x0000`, `0x0004`, `0x0008`, `0x0010`, `0x0018`, `0x0028`, `0x0060`, `0x
 | `0x53DF` | `0x53E1` | 2 | likely_text_or_table |
 | `0x53FD` | `0x53FE` | 1 | likely_data_or_untraced_code |
 | `0x5488` | `0x5491` | 9 | likely_data_or_untraced_code |
-| `0x5794` | `0x6944` | 4528 | likely_text_or_table |
-| `0x6960` | `0x739B` | 2619 | likely_data_or_untraced_code |
+| `0x5794` | `0x6000` | 2156 | fill_ff |
+| `0x6000` | `0x6944` | 2372 | likely_text_or_table |
+| `0x6960` | `0x6A5A` | 250 | likely_data_or_untraced_code |
+| `0x6A5A` | `0x7000` | 1446 | fill_ff |
+| `0x7000` | `0x739B` | 923 | likely_data_or_untraced_code |
 | `0x744C` | `0x744D` | 1 | likely_data_or_untraced_code |
 | `0x74C9` | `0x74CB` | 2 | likely_data_or_untraced_code |
 | `0x756C` | `0x756F` | 3 | likely_data_or_untraced_code |

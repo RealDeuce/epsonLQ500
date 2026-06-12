@@ -26,6 +26,8 @@ manual notes, or hardware measurements.
   parameter consumption, state updates, and evidence.
 - `data/lq500_3c_6000_block_usage.tsv`: consumer map for the `6000h-6FFFh`
   data/code block.
+- `data/lq500_3c_7000_block_usage.tsv`: consumer map for the `7000h-7FFFh`
+  mechanism/render/service block.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 
 ## Trace Workflow
