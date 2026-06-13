@@ -39,6 +39,17 @@ The physical carriage step output observed in ROM is `0908h`: it writes
 does not directly bit-bang carriage phase windings on `PB3`/`PB4`; those are
 the paper-feed phase lines.
 
+The documented low-level carriage movement unit is one `0908h` `PC7`/`TM`
+pulse, which the gate array converts into one carriage motor phase switch.
+Figure 2-44 maps the 900 PPS normal-character case: two phase switches span
+`1/60` inch, and the intervening half-dot positions are `120 DPI`. Thus a 2-2
+excitation phase switch is `1/120` inch. In 1-2 excitation the gate-array drive
+sequence has twice as many phase states for the same motor cycle, so one phase
+switch is `1/240` inch. Figure 2-44 labels the 22-step span from HOME to the
+print-area boundary as the acceleration area. The print area therefore starts
+`22` phase-switching times after HOME, which is `22/120` inch in the 2-2 case
+shown by Figure 2-44.
+
 `53B9h` is the small relative-move gate. It compares a requested target in `HL`
 against the home/reference position at `EF0F`; if the absolute difference is
 greater than `001Ah`, it returns without scheduling. If the requested target is
@@ -51,6 +62,10 @@ The schematic/manual identify the carriage motor as a gate-array mediated
 stepper path. CPU `CO1`/`PC7` feeds the E01A05KA gate-array `TM` input; after
 each pulse, the gate array performs carriage phase switching. That makes
 firmware `0908h` the carriage phase-step pulse anchor.
+
+Figure 2-44 supplies the carriage distance mapping for the 2-2, 900 PPS
+printing case: one `PC7`/`TM` pulse produces one `1/120` inch phase switch.
+For 1-2 excitation, one pulse is one half-step, or `1/240` inch.
 
 The carriage control port is `F003h`: firmware writes the carriage control
 shadow `VV15` to `F003h` through direct writes and CALT helpers. The manual's

@@ -159,6 +159,13 @@ the workspace loss.
       uses the 2-2 excitation system but is neither x3 nor x2; the compact
       `7287h` table is startup timed-seek delay data from that separate
       procedure.
+      The resolved low-level carriage movement unit is one `0908h` `PC7`/`TM`
+      pulse, which the gate array converts into one carriage motor phase
+      switch. Figure 2-44 maps two 2-2 phase switches at 900 PPS to `1/60`
+      inch, so one 2-2 phase switch is `1/120` inch; 1-2 excitation uses twice
+      as many phase states, so one 1-2 phase switch is `1/240` inch. The print
+      area starts `22` phase-switching times after HOME, and Figure 2-44 labels
+      that left-side 22-step span as the acceleration area.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`

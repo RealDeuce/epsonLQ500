@@ -335,6 +335,15 @@ x3 or x2: after power-on the printer uses the 2-2 excitation system for a
 `20` or `30 ms` check interval, regardless of the normal phase-switching
 timing.
 
+Figure 2-44 gives the carriage distance mapping for normal 60 DPI characters
+at 900 PPS: two phase switching times span `1/60` inch, with half-dot positions
+at `120 DPI`. Thus one 2-2 carriage phase switch is `1/120` inch. In 1-2
+excitation, the drive sequence has twice as many phase states for the same
+motor cycle, so one 1-2 phase switch is `1/240` inch. The printing area starts
+`22` phase-switching times after the home position; Figure 2-44 labels that
+22-step left-side span as the acceleration area. In the 2-2 case shown there,
+the acceleration area is `22/120` inch.
+
 Paper-feed motor details from service manual Figure 2-47:
 
 - The paper-feed motor is a 4-phase, 48-step stepper motor.

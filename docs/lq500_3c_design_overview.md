@@ -219,7 +219,8 @@ Current ROM anchors:
 - Carriage movement uses `0908h` as the `PC7`/`TM` phase-step pulse. Startup
   home seek is the `51F7h-5253h` path; runtime movement uses the queued
   scheduler, `72B3h` TM1 sequence records, `7005h` timing/output records, and
-  F003 control helpers.
+  F003 control helpers. One `0908h` pulse is one gate-array phase switch:
+  `1/120` inch in 2-2 excitation and `1/240` inch in 1-2 excitation.
 - Printhead output is currently anchored at `F004h/F005h`: `08D0h` arms a
   burst, `0978h` emits three bytes through the alternate-register `BC=F005h`
   path, and `563Ch` sets up the data pointers and timing values.
