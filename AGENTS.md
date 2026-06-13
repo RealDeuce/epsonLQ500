@@ -79,6 +79,24 @@ manual notes, or hardware measurements.
   alignment correction slots, manual units, firmware consumers, and emulator
   offset limits.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
+- `data/lq500_4c_font_directory.tsv`: parsed 4C CG ROM font directory
+  (13 records with family, config, glyph base, name pointer).
+- `data/lq500_4c_font_NN_*.tsv`: per-font glyph metrics and bitmap hex
+  data extracted from the 4C CG ROM (one file per directory entry).
+- `data/lq500_4c_secondary_metrics.tsv`: 4C page 15 secondary metrics
+  records (6 bytes per character, two bases).
+- `data/lq500_3c_international_substitution.tsv`: international character
+  substitution table at `$689C` (12 base codes × 13 countries).
+- `data/lq500_3c_graphics_modes.tsv`: graphics mode validation table at
+  `$0D5D` (10 modes with stride, flags, pin count).
+- `data/lq500_3c_render_geometry.tsv`: render geometry tables at
+  `$7307-$739A` (7 tables × 8 modes for image buffer addressing).
+- `data/lq500_3c_remap_exceptions.tsv`: non-identity entries in the
+  `$6000` character remap table (currently empty — pure identity).
+- `data/lq500_3c_8pin_expansion_map.tsv`: 8-pin to 24-pin vertical
+  dot-doubling bit mapping from `$0C95`.
+- `tools/extract_lq500_rom_tables.py`: ROM table and font extraction
+  script; reads both ROM binaries and produces data TSVs.
 - `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
   for custom `4C` pin-22/A16 read experiments.
 

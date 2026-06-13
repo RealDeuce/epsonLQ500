@@ -1,0 +1,10 @@
+input_bit	output_byte	output_mask	notes
+7	0	0xC0	pins 1-2 (doubled)
+6	0	0x18	pins 4-5 (doubled, gap at 3)
+5	0	0x03	pins 7-8 (doubled)
+4	1	0x60	pins 10-11 (doubled)
+3	1	0x0C	pins 13-14 (doubled)
+2	1	0x01	pin 16 (split across bytes)
+1	2	0x30	pins 19-20 (doubled)
+0	2	0x06	pins 22-23 (doubled)
+2	2	0x80	pin 17 (split: D.01 + E.80)

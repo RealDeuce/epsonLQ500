@@ -600,6 +600,155 @@ mechanism/timing and render-layout code:
 - `7AB2h-7B51h` maintains shared style/typeface selection state used by service
   and startup flows before `7B52h` reflects the selection on PA/PB outputs.
 
+## State Interactions for Emulation
+
+This section documents how printer attributes interact at parse time and
+render time, derived from the firmware trace.  The emulator must reproduce
+these rules to match the real printer's output.
+
+### ESC ! Master Select Override
+
+ESC ! (`$0F42`) is a complete override for the attributes it controls.
+It first clears all affected bits (ANIW), then sets from the parameter:
+
+| Parameter bit | Clears | Sets | VV register |
+| --- | --- | --- | --- |
+| 7 (underline) | VV:23.0 | VV:23.0 | VV:23 |
+| 6 (italic) | VV:24.3 | VV:24.3 | VV:24 |
+| 5 (double-wide) | VV:24.0+1 | VV:24.0+1 | VV:24 |
+| 4 (double-strike) | VV:24.6 | VV:24.6 | VV:24 |
+| 3 (emphasized) | VV:24.4 | VV:24.4 | VV:24 |
+| 2 (condensed) | VV:22.5 | VV:22.5 | VV:22 |
+| 1 (proportional) | VV:23.5 | VV:23.5 | VV:23 |
+| 0 (elite) | VV:23.1 | VV:23.1 | VV:23 |
+
+ESC ! also always clears VV:23 bit 7 (15 cpi).  It does NOT affect
+super/subscript (VV:23 bits 3-4) or double-height (VV:25 bit 7).
+After setting bits, it calls CALT ($0092) to trigger font reconfig.
+
+Individual attribute commands (ESC E/F, ESC G/H, etc.) set or clear
+their single bit without touching other flags, then also trigger
+font reconfig.
+
+### Pitch Precedence
+
+The VV:A6 config byte builder (`$164B`) determines which CG font to
+request.  When multiple pitch modes are set simultaneously, the
+priority order is:
+
+1. **Proportional** (VV:23.5): sets VV:A6 bits 1+0=$02, skips all
+   other pitch checks
+2. **15 cpi** (VV:23.7): sets VV:A6 bits 1+0=$03 (maps to the
+   elite+proportional font slot)
+3. **Elite / 12 cpi** (VV:23.1): sets VV:A6 bit 0=$01
+4. **10 cpi** (default): VV:A6 bits 1:0 = $00
+
+Condensed (VV:23 bit 4 via `$166B`) and italic (VV:24.3 via `$1666`)
+add their bits independently (VV:A6 bit 4 and bit 6).  LQ quality
+(VV:87 bit 2 via `$1643`) sets VV:A6 bit 2.
+
+### Condensed-Draft Composite Flag
+
+The reconfig at `$14C6` computes a composite "condensed-Draft" flag
+(VV:22 bit 7) that gates effect function #2 (`$49C5`).  It is set only
+when ALL of:
+
+- Condensed is active (VV:22 bit 5 set)
+- Proportional is NOT active (VV:23 bit 5 clear)
+- 15 cpi is NOT active (VV:23 bit 7 clear)
+- VV:23 bit 2 is clear (LQ quality context)
+
+When the condensed-Draft flag fires, the effect function halves the
+column count by merging adjacent columns, producing the characteristic
+compressed output.
+
+### Font Fallback Chain
+
+The fallback scan at `$154E` tries progressively less specific font
+matches when the CG directory scan at `$1677` fails:
+
+1. **Exact match**: current VV:A6 (pitch + quality + italic + condensed)
+2. **Drop italic**: if VV:A6 bit 6 was set, clear it and add condensed,
+   retry
+3. **Try alternate pitch** (`$156A`): with condensed cleared, cycles
+   through pitch alternatives:
+   - From 10 cpi ($00): try elite ($01), then proportional ($02)
+   - From proportional ($02): try 10 cpi ($00), then elite ($01)
+   - From elite ($01): try 10 cpi ($00), then proportional ($02)
+   Similar fallbacks with condensed set at `$15ED`
+4. **Try Roman family**: sets VV:A5=$FF and rescans from step 1
+5. **Fail**: jumps to `$53DF` (no output for this character)
+
+### International Character Substitution
+
+The substitution at `$1464` is always active, even for USA (country 0).
+For the 12 substitutable positions (`#$@[\]^`{|}~`), the firmware
+indexes into `$689C + country × 12` to get the CG character code.
+Country 0 (USA) reads the base codes themselves, producing an identity
+mapping.  Other countries map to non-ASCII CG positions ($80+) where
+the national character glyphs are stored.
+
+The emulator must apply this table for ALL countries, including USA,
+because the replacement codes ARE the CG ROM character codes.
+
+### Render-Time Effect Interactions
+
+The print effect pipeline at `$1ABF-$1B18` applies effects sequentially.
+Each effect operates on the output of the previous one.  Key
+interactions:
+
+- **Super/subscript + anything**: effect #1 runs first, converting
+  2-byte CG columns to 3-byte format.  All subsequent effects see
+  3-byte columns regardless.
+- **Condensed-Draft + emphasized**: both can fire.  Condensed halves
+  the column count first, then emphasized adds bold offset columns
+  to the condensed result.
+- **Double-wide + condensed**: condensed halves, then double-wide
+  doubles.  Net effect: original width but with condensed glyph shape.
+- **Italic shear**: runs after emphasized and double-wide, so the
+  shear applies to the already-widened data.
+- **Double-strike**: copies columns with interleaved zero spacing.
+  The firmware clears VV:29.7 after processing, so double-strike
+  applies once per render.
+- **Double-height**: runs last (effect #10).  Each nibble expands to
+  a byte, doubling vertical resolution.
+
+Effects that are unused on the LQ-500 (effects 7-9, gated by VV:2A
+bits 5+6) are skipped.
+
+### Draft vs LQ Rendering Differences
+
+| Aspect | Draft | LQ |
+| --- | --- | --- |
+| Image buffer column stride | 4 bytes | 3 bytes |
+| CG font column resolution | Lower (fewer columns per glyph) | Higher (more columns) |
+| Condensed-Draft effect | Active (merges adjacent columns) | Not active (different font used) |
+| Render geometry table mode | Modes 0-4 | Modes 5-7 |
+| Bidirectional adjustment | VR1 at n/240 inch | VR2 at n/720 inch |
+
+### CG Font Coverage from Extracted Directory
+
+| Index | Family | Config | Quality | Pitch |
+| --- | --- | --- | --- | --- |
+| 0 | Roman | $00 | Draft | 10 cpi |
+| 1 | Roman | $01 | Draft | Elite (12 cpi) |
+| 2 | Roman | $13 | Draft | Elite+Proportional+Condensed |
+| 3 | Roman | $04 | LQ | 10 cpi |
+| 4 | Roman | $05 | LQ | Elite |
+| 5 | Roman | $17 | LQ | Elite+Proportional+Condensed |
+| 6 | Roman | $06 | LQ | Proportional |
+| 7 | Block | $84 | LQ | (default) |
+| 8 | Block | $00 | Draft | (default) |
+| 9 | Sans Serif | $04 | LQ | 10 cpi |
+| 10 | Sans Serif | $05 | LQ | Elite |
+| 11 | Sans Serif | $17 | LQ | Elite+Proportional+Condensed |
+| 12 | Sans Serif | $06 | LQ | Proportional |
+
+Notable gaps: Sans Serif has no Draft fonts (fallback to Roman Draft).
+There is no dedicated 15 cpi font; 15 cpi maps to config $03 via
+`$164B`, which has no directory match and falls back through the pitch
+alternatives.
+
 ## Open Naming Questions
 
 - Confirm whether the `0582h` `F000h` ISR is the Centronics/parallel data path

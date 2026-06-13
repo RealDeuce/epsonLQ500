@@ -1,0 +1,11 @@
+mode	mode_name	column_stride	mode_flags	is_24pin	adjacent_ok	multi_pass	notes
+0	8pin_60dpi	2	0x00	no	no	no	
+1	8pin_120dpi	2	0x02	no	yes	yes	
+2	8pin_120dpi_hspeed	1	0x00	no	no	no	
+3	8pin_240dpi	1	0x02	no	yes	yes	
+4	8pin_80dpi_CRT_I	3	0x02	no	yes	yes	
+6	8pin_90dpi_CRT_II	2	0x01	no	no	no	
+32	24pin_60dpi	2	0x80	yes	no	no	
+33	24pin_120dpi	2	0x82	yes	yes	yes	
+38	24pin_90dpi_CRT_III	2	0x81	yes	no	no	
+39	24pin_180dpi	2	0x83	yes	yes	yes	
