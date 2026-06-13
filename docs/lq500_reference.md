@@ -37,6 +37,60 @@ PDF text extraction has OCR artifacts. Known corrections:
   DIP SW2-5 selects the 8 KB input buffer.
 - Ribbon: black cartridge `#7753`.
 
+## Host Interface
+
+Service-manual Section 2.2.9, Figure 2-57, and Table 2-20 describe the host
+interface circuit and gate-array control commands.
+
+Circuit (Figure 2-57):
+
+- `STROBE` pulses from the host pass through a low-pass filter (R32/C21) into
+  the E01A05KA (6C) gate-array `STRB` terminal.
+- `STRB` latches the parallel data and sets `BUSY` HIGH. The gate array `PINT`
+  terminal requests a CPU interrupt (CPU pin 31, `INTI`).
+- `INIT` passes through a low-pass filter (R31/R34/C22) to the gate-array
+  `INIT` terminal.
+- `SLCTIN` maps directly to CPU `PB0`.
+- `AUTOFEEDXT` maps directly to CPU `PB1`.
+
+Gate-array register map (Table 2-20):
+
+| Operation | Address | Function |
+| --- | --- | --- |
+| RD | `F000h` | Reads parallel I/F data (DIN 7..0). Automatically resets hardware BUSY (Note 1). |
+| RD | `F001h` | Reads parallel I/F signal status. Bit 7: internal/external ROM. Bit 5: STRB edge polarity. Bit 4: hardware BUSY. Bit 3: software BUSY. Bit 2: ACK. Bit 1: ERR. Bit 0: PE. |
+| WR | `F001h` | Sets parallel I/F signals. Power-on defaults: bit 7 = external ROM, bit 5 = positive edge, bit 4 = LOW, bit 3 = HIGH, bit 2 = HIGH, bit 1 = HIGH, bit 0 = LOW. |
+| RD | `F003h` | Reads parallel I/F data (DIN 7..0) without resetting hardware BUSY. |
+
+Notes from Table 2-20:
+
+1. Hardware BUSY is automatically reset by reading address `F000h`.
+2. `F001h` bit 5 determines whether hardware BUSY is activated by the rising
+   or falling edge of `STRB`.
+3. Hardware BUSY is activated by the rising or falling edge of the `STRB`
+   signal. The final output of the BUSY signal is the conjunction of the
+   hardware BUSY and software BUSY.
+
+## Buffer Architecture
+
+Service-manual Section 2.2.10 describes five buffer types:
+
+| Buffer | Size | Role |
+| --- | --- | --- |
+| Input | 1K or 8K byte ring | Stores data and commands from the host. Fed by `INIT2` (parallel I/F) and `INTSR` (serial I/F). DIP-switch selectable. |
+| Line | 1392 bytes | Character type, enhancement flags, and data for one print line. |
+| Image | 2 x 8856 bytes | Two lines at 360 DPI (including half dots). One line for output, one for developing. Output on `SOFTI` (head gate-array interrupt). |
+| Queue | 6068 bytes | Paper-feed control. Paper is fed via `INTEO` interruption. |
+| Download | 6K bytes | User-defined character storage. |
+
+Data flow (Figures 2-63/2-64): the main routine reads from the input buffer,
+classifies bytes as commands or data, and either dispatches commands or stores
+printable data in the line buffer. When the line is full (or justification
+exceeds 125%), `PRINT OUT` develops the line buffer into the image buffer using
+the CG ROM and download buffer, starts carriage operation, fires the head via
+`SOFTI`, and writes paper-feed data to the queue buffer for `INTEO`-driven
+advance.
+
 ## Speed And Columns
 
 | Pitch | Quality | Speed |

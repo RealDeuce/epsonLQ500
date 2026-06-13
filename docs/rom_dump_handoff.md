@@ -28,13 +28,22 @@ the workspace loss.
   - high-confidence labels now cover reset/init, interrupt stubs, F000-F005
     gate-array access anchors, string/output helpers, self-test/data-dump mode,
     and bidirectional adjustment mode.
-  - previous naming focus covered control-panel, DIP-switch, and host-input
-    code:
-    - `0582h` is now labeled `isr_gate_f000_input_capture_buffer`, a candidate
-      parallel-port/gate-array host data interrupt path into the shared `EE20h`
-      input buffer.
-    - `05E2h` is labeled `isr_rxb_host_receive_buffer`, the CPU `RXB` path
-      into that same input buffer.
+  - host interface and input buffer are now fully confirmed against
+    service-manual Table 2-20 and Section 2.2.10. See
+    `data/lq500_3c_host_interface_path.tsv` for the complete pipeline.
+    - `0582h` is the parallel interface ISR: reads `F000h` (auto-resets
+      hardware BUSY), stores bytes into the `EE20h` ring buffer at
+      `F002h=C0h`, and generates ACK pulses via `F001h` bits 2/3.
+    - `05E2h` is the serial interface ISR: reads `RXB`, filters NUL/error/
+      parity, writes into the same ring buffer, and manages XON/XOFF flow
+      control through `4ECFh`/`4EE2h`.
+    - `0A0Bh` is the blocking consumer: reads from `EE22h` under
+      `F002h=C0h`, decrements `EE1Eh` atomically, manages flow-control
+      release via `4EB9h` (clear software BUSY, send XON) and `0A81h`
+      (F001 disable for serial-only mode), handles DC1/DC3 transparently.
+    - Buffer geometry: base `8500h`, 1K (`VV08=04h`) or 8K (`VV08=1Fh`)
+      from DIP, wrap page `VV07=85h+VV08`.
+  - control-panel and DIP-switch code:
     - `4EEAh` is labeled `read_panel_buttons_debounced`; manual self-test
       paths identify return bits `01h` = LINE FEED/AUTO LOAD, `02h` =
       FORM FEED, and `04h` = ON LINE. Startup dispatch uses `VV0C=01h` for
@@ -50,20 +59,12 @@ the workspace loss.
       `-11..+11`; `21F1h-21FFh` consumes the `EE28h` slot table during normal
       render geometry. Emulator applied offset limits: `+/-1/480` inch Draft,
       `+/-1/1440` inch LQ.
-  - host input now traces to the command processor:
-    - `0A0Bh` is the `CALT ($0080)` shared input-byte consumer using `EE22h`
-      as read pointer and `EE1Eh` as pending-byte count.
+  - command processor pipeline:
     - `400Bh` is the top-level read/classify loop.
     - `4038h` classifies printable bytes; printable bytes skip the command
       dispatcher and continue through the `4012h` output path.
     - `6944h` scans count-prefixed dispatch tables at `696Eh` for primary
       controls and `699Ch` for ESC commands.
-    - FX-80 comparison: `ESC j n` is a real compatibility reverse-feed handler
-      at `2568h`; it pairs with `ESC J` by building `HL=80nn` instead of
-      `HL=00nn`. `ESC s n` is an FX-80 half-speed compatibility candidate
-      whose LQ-500 table entry consumes one byte only. `ESC r n` and `ESC h n`
-      were not found in the checked FX-80 notes and currently look like
-      one-byte compatibility/no-op consumers.
   - mechanical documentation is split by subsystem:
     `docs/lq500_3c_paper_feed.md`,
     `docs/lq500_3c_carriage_operation.md`, and

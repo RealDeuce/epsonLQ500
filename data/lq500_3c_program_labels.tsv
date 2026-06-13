@@ -18,8 +18,8 @@ address	label	kind	confidence	notes
 0x04B8	probe_8000_window_bank	code	medium	Uses CALT 0x00B4 then probes 0x8000 window contents.
 0x0501	probe_8000_window_pattern	code	medium	Writes/reads 0x8000 and scans window; likely RAM/CG/bank probe.
 0x0572	checksum_8000_page	code	medium	Sums bytes starting at 0x8000.
-0x0582	isr_gate_f000_input_capture_buffer	code	medium	Reads F000 through the gate-array register window, stores the byte into the EE20 input buffer, restores F002, RETI. Candidate parallel-port data path.
-0x05E2	isr_rxb_host_receive_buffer	code	high	Reads CPU RXB, checks ER, stores received byte into the shared EE20 input buffer while temporarily changing F002.
+0x0582	isr_parallel_input_buffer	code	high	Parallel interface ISR (vectors 0010h/0060h). Sets F001 software BUSY, reads F000 (auto-resets hardware BUSY per Table 2-20), stores byte into EE20 ring at F002=C0h, increments EE1E, and generates ACK pulse via F001 bits 2/3 unless buffer full (VV09 bit 0).
+0x05E2	isr_serial_input_buffer	code	high	Serial interface ISR (vector 0028h). Reads RXB, filters NUL/error/parity (VV0A.3 replaces with 2Ah), writes into EE20 ring at F002=C0h, and manages XON/XOFF flow control via 4ECFh/4EE2h. VV0A.6 gates serial enable.
 0x0668	isr_print_engine_dispatch	code	medium	Large RETI routine dispatching on VV37/VV61 flags; calls motion/print helpers and updates timers.
 0x06D7	update_head_hpw_width_from_cr0	code	medium	Reads CR0, range-checks it, indexes the head HPW voltage-compensation table via HL=0x7219 plus raw CR0, shifts the selected byte, and stores the result at EE3A for the ETM0 head-pulse reload.
 0x07D0	paper_feed_pb2_release_delay_state	code	high	FE1 tail-exit state reached when VV37 has bit 0x10 set. Changes VV37 to 0x20, calls 0x540D, and for command feed releases PB2 high/hold because the 0x540D state selector falls through to EF60=00 and then 0x5498.
@@ -30,8 +30,8 @@ address	label	kind	confidence	notes
 0x095F	rotate_pb_bits_3_4_phase_negative	code	medium	Rotates VV16 left with wrap, sets EA=-1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
 0x096A	write_pb_bits_3_4_stepper_phase_outputs	code	high	Stores the new VV16 phase and maps VV16 & 0x18 directly onto PB & 0x18 while preserving other PB bits. 0x18 is a mask, not a pin name; service-manual paper-feed phase lines PB3/PB4 correspond to these mask bits if bit numbering is zero-based.
 0x0978	isr_head_f005_burst_transfer_reload	code	high	Alternate-register ISR writes exactly three bytes to BC, which 0x08D0 presets to F005; source direction follows VV61 bit 0, then ETM0 is reloaded from ECNT+EE3A for HPW timing.
-0x0A0B	read_next_host_input_byte	code	high	Blocking consumer for the EE20/EE22 input ring: waits for EE1E pending count, reads one byte from EE22 under F002=0xC0, advances EE22, decrements EE1E, and returns byte in A.
-0x0A81	disable_f001_irq_or_strobe	code	medium	DI; clears F001 bits with NOP delays; masks MKL; similar sequence appears in interrupt paths.
+0x0A0B	read_next_host_input_byte	code	high	Blocking consumer for the EE20 ring via CALT ($0080). Polls EE1E, reads from EE22 under F002=C0h, decrements EE1E atomically, manages flow-control release (4EB9h clear sw BUSY/XON, or 0A81h F001 disable for serial-only), applies EE8F byte mask, handles DC1/DC3 XON/XOFF transparently.
+0x0A81	disable_f001_ack_busy_sequence	code	high	DI; clears VV09 bit 0; reads F001; clears bit 2 (ACK low); NOP delay; clears bit 3 (sw BUSY low); NOP; sets bit 2 (ACK high); EI; unmasks MKL bit 3. Used when serial is the active interface and parallel ACK/BUSY are not relevant.
 0x0AB2	read_next_host_input_byte_7bit	code	high	CALT helper for 7-bit command parameters: calls 0x0A0B then masks A with 0x7F.
 0x0AB6	read_next_host_input_word	code	medium	CALT helper: reads two host input bytes through 0x0A0B and returns them as a 16-bit value in HL.
 0x0B23	write_bank_register_f002	code	high	Single helper: MOV ($F002),A; RET.
@@ -87,9 +87,10 @@ address	label	kind	confidence	notes
 0x4AA8	copy_2byte_glyph_columns_to_3byte_work_rows	code	medium	Copies two source bytes plus zero padding, or zero plus two source bytes depending VV28 bit 3.
 0x4ACE	write_packed_glyph_nibbles_to_work_buffer	code	medium	Writes packed nibble/bit groups into destination columns at offsets 0/3/6/9; used for narrow packed glyph paths.
 0x4DE0	gate_array_f001_control_cluster	code	medium	Cluster of helpers that set/clear F001 bits and related VV flags.
-0x4EB9	clear_f001_bit3	code	medium	DI; read F001; ANI 0xF7; write F001; clears VV0A bit 0x10.
-0x4ECF	set_f001_bit3	code	medium	DI; read F001; ORI 0x08; write F001; sets VV0A bit 0x10.
-0x4EE4	txb_send_byte_wait_fst	code	high	Waits SKIT FST then writes TXB.
+0x4EB9	release_host_clear_busy_send_xon	code	high	Clears F001 bit 3 (sw BUSY low) to resume parallel transfers. If serial XON/XOFF active (VV0A bit 4), sends DC1 (11h) via TXB at 4EE4h. Called by consumer 0A0Bh when buffer drains below low-water threshold.
+0x4ECF	block_host_set_busy_send_xoff	code	high	Sets F001 bit 3 (sw BUSY high) to block parallel transfers. If serial active, sends DC3 (13h) via TXB at 4EE4h. Called by serial ISR when buffer exceeds near-full threshold.
+0x4EE2	serial_overflow_send_xoff	code	high	Sends DC3 (13h) via TXB at 4EE4h for serial overflow recovery. Does not toggle F001 sw BUSY; the ISR path already leaves it set.
+0x4EE4	txb_send_byte_wait_fst	code	high	Waits SKIT FST then writes TXB. Shared serial transmit path for XON/XOFF.
 0x4EEA	read_panel_buttons_debounced	code	high	Combines stable PC bits from 0x4EF9 with the 0x4F21 PC08/F2 path; returns 0x01 LINE FEED/AUTO LOAD, 0x02 FORM FEED, and 0x04 ON LINE.
 0x4EF9	read_pc_bits_30_stable	code	high	Debounces PC & 0x30 and maps PC bit 0x20 to LINE FEED/AUTO LOAD return bit 0x01 and PC bit 0x10 to FORM FEED return bit 0x02.
 0x4F21	sample_on_line_pc08_or_f2_button	code	high	Uses SKIT F2 plus a PC bit 0x08 wait loop; returns with/without caller skip so 0x4EEA can set ON LINE return bit 0x04.

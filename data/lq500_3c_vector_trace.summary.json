@@ -12,11 +12,18 @@
     "0x51E9",
     "0x51ED",
     "0x51F2",
-    "0x5488"
+    "0x5488",
+    "0x0A0B",
+    "0x0A81",
+    "0x0AB2",
+    "0x0B23",
+    "0x4ECF",
+    "0x4EE2",
+    "0x4EB9"
   ],
-  "decoded_instruction_count": 7022,
-  "code_bytes": 14085,
-  "not_reached_bytes": 18683,
+  "decoded_instruction_count": 7176,
+  "code_bytes": 14389,
+  "not_reached_bytes": 18379,
   "code_ranges": [
     [
       "0x0000",
@@ -135,8 +142,8 @@
     ],
     [
       "0x0836",
-      "0x0A0B",
-      469
+      "0x0AB6",
+      640
     ],
     [
       "0x0AEB",
@@ -147,6 +154,11 @@
       "0x0B0C",
       "0x0B18",
       12
+    ],
+    [
+      "0x0B23",
+      "0x0B28",
+      5
     ],
     [
       "0x0E66",
@@ -300,18 +312,8 @@
     ],
     [
       "0x4E28",
-      "0x4E90",
-      104
-    ],
-    [
-      "0x4E9B",
-      "0x4EB9",
-      30
-    ],
-    [
-      "0x4ECF",
       "0x4F36",
-      103
+      270
     ],
     [
       "0x4F37",
@@ -404,9 +406,9 @@
       34
     ],
     [
-      "0x7AB2",
+      "0x7A53",
       "0x7B74",
-      194
+      289
     ]
   ],
   "data_ranges": [
@@ -555,9 +557,9 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x0A0B",
+      "0x0AB6",
       "0x0AEB",
-      224,
+      53,
       "likely_data_or_untraced_code"
     ],
     [
@@ -568,8 +570,14 @@
     ],
     [
       "0x0B18",
+      "0x0B23",
+      11,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x0B28",
       "0x0E66",
-      846,
+      830,
       "likely_data_or_untraced_code"
     ],
     [
@@ -765,18 +773,6 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x4E90",
-      "0x4E9B",
-      11,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x4EB9",
-      "0x4ECF",
-      22,
-      "likely_data_or_untraced_code"
-    ],
-    [
       "0x4F36",
       "0x4F37",
       1,
@@ -904,9 +900,9 @@
     ],
     [
       "0x7A18",
-      "0x7AB2",
-      154,
-      "likely_data_or_untraced_code"
+      "0x7A53",
+      59,
+      "likely_text_or_table"
     ],
     [
       "0x7B74",

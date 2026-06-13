@@ -26,8 +26,8 @@ The most useful hardware-facing split so far is:
 
 | Address | Working label | Current read |
 | --- | --- | --- |
-| `0582h` | `isr_gate_f000_input_capture_buffer` | Interrupt path that reads `F000h`, stores the byte into the shared `EE20h` input buffer, restores `F002h`, and toggles `F001h` bits when the buffer state changes. Candidate parallel-port data path. |
-| `05E2h` | `isr_rxb_host_receive_buffer` | CPU `RXB` receive interrupt path. It checks `ER`, handles NUL/error cases, and writes into the same `EE20h` input buffer as the `F000h` path. |
+| `0582h` | `isr_parallel_input_buffer` | Parallel interface ISR: sets `F001h` software BUSY, reads `F000h` (auto-resets hardware BUSY per Table 2-20), stores byte into the `EE20h` ring buffer, increments `EE1Eh`, and generates an ACK pulse via `F001h` unless the buffer is full. |
+| `05E2h` | `isr_serial_input_buffer` | Serial interface ISR: reads `RXB`, filters NUL/error/parity, writes into the same `EE20h` ring buffer, and manages XON/XOFF flow control through `4ECFh`/`4EE2h`. |
 | `4EEAh` | `read_panel_buttons_debounced` | Returns a compact button/action bitfield: `01h` = LINE FEED/AUTO LOAD, `02h` = FORM FEED, `04h` = ON LINE. Bidirectional-adjustment mode waits for return to zero before accepting another action. |
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup switch read. Calls the ADC/table reader twice, writes `VV00`/`VV01`, then folds PA bits `04h` and `08h` into `VV01`. |
 | `4F54h` | `read_adc_switch_table_bits` | Walks compact tables at `4F96h`/`4F9Fh`; each entry chooses an `F002h`/ADC mode through `508Dh` and compares the resulting sample against a threshold. |
@@ -104,21 +104,95 @@ Draft and `+/-1/1440` inch for LQ. See
 
 ## Input Pipeline
 
-The host input path from the candidate parallel ISR to the parser now has a
-clear shape:
+The host input path is now fully confirmed against service-manual Table 2-20
+(gate-array register map) and Section 2.2.10 (buffer architecture). The
+primary data file is `data/lq500_3c_host_interface_path.tsv`.
 
-1. `0582h` (`isr_gate_f000_input_capture_buffer`) reads a byte from `F000h` and
-   writes it to the ring buffer at the `EE20h` write pointer.
-2. `05E2h` (`isr_rxb_host_receive_buffer`) is the alternate CPU `RXB` receive
-   path and writes into the same buffer.
-3. Both ISR paths increment the pending-byte count at `EE1Eh`; startup seeds
-   both `EE20h` and `EE22h` to `8500h`.
-4. `0A0Bh` (`read_next_host_input_byte`) waits for `EE1Eh` to become nonzero,
-   reads one byte through the `EE22h` read pointer using `F002h=0C0h`, advances
-   `EE22h`, decrements `EE1Eh`, and returns the byte in `A`.
-5. `400Bh` (`main_input_decode_loop`) calls that reader via `CALT ($0080)`,
-   classifies the byte with `4038h`, and then either enters printable output at
-   `4012h` or command dispatch at `6944h`.
+### Gate-Array Registers
+
+| Register | Read | Write |
+| --- | --- | --- |
+| `F000h` | Parallel data (DIN 7..0). Auto-resets hardware BUSY (Table 2-20 Note 1). | — |
+| `F001h` | Status bits: bit 7 int/ext ROM, bit 5 STRB edge, bit 4 hw BUSY, bit 3 sw BUSY, bit 2 ACK, bit 1 ERR, bit 0 PE. | Sets the same signal bits. Power-on: sw BUSY high, ACK high, ERR high. |
+| `F002h` | Bank register. | Bank select. `C0h` selects external RAM for buffer access. |
+| `F003h` | Parallel data without BUSY reset. | Carriage control bits (separate function via `VV15`). |
+
+### Ring Buffer Geometry
+
+Startup at `0292h` seeds `EE20h` (write pointer) and `EE22h` (read pointer)
+to `8500h`. DIP switch `VV01` bit 4 selects buffer size: 1K (`VV08=04h`,
+buffer spans `8500h-88FFh`) or 8K (`VV08=1Fh`, buffer spans
+`8500h-A3FFh`). The wrap page `VV07` equals `85h + VV08`. Both ISRs and
+the consumer wrap their pointers to `8500h` when the high byte reaches
+`VV07`.
+
+### Parallel ISR (`0582h`)
+
+Vectors: `0010h` and `0060h` both jump to `0582h`.
+
+1. Guard: skips if `VV37 & 70h` (mechanism active). Masks `MKL` bit 3.
+2. Reads `F001h`, ORs bit 3 (software BUSY active), writes back.
+3. Saves `F002h` to `B`, writes `F002h=C0h` to access external RAM.
+4. Reads `F000h` — this auto-resets hardware BUSY per Table 2-20 Note 1.
+5. Stores byte at `EE20h` write pointer, advances, wraps on `VV07`.
+6. Increments `EE1Eh` pending count.
+7. Restores `F002h` from `B`.
+8. Compares pending-count high byte against `VV08`:
+   - Not full: generates ACK pulse via `F001h` — clears bit 2 (ACK low),
+     clears bit 3 (software BUSY low), re-sets bit 2 (ACK high) — with
+     NOP delay slots between writes.
+   - Full: sets `VV09` bit 0, exits without ACK. Host sees continuous BUSY.
+
+### Serial ISR (`05E2h`)
+
+Vector: `0028h` jumps to `05E2h`.
+
+1. Same mechanism guard and `MKH` mask. Saves VA, BC, HL, EA.
+2. Reads `RXB`. Checks `ER` (serial error); if error, exits.
+3. Filters: `VV09` bit 1 (overflow recovery), `VV0A` bit 6 (serial
+   disabled gate), NUL byte — any of these causes an early exit.
+4. If `VV0A` bit 3 is set, replaces the byte with `2Ah` (parity-error
+   substitution character).
+5. Saves `F002h`, sets `F002h=C0h`. Ring write/wrap/increment identical to
+   the parallel ISR. Sets `F002h=00h` after the write.
+6. Buffer-level check against `VV08`:
+   - Full: sets `VV09` bit 1 (serial overflow), calls `4EE2h` (send XOFF).
+   - Near-full (threshold `1BEFh` for 8K, `00EFh` for 1K): sets `VV09`
+     bit 0, calls `4ECFh` (set software BUSY + send XOFF).
+
+### Consumer (`0A0Bh`)
+
+Reached via `CALT ($0080)`.
+
+1. Polls `EE1Eh` until nonzero. While idle, checks panel buttons at
+   `4EEAh`; ON LINE (bit 2) calls `4F24h`/`1FE4h`.
+2. Sets `F002h=C0h`, reads byte from `EE22h` read pointer, restores
+   `F002h=00h`. Wraps pointer on `VV07`.
+3. Decrements `EE1Eh` atomically under DI via `CALT ($00AC)`.
+4. Flow-control release: if `VV09` bit 0 was set (buffer was full), checks
+   pending against a low-water threshold. If drained below threshold,
+   clears `VV09` bit 0 and calls `4EB9h` (clear software BUSY, send XON).
+   If `VV09` bit 6 (serial disabled), uses the `0A81h` F001 disable
+   sequence instead.
+5. Applies `EE8Fh` byte mask (OR high byte, AND low byte; initialized to
+   `00FFh` = identity). Handles DC1 (`11h`) / DC3 (`13h`) XON/XOFF from
+   host transparently.
+6. Returns byte in `A` to the caller.
+
+### Flow-Control Helpers
+
+| Address | Role | Behavior |
+| --- | --- | --- |
+| `4EB9h` | Release host | Clears `F001h` bit 3 (software BUSY low). If serial XON/XOFF active (`VV0A` bit 4), sends DC1 (`11h`) via `TXB`. |
+| `4ECFh` | Block host | Sets `F001h` bit 3 (software BUSY high). If serial active, sends DC3 (`13h`) via `TXB`. |
+| `4EE2h` | Overflow XOFF | Sends DC3 (`13h`) via `TXB` without toggling `F001h`. |
+| `0A81h` | Disable ACK/BUSY | `F001h` bit sequence: clear ACK, clear sw BUSY, set ACK. Used when serial is the only active interface. |
+
+### Main Decode Loop
+
+`400Bh` calls the consumer via `CALT ($0080)`, classifies the byte with
+`4038h`, and then either enters printable output at `4012h` or command
+dispatch at `6944h`.
 
 The command dispatcher is table-driven:
 
@@ -129,8 +203,7 @@ The command dispatcher is table-driven:
 | `695Bh` | ESC entry from the primary table; reads the next byte through `0AB2h` and switches to the ESC table. |
 | `699Ch` | ESC command table with 62 byte/handler entries, including `ESC @`, line spacing/page commands, graphics commands, and style commands. |
 
-This proves the candidate parallel path and the CPU `RXB` path converge before
-ESC/P parsing. Command handlers consume their parameters by calling the same
+The parallel and serial paths converge before ESC/P parsing. Command handlers consume their parameters by calling the same
 input-byte helpers, so tracing parser behavior should start from the two command
 tables rather than from the ISR bodies.
 

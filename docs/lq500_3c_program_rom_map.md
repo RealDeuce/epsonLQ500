@@ -45,10 +45,10 @@ firmware uses external windows and buffers outside this ROM:
 | `A000h` | Touched during reset as a separate memory/window area. |
 | `EE00h-EFFFh` | Main RAM/state page used heavily by firmware variables and pointers. |
 | `FF00h` | Scratch/print string buffer. |
-| `F000h` | Gate-array/status or host data byte read by the `0582h` ISR. Candidate parallel-port input path, but the exact board signal is still unconfirmed. |
-| `F001h` | Gate-array control/select register. Manual says bit 7 low selects external PROM when valid. Firmware also toggles bits 0, 1, 2, and 3 here. |
-| `F002h` | Gate-array bank register. Manual says bank lines 7 and 6 are involved in CG selection; firmware uses it around banked ROM/window reads. |
-| `F003h` | Gate-array carriage control register initialized from `VV15`. The `WR F002H` header in manual Table 2-4 is treated as a table typo. |
+| `F000h` | Parallel interface data register (Table 2-20 `RD F000H`). Reading auto-resets hardware BUSY. The `0582h` ISR reads this to capture each host byte. |
+| `F001h` | Parallel interface signal register (Table 2-20). RD/WR: bit 7 int/ext ROM, bit 5 STRB edge, bit 4 hw BUSY, bit 3 sw BUSY, bit 2 ACK, bit 1 ERR, bit 0 PE. ISRs toggle bits 2/3 for ACK and BUSY; power-on default has sw BUSY active. |
+| `F002h` | Gate-array bank register. `C0h` selects external RAM for input-buffer access; other values select CG/ROM bank windows. |
+| `F003h` | Dual function. `RD F003h` reads parallel data without BUSY reset (Table 2-20). `WR F003h` is the carriage gate-array control register initialized from `VV15`. |
 | `F004h-F005h` | Gate-array/head-interface registers touched during CPU/port init and print paths. |
 
 ## Top-Level Segments
@@ -60,8 +60,8 @@ firmware uses external windows and buffers outside this ROM:
 | `0080h-00BFh` | `CALT` fast-call area | Many one-byte `CALT` calls target `0080h-00BEh`. Needs target-by-target alignment work. |
 | `0180h-02FFh` | Reset/boot sequence | Initializes stack/MM/V page, clears memory, probes optional external PROM, reads gate-array state, and derives initial DIP/status bits. |
 | `038Bh-0571h` | Initialization and memory/window probes | Clears RAM state, initializes ports/timers/gate-array registers, probes `8000h` bank/window, computes page checksums. |
-| `0582h-09C1h` | Interrupt handlers and mechanism dispatch | ISRs buffer data from `F000h`/`RXB`, manipulate `F001h/F002h`, update timers, pulse carriage timing, and run the likely head-data burst ISR. |
-| `0A0Bh-0B3Fh` | Input consumer and small helpers | Includes the shared host-input byte reader at `0A0Bh`, parameter readers, F001 disable sequence, nibble shifts, delay loops, and a direct `F002` write helper at `0B23h`. |
+| `0582h-09C1h` | Interrupt handlers and mechanism dispatch | Parallel ISR (`0582h`) and serial ISR (`05E2h`) write host bytes into the shared `EE20h` ring buffer with flow control. Timer/mechanism ISR (`0668h`) dispatches print engine states. Head burst ISR (`0978h`) emits three-byte latch data to `F005h`. |
+| `0A0Bh-0B3Fh` | Input consumer and small helpers | Blocking host-input reader at `0A0Bh` with flow-control release, DC1/DC3 XON/XOFF handling, and `EE8Fh` byte mask. Includes `0AB2h` 7-bit parameter wrapper, `0A81h` F001 ACK/BUSY disable sequence, and `0B23h` F002 write helper. |
 | `0E8Bh-0F15h` | Buffer/window bounds helpers | Uses `FF00h`, `EE4Ch`, `EE5Ch`, `EE5Eh`, and `EFBF`; likely print-buffer/string bounds logic. |
 | `0F16h-2DCDh` | Core text/render/print logic | Many small mode-flag helpers and high-fan-in rendering routines. This is the least-labeled large code body so far. |
 | `2DCEh-2DE2h` | Inline dispatch tail table | `2DC8h` loads `DE=2DCEh`; this short table-like tail belongs to the preceding render/CALT dispatch path, not to the following fill. |
@@ -92,15 +92,15 @@ firmware uses external windows and buffers outside this ROM:
 | `0180h` | `boot_reset_entry` | First executed code. Clears `A000h`, `8000h`, `FF00h`, checks external PROM signature, then calls init routines. |
 | `045Dh` | `init_cpu_ports_timers_gate_array` | Writes `EOM`, `PA`, `PB`, `PC`, motor-control registers, timer mode, `F004`, `F005`, and `F003`. |
 | `049Ch` | `memclear_hl_bc` | Simple `A=0; STAX (HL+); DCR C/B` clear loop. |
-| `0582h` | `isr_gate_f000_input_capture_buffer` | Interrupt path reads `F000h` through the gate-array window and stores the byte into the shared `EE20h` input buffer. Candidate parallel-port data path. |
-| `05E2h` | `isr_rxb_host_receive_buffer` | Reads `RXB`, checks `ER`, stores received byte into the `EE20h` buffer with temporary `F002` bank changes. |
+| `0582h` | `isr_parallel_input_buffer` | Parallel interface ISR (vectors `0010h`/`0060h`). Sets `F001h` software BUSY, reads `F000h` (auto-resets hardware BUSY), stores byte into the `EE20h` ring buffer at `F002h=C0h`, increments `EE1Eh`, and generates an ACK pulse via `F001h` bits 2/3 unless full. |
+| `05E2h` | `isr_serial_input_buffer` | Serial interface ISR (vector `0028h`). Reads `RXB`, filters NUL/error/parity, writes into the same `EE20h` ring buffer at `F002h=C0h`, and manages XON/XOFF flow control via `4ECFh`/`4EE2h`. |
 | `07D0h` | `paper_feed_pb2_release_delay_state` | FE1 tail-exit state reached from `VV37=10h`; changes the state to `20h`, calls `540Dh`, and releases active-low `PB2` to high/hold through the `EF60=00` / `5498h` path. |
 | `08D0h` | `arm_head_f005_burst_output` | Writes direction-dependent `F004=40h` or `F004=C0h`, presets alternate-register `BC=F005h`, loads head source/count state, and arms the timer path. |
 | `0908h` | `carriage_gate_array_tm_pulse` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters. Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input. |
 | `093Eh` | `paper_feed_pb_bits_3_4_phase_update_candidate` | Rotates the `VV16` phase via `0953h`/`095Fh`, then updates position/state helpers. |
 | `096Ah` | `write_pb_bits_3_4_stepper_phase_outputs` | Maps `VV16 & 18h` directly to `PB & 18h`; `18h` is a port mask, not a pin name. Service manual Figure 2-47 identifies paper-feed phase signals as `PB3`/`PB4`, matching these mask bits if bit numbering is zero-based. |
 | `0978h` | `isr_head_f005_burst_transfer_reload` | Writes exactly three bytes through alternate-register `BC=F005h`, reloads `ETM0` from `ECNT+EE3Ah`, and advances or terminates the burst run. |
-| `0A0Bh` | `read_next_host_input_byte` | Consumes from the shared input buffer using `EE22h` as the read pointer and `EE1Eh` as the pending count. This is `CALT ($0080)`. |
+| `0A0Bh` | `read_next_host_input_byte` | Blocking consumer for the `EE20h` ring buffer via `CALT ($0080)`. Polls `EE1Eh`, reads from `EE22h` under `F002h=C0h`, decrements `EE1Eh` atomically, manages flow-control release (software BUSY / XON), applies `EE8Fh` byte mask, and handles DC1/DC3 XON/XOFF transparently. |
 | `0B23h` | `write_bank_register_f002` | Single-purpose helper: `MOV ($F002),A; RET`. |
 | `21F1h` | `apply_bidirectional_alignment_offset_to_geometry` | Uses `VV3A & 07h` to select render geometry data at `730Fh+A` and a signed correction from `EE28h+2*A`; the `EE28h` slots are populated from VR1/VR2 ADC readings by `4FB1h`. |
 | `2530h` | `esc_J_immediate_forward_feed` | `ESC J n`: reads one byte and enters the immediate-feed path with a positive distance. |
@@ -110,6 +110,9 @@ firmware uses external windows and buffers outside this ROM:
 | `400Bh` | `main_input_decode_loop` | Top-level loop: read host byte, classify with `4038h`, print if printable, dispatch if command/control. |
 | `4038h` | `classify_input_character_and_select_style_state` | Classifies printable bytes and sets font/style state; printable bytes skip over the command dispatcher. |
 | `4EE4h` | `txb_send_byte_wait_fst` | Waits for `FST`, then writes `TXB`. |
+| `4EB9h` | `release_host_clear_busy_send_xon` | Clears `F001h` bit 3 (software BUSY low) to resume parallel transfers. If serial XON/XOFF is active (`VV0A` bit 4), sends DC1 (`11h`) via `TXB`. |
+| `4ECFh` | `block_host_set_busy_send_xoff` | Sets `F001h` bit 3 (software BUSY high) to block parallel transfers. If serial active, sends DC3 (`13h`) via `TXB`. |
+| `4EE2h` | `serial_overflow_send_xoff` | Sends DC3 (`13h`) via `TXB` for serial overflow recovery. Does not toggle `F001h` software BUSY. |
 | `4EEAh` | `read_panel_buttons_debounced` | Returns panel bits `01h` LINE FEED/AUTO LOAD, `02h` FORM FEED, and `04h` ON LINE from debounced `PC`/`F2` inputs. |
 | `4F2Fh` | `delay_03e8` | Loads `BC=03E8h`, delays via `CALT ($0090)`. |
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup DIP/panel read. Uses table-driven ADC switch reads and then folds in direct PA bits. |
@@ -240,7 +243,7 @@ hold before the later `EF5C`/`EF5E` delays and final FE1 masking.
 
 ## Host Input To Command Parser
 
-The candidate parallel input path now traces through to ESC/P command dispatch:
+The host input path traces through to ESC/P command dispatch:
 
 | Stage | Address/state | Notes |
 | --- | --- | --- |

@@ -12,3 +12,10 @@ address	source	note
 0x51ED	mechanical_trace	carriage F003 control helper; ANDs A into VV15 before F003 write
 0x51F2	mechanical_trace	carriage F003 control helper; writes VV15-derived value to F003
 0x5488	mechanical_trace	confirmed 7007h computed jump-table target; carriage low-current output state
+0x0A0B	calt_vector	CALT ($0080) target; blocking host input-byte consumer from EE20 ring buffer
+0x0A81	calt_vector	CALT ($0096) region; disables F001 IRQ/strobe outputs
+0x0AB2	calt_vector	CALT wrapper; calls 0x0A0B then masks to 7 bits
+0x0B23	helper	single-purpose helper; writes A to F002 bank register
+0x4ECF	serial_isr	serial ISR buffer-full handler; sets software BUSY via F001 bit 3
+0x4EE2	serial_isr	serial ISR overflow handler; sets VV09 bit 2
+0x4EB9	host_consumer	consumer-side near-full handler; clears VV09 bit 0 and manages flow control

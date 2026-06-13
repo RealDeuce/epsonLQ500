@@ -60,6 +60,10 @@ manual notes, or hardware measurements.
   values across carriage TM1 records and render geometry tables.
 - `data/lq500_3c_carriage_mode_state.tsv`: state plumbing from `VV1F` through
   `VV31`/`VV32`/`VV3A` to `VV6F` and `F003h` control-bit notes.
+- `data/lq500_3c_host_interface_path.tsv`: host interface pipeline from
+  interrupt vectors through the `EE20h` ring buffer to the `0A0Bh` consumer,
+  including `F000h`/`F001h` gate-array register behavior, ACK/BUSY handshake,
+  XON/XOFF serial flow control, and buffer geometry.
 - `data/lq500_3c_printhead_path.tsv`: printhead mechanical-output path,
   E05A02LA `F004h/F005h` command/data behavior, and HPW timing notes.
 - `data/lq500_3c_printhead_wire_map.tsv`: E05A02LA `H1..H24` pin/output
@@ -97,7 +101,7 @@ adding missing roots, such as hand-confirmed computed jump/table targets, to
 
 ## Current Code Anchors
 
-- `0582h`: candidate parallel/gate-array host input ISR into the shared buffer.
+- `0582h`: parallel interface ISR; reads `F000h` into the shared `EE20h` ring buffer.
 - `05E2h`: CPU `RXB` host input ISR into the same buffer.
 - `0A0Bh`: shared input-byte consumer, exposed via `CALT ($0080)`.
 - `400Bh`: top-level host-byte decode loop.
