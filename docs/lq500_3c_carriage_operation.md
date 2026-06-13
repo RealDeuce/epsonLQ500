@@ -45,10 +45,10 @@ Figure 2-44 maps the 900 PPS normal-character case: two phase switches span
 `1/60` inch, and the intervening half-dot positions are `120 DPI`. Thus a 2-2
 excitation phase switch is `1/120` inch. In 1-2 excitation the gate-array drive
 sequence has twice as many phase states for the same motor cycle, so one phase
-switch is `1/240` inch. Figure 2-44 labels the 22-step span from HOME to the
-print-area boundary as the acceleration area. The print area therefore starts
-`22` phase-switching times after HOME, which is `22/120` inch in the 2-2 case
-shown by Figure 2-44.
+switch is `1/240` inch. Figure 2-42 defines the three carriage timing zones:
+acceleration, printing area at constant speed, and deceleration. Figure 2-44
+then places the left acceleration span at `22` phase-switching times from HOME
+to the print-area boundary, which is `22/120` inch in the 2-2 case shown there.
 
 `53B9h` is the small relative-move gate. It compares a requested target in `HL`
 against the home/reference position at `EF0F`; if the absolute difference is
@@ -66,6 +66,8 @@ firmware `0908h` the carriage phase-step pulse anchor.
 Figure 2-44 supplies the carriage distance mapping for the 2-2, 900 PPS
 printing case: one `PC7`/`TM` pulse produces one `1/120` inch phase switch.
 For 1-2 excitation, one pulse is one half-step, or `1/240` inch.
+Figure 2-42 is the zone model for timed movement: acceleration, constant-speed
+printing, then deceleration.
 
 The carriage control port is `F003h`: firmware writes the carriage control
 shadow `VV15` to `F003h` through direct writes and CALT helpers. The manual's

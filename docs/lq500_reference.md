@@ -341,8 +341,10 @@ at `120 DPI`. Thus one 2-2 carriage phase switch is `1/120` inch. In 1-2
 excitation, the drive sequence has twice as many phase states for the same
 motor cycle, so one 1-2 phase switch is `1/240` inch. The printing area starts
 `22` phase-switching times after the home position; Figure 2-44 labels that
-22-step left-side span as the acceleration area. In the 2-2 case shown there,
-the acceleration area is `22/120` inch.
+22-step left-side span as the acceleration area. Figure 2-42 gives the full
+timed-movement zone model: acceleration, printing area at constant speed, and
+deceleration. In the 2-2 case shown there, the acceleration span is `22/120`
+inch.
 
 Paper-feed motor details from service manual Figure 2-47:
 

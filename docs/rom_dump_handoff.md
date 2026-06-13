@@ -165,7 +165,9 @@ the workspace loss.
       inch, so one 2-2 phase switch is `1/120` inch; 1-2 excitation uses twice
       as many phase states, so one 1-2 phase switch is `1/240` inch. The print
       area starts `22` phase-switching times after HOME, and Figure 2-44 labels
-      that left-side 22-step span as the acceleration area.
+      that left-side 22-step span as the acceleration area. Figure 2-42 gives
+      the full zone model: acceleration, printing area at constant speed, and
+      deceleration.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`
