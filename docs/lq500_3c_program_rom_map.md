@@ -152,8 +152,10 @@ array, `J6` wires pin 20 `/CE`, and the hard-to-read `A16/OE` label appears to
 be `A16` wired to `BK3`, not `/OE`. Native T48 `AT27C011@DIP28` and
 `D27C011@DIP28` reads mirrored only the A16-low 64 KiB bank; patched custom
 PROM reads captured the distinct pin-22-high/A16-high bank and a full 128 KiB
-image ordered as A16-low then A16-high. Firmware analysis should look for
-values written to `F002h` before reads from
+image ordered as A16-low then A16-high. Figure 2-8 appears to place `4C` in the
+CPU `8000h-A000h` window for bank-selector values `40h..79h`; this is a range,
+not two discrete `40h`/`80h` banks. Firmware analysis should look for `F002h`
+writes in that range before reads from
 `8000h-9FFFh`/`A000h`, especially routines that call `0B23h`, `508Dh`, or
 directly write `F002h`.
 
@@ -311,8 +313,9 @@ Startup panel mode dispatch:
   separation. The current labels only mark high-fan-in helpers.
 - `4000h-5793h` may be alternate/external-PROM-related code or a second major
   firmware body behind the `PBLS` check. It is real code, not filler.
-- `F002h` is the bank-selector path, but the exact value-to-line mapping for
-  4C `BK2`/`A15`, `BK3`/`A16`, and `/CE` is not yet resolved.
+- Figure 2-8 appears to assign `4C` to the `8000h-A000h` window for
+  bank-selector values `40h..79h`; the exact value-to-ROM-offset mapping for
+  `BK2`/`A15`, `BK3`/`A16`, and `/CE` is not yet resolved.
 
 ## Next Pass
 
@@ -324,7 +327,8 @@ Startup panel mode dispatch:
 3. Continue carriage tracing by mapping the decoded `72B3h-72D8h` records to
    Table 2-7 rows, then to the detailed Tables 2-8/2-9. The normal `7005h`
    current-state bytes and F003 helper call paths are decoded.
-4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
+4. Build xrefs around `F002h` writes in the `40h..79h` range and nearby
+   `8000h`/`8600h` reads.
 5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,
    `24D4h`, `26F1h`).

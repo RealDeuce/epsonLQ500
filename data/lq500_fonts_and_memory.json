@@ -63,7 +63,7 @@
       {"name": "internal_prom", "size": "32 KB", "board_location": "3C"},
       {"name": "external_prom", "selection": "write bit 7 low at F001h when correct external PROM is mounted"},
       {"name": "4M_CG", "size_note": "manual label; likely 4 Mbit capacity class if populated, but confirm from chip markings", "board_location": "5C", "window": "8000h-A000h", "banked": true},
-      {"name": "1M_CG", "size_note": "manual label; likely 1 Mbit capacity class if populated, but confirm from chip markings", "board_location": "4C/2C", "location_note": "text conflicts with PSRAM at 2C", "window": "8000h-A000h", "banked": true},
+      {"name": "1M_CG", "size_note": "manual label; likely 1 Mbit capacity class if populated, but confirm from chip markings", "board_location": "4C/2C", "location_note": "text conflicts with PSRAM at 2C; Figure 2-8 appears to place 4C in the 8000h-A000h window for bank-selector values 40h..79h", "window": "8000h-A000h", "banked": true, "figure_2_8_bank_range": "40h..79h"},
       {"name": "external_CG", "window": "8000h-A000h", "banked": true},
       {"name": "PSRAM", "board_location": "2C"}
     ],
@@ -71,7 +71,7 @@
       {
         "observation": "Online board photos appear to show a socketed E01A05LC at 6C, a socketed ROM-like device at 4C, a clearly marked RAM chip at 2C, and a partially obscured socket that is almost certainly 3C, with 5C unpopulated and labeled 4M/2M/1M/256kbit MASK IMPROM.",
         "rom_markings": ["M25A10PA", "M10A10LA"],
-        "interpretation": "6C is likely the address-decoder gate array, not a ROM dump target. 3C is likely the program PROM, with M25A10PA plausibly indicating a 256 kbit / 32 KB mask PROM. 4C is the resident ROM/CG; a patched minipro custom PROM profile captured it as a stable 1 Mbit / 128 KiB image. The schematic reportedly identifies 4C pin 1 as A15, confirming the two 32 KiB halves inside each 64 KiB bank as real A15 address halves. It also shows J5 tying pin 1/A15 to BK2 on the 6C E01A05KA, J6 wiring pin 20 /CE, and the hard-to-read A16/OE label appears to be A16 wired to BK3. Native T48 27C011-style reads mirrored the A16-low bank, but the custom bitbang profile produced a distinct pin-22-high/A16-high bank and a 128 KiB image ordered as A16-low then A16-high. 5C may be an alternate or optional mask-ROM footprint, not necessarily a populated stock CG ROM.",
+        "interpretation": "6C is likely the address-decoder gate array, not a ROM dump target. 3C is likely the program PROM, with M25A10PA plausibly indicating a 256 kbit / 32 KB mask PROM. 4C is the resident ROM/CG; a patched minipro custom PROM profile captured it as a stable 1 Mbit / 128 KiB image. The schematic reportedly identifies 4C pin 1 as A15, confirming the two 32 KiB halves inside each 64 KiB bank as real A15 address halves. It also shows J5 tying pin 1/A15 to BK2 on the 6C E01A05KA, J6 wiring pin 20 /CE, and the hard-to-read A16/OE label appears to be A16 wired to BK3. Figure 2-8 appears to place 4C in the CPU 8000h-A000h window for bank-selector values 40h..79h. Native T48 27C011-style reads mirrored the A16-low bank, but the custom bitbang profile produced a distinct pin-22-high/A16-high bank and a 128 KiB image ordered as A16-low then A16-high. 5C may be an alternate or optional mask-ROM footprint, not necessarily a populated stock CG ROM.",
         "conflict": "Actual PCB/chip markings still need to confirm the 3C and 4C socket roles."
       }
     ],

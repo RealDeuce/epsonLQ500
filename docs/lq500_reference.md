@@ -165,7 +165,7 @@ in the 64 KB uPD7810HG CPU address space:
 | Internal PROM | 32 KB, board location `3C` | Program PROM in lower address range. |
 | External PROM | Selectable external PROM region | If correct external PROM is mounted, firmware can select it by writing bit 7 low at `F001h`. |
 | 4M CG | Board location `5C`; label likely means 4 Mbit capacity class if populated | Character generator region banked into `8000h-A000h`; board photos suggest `5C` may be unpopulated. |
-| 1M CG | Figure appears to show `4C`; text also refers to `2C`, conflicting with PSRAM | Character generator region banked into `8000h-A000h`; treat board markings as authoritative. |
+| 1M CG | Figure appears to show `4C`; text also refers to `2C`, conflicting with PSRAM | Character generator region banked into `8000h-A000h`; Figure 2-8 appears to assign populated `4C` to bank-selector values `40h..79h`. Treat board markings as authoritative. |
 | External CG | External character-generator region | Used for cartridge/module CG data. |
 | PSRAM | Board location `2C` | Used for buffers, including input/line/image/queue/download. |
 
@@ -186,7 +186,9 @@ Board-photo notes from the chat:
   low/high A15 halves rather than an invalid low-half artifact. The
   schematic/jumper trace shows `J5` tying pin 1 / `A15` to `BK2` on `6C`
   E01A05KA, `J6` wiring pin 20 `/CE`, and the hard-to-read `A16/OE` label now
-  appears to be `A16` wired to `BK3`. Native T48 `AT27C011@DIP28` and
+  appears to be `A16` wired to `BK3`. Figure 2-8 appears to place `4C` in the
+  CPU `8000h-A000h` window for bank-selector values `40h..79h`; this is a
+  range, not two discrete `40h`/`80h` banks. Native T48 `AT27C011@DIP28` and
   `D27C011@DIP28` reads mirrored the A16-low bank, but patched custom PROM
   reads captured a distinct pin-22-high/A16-high bank and a full 128 KiB image.
 - `5C` is an unpopulated footprint labeled `4M/2M/1M/256kbit MASK IMPROM`.

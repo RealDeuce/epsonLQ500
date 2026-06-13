@@ -188,10 +188,11 @@ the workspace loss.
       `J6` wires pin 20 `/CE`, and the hard-to-read `A16/OE` label appears to
       be `A16` wired to `BK3`, not `/OE`.
     - manual cross-check: the technical manual memory map labels the resident
-      CG select as `1M CG` in the 4C/2C area, and the address decoder uses
-      gate-array bank lines for CG windows. That is evidence for more than a
-      simple hard-wired 256 Kbit ROM, despite the board text mentioning
-      `256 Kbit`.
+      CG select as `1M CG` in the 4C/2C area, and Figure 2-8 appears to place
+      `4C` in the CPU `8000h-A000h` window for bank-selector values
+      `40h..79h`. This is a bank range, not two discrete `40h`/`80h` banks,
+      and is evidence for more than a simple hard-wired 256 Kbit ROM despite
+      the board text mentioning `256 Kbit`.
   - note: the dump has bitmap-like two-byte patterns and embedded strings
     including `Draft` and `Roman`, so it is very likely resident CG/font data.
     The A15-low half has `Draft` strings; the A15-high/canonical half has
@@ -255,7 +256,7 @@ From the LQ-500 technical manual memory map:
 | Internal PROM | 32 KB | `3C` | Program PROM in CPU lower address range. This is not CPU-on-chip ROM. |
 | External PROM | unknown | external/optional | Selectable by firmware when correct PROM is mounted. |
 | 4M CG | Manual label, likely 4 Mbit if populated | `5C` | Character generator select, banked into `8000h-A000h`; confirm actual chip size from markings. |
-| 1M CG | Manual label, likely 1 Mbit if populated | `4C` in figure; text also says `2C`, conflicting with PSRAM | Character generator select, banked into `8000h-A000h`; confirm whether a stock chip is actually installed. |
+| 1M CG | Manual label, likely 1 Mbit if populated | `4C` in figure; text also says `2C`, conflicting with PSRAM | Character generator select, banked into `8000h-A000h`; Figure 2-8 appears to assign `4C` to bank-selector values `40h..79h`. |
 | External CG | unknown | external/optional | Character generator data from external/font module path. |
 | PSRAM | not ROM | `2C` | Buffer RAM, not expected to be dumped as font source. |
 
@@ -288,7 +289,8 @@ Working hypothesis:
   `A15`, so each 64 KiB A16 bank has valid low/high `A15` halves. The
   schematic/jumper trace also shows `J5` tying pin 1 / `A15` to `BK2`, `J6`
   wiring pin 20 `/CE`, and the hard-to-read `A16/OE` label appears to be
-  `A16` wired to `BK3`.
+  `A16` wired to `BK3`. Figure 2-8 appears to place `4C` in the
+  `8000h-A000h` CPU window for bank-selector values `40h..79h`.
 
 Treat this as a hypothesis until the actual board location and dump sizes
 confirm it.
@@ -453,7 +455,8 @@ alignment bytes, tables, or skipped-over instruction bytes.
    - User-defined character format uses left/body/right spacing plus two or
      three bytes per column; resident ROM may use a related but not identical
      encoding.
-6. Correlate CG bank boundaries against firmware access patterns.
+6. Correlate the Figure 2-8 `40h..79h` 4C bank range against firmware access
+   patterns and 128 KiB image offsets.
 7. Render candidate glyphs and compare against printed samples/manual tables.
 
 ## Things We Know Are Not The Answer
