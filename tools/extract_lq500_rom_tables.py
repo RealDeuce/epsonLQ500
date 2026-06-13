@@ -271,7 +271,7 @@ def extract_4c_font_glyphs(rom4c: bytes, outdir: Path,
         chars_with_data = 0
         with open(path, "w") as f:
             f.write("char_code\tchar\tstart\twidth\tadvance"
-                    "\tglyph_ptr\tglyph_data_hex\n")
+                    "\tglyph_ptr\thalf_res\tglyph_data_hex\n")
             for ch in range(first_char, last_char + 1):
                 off = metrics_base + ch * 6
                 if off + 6 > len(rom4c):
@@ -280,15 +280,27 @@ def extract_4c_font_glyphs(rom4c: bytes, outdir: Path,
                 width = rom4c[off + 1]
                 advance = rom4c[off + 2]
                 glyph_ptr = le24(rom4c, off + 3)
+                # Bit 23 (byte 5 bit 7) is not part of the address:
+                # the DSLL/RLL rotation at 1748h-1752h discards it
+                # (its carry is overwritten by the next DSLL).
+                # When set, it triggers the half-resolution handler at
+                # 1E23h (via OFFI H,$80 at 1BC9h): the glyph bitmap
+                # is stored at half horizontal resolution and each
+                # column is doubled during rendering (VV:29 bit 7).
+                # The stored column count is (width+1)/2.
+                glyph_addr = glyph_ptr & 0x7FFFF
+                half_res = bool(glyph_ptr & 0x800000)
+                stored_width = (width + 1) // 2 if half_res else width
 
                 # Read glyph bitmap (3 bytes per column)
                 glyph_hex = ""
-                if width > 0 and glyph_ptr > 0 and glyph_ptr + width * 3 <= len(rom4c):
+                if stored_width > 0 and glyph_addr > 0 \
+                        and glyph_addr + stored_width * 3 <= len(rom4c):
                     cols = []
-                    for c in range(width):
-                        b0 = rom4c[glyph_ptr + c * 3]
-                        b1 = rom4c[glyph_ptr + c * 3 + 1]
-                        b2 = rom4c[glyph_ptr + c * 3 + 2]
+                    for c in range(stored_width):
+                        b0 = rom4c[glyph_addr + c * 3]
+                        b1 = rom4c[glyph_addr + c * 3 + 1]
+                        b2 = rom4c[glyph_addr + c * 3 + 2]
                         cols.append(f"{b0:02X}{b1:02X}{b2:02X}")
                     glyph_hex = " ".join(cols)
                     chars_with_data += 1
@@ -296,7 +308,8 @@ def extract_4c_font_glyphs(rom4c: bytes, outdir: Path,
                 label = char_label(ch)
 
                 f.write(f"0x{ch:02X}\t{label}\t{start}\t{width}\t{advance}"
-                        f"\t0x{glyph_ptr:05X}\t{glyph_hex}\n")
+                        f"\t0x{glyph_ptr:05X}\t{int(half_res)}"
+                        f"\t{glyph_hex}\n")
 
         print(f"  {fname}: {chars_with_data} glyphs"
               f" ({first_char:#04x}-{last_char:#04x})")
