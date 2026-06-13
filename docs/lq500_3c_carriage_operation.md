@@ -38,8 +38,10 @@ ROM anchor unless schematic or scope evidence proves otherwise.
 
 Startup calls the carriage home-seek path at `51F7h-5253h`. This path samples
 raw `PA20`, runs carriage timing tables, and pulses the gate-array `TM` input
-rather than the paper-feed `PB3`/`PB4` phase bits. Active HOME polarity still
-depends on the switch circuit.
+rather than the paper-feed `PB3`/`PB4` phase bits. Schematic review identifies
+this input as physical PA5 with a 15K pullup to `+5 V`, so a clear sample means
+the line is being pulled low. Active HOME polarity still depends on the switch
+circuit.
 
 The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 
@@ -102,7 +104,7 @@ selects CW/CCW. Exact active polarity still needs manual/schematic correlation.
 
 ## Open Items
 
-- Confirm active HOME polarity for raw `PA20`.
+- Confirm active HOME polarity for pulled-up PA5 / `PA20`.
 - Correlate F003 bit polarity and `VV3A`/`VV6F` selector values to manual Table
   2-7 speed/excitation mode names.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`

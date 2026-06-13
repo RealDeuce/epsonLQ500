@@ -124,7 +124,9 @@ the workspace loss.
       probe when PA20 starts clear, a fixed `000Ah` confirmation move across
       the edge, and long `13ECh` seeks on the other legs; the branch map is in
       `data/lq500_3c_carriage_home_seek.tsv`. `5306h` samples PA20 three times
-      per timing interval and increments `D` only for PA20-clear samples. The
+      per timing interval and increments `D` only for PA20-clear samples.
+      Schematic review identifies this as physical PA5 with a 15K pullup to
+      `+5 V`, so PA20-clear samples mean the line is being pulled low. The
       success path seeds `EF0F=EF11=0003h`; `53B9h` later compares targets
       against `EF0F` with a `001Ah` limit, but the firmware expression of the
       manual's 22 phase-switch print-area offset is not yet proven.

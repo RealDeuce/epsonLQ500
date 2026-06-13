@@ -46,7 +46,7 @@ Known bit-level handles:
 | `PC bit 08h` plus `F2` | Sampled by `4F21h`; returned from `4EEAh` as `04h` = ON LINE. |
 | `PA bits 04h/08h` | Sampled by `4F37h` after the two ADC switch-table reads and merged into `VV01`. |
 | `PA bit 10h` | Used repeatedly in data-dump and service flows as a wait/confirm-style input. |
-| `PA bit 20h` | Raw input sampled by startup carriage home-seek code around `51F7h-5241h`; active HOME polarity still depends on the switch circuit. |
+| `PA bit 20h` / PA5 | Raw input sampled by startup carriage home-seek code around `51F7h-5241h`. Schematic review shows PA5 has a 15K pullup to `+5 V`, so clear samples mean the line is actively pulled low; active HOME polarity still depends on the switch circuit. |
 | `PA bit 00h` / `PB bit 80h` | Written by `7B52h` during service/adjustment UI setup. |
 
 ## Self-Test Status Header
@@ -281,6 +281,8 @@ excitation interval, and Figure 2-44 says the printing area starts 22 phase
 switches after home. That fits `51F7h-5253h`: it is startup-only in the current
 trace, samples raw `PA20`, runs carriage timing tables, and pulses the
 gate-array `TM` input rather than the paper-feed `PB3`/`PB4` phase bits.
+Schematic review identifies this input as PA5 with a 15K pullup to `+5 V`, so
+PA20-clear firmware samples mean the line is being pulled low.
 The startup branch sequence is decoded in
 `data/lq500_3c_carriage_home_seek.tsv`: the firmware distinguishes raw PA20
 set/clear states, performs a short `0004h` probe when PA20 starts clear, a
