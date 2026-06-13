@@ -99,13 +99,14 @@ F003 control paths are decoded in `data/lq500_3c_f003_control_paths.tsv`:
 - After record setup, `5625h-5630h` maps `VV61.0` to F003 bit 1.
 
 Manual Table 2-4 says F003 bit 0 selects 2-2 versus 1-2 excitation and bit 1
-selects CW/CCW. Exact active polarity still needs manual/schematic correlation.
+selects CW/CCW. Table 2-7 should be treated as the carriage mode index into the
+detailed Tables 2-8 and 2-9, not as a separate polarity source.
 
 ## Open Items
 
 - Map the active-low HOME branch sequence to the service-manual starting-position
   cases.
-- Correlate F003 bit polarity and `VV3A`/`VV6F` selector values to manual Table
-  2-7 speed/excitation mode names.
+- Map `VV3A`/`VV6F` selector values to the Table 2-7 rows, then use Tables
+  2-8/2-9 for the detailed carriage mode behavior.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`
   ring.

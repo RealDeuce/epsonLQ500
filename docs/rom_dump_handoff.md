@@ -149,7 +149,8 @@ the workspace loss.
       other F003 updates: `CALT 00B8h` vectors to `51EDh` for AND masks,
       `CALT 00BAh` vectors to `51E9h` for OR masks, `540Dh` maps selected
       state-byte bit 7 to F003 bit 0, and `5625h-5630h` maps `VV61.0` to F003
-      bit 1. Exact active polarity still needs manual/schematic correlation.
+      bit 1. Table 2-7 should be treated as the carriage mode index into the
+      detailed Tables 2-8/2-9.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`

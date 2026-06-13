@@ -322,8 +322,8 @@ leg. During normal `540Dh` dispatch, selected state-byte bit 7 controls F003
 bit 0 before the byte is masked with `7Fh` for the current-state jump table;
 after record setup, `5625h-5630h` maps `VV61.0` to F003 bit 1. This ties the
 record high bit to the manual excitation-select bit and `VV61.0` to the manual
-direction bit, while exact active polarity is still left to manual/schematic
-correlation.
+direction bit. Table 2-7 is treated as the carriage mode index into the
+detailed Tables 2-8 and 2-9.
 
 The normal carriage scheduler path is now separated from the paper-feed
 `5676h` callers. `5676h` copies fifteen bytes from `EF38..EF46` to
@@ -342,19 +342,19 @@ into either `EF38..EF46` or the live `EF6D..EF7B` window; see
 state copies put the same selector byte into `VV6F` for the carriage TM1 record
 selection. `563Ch` also uses `VV6F.1` as a count-scale bit: when set, `EF64` is
 halved before being saved as `EF79`. The current side-by-side selector map is in
-`data/lq500_3c_vv3a_mode_selector.tsv`; exact user-facing speed/excitation mode
-names still need bit-polarity correlation, but the current states selected by
-the normal `7005h` records and the F003 helper call paths are now decoded
-separately.
+`data/lq500_3c_vv3a_mode_selector.tsv`; the remaining task is mapping those
+selector rows to Table 2-7 and then to the detailed Tables 2-8/2-9. The current
+states selected by the normal `7005h` records and the F003 helper call paths are
+decoded separately.
 
 The selector state path is now separated from the selector value table in
 `data/lq500_3c_carriage_mode_state.tsv`. `4038h` copies a saved print/style bank
 into `VV1F`; setup paths preserve that value in `VV31` and `VV32`; active
 render/movement paths restore `VV31`/`VV32` into `VV3A`; and the scheduler-state
 copy makes source+2 become `VV6F`. This proves the state plumbing into the
-carriage records, but not the manual Table 2-7 excitation-mode name for each
-record because the F003 bit polarity still needs to be correlated with the
-manual mode names.
+carriage records, but not the final Table 2-7 row assignment for each record.
+Table 2-7 is just the manual index layer; Tables 2-8/2-9 carry the detailed
+mode behavior.
 
 ### Printhead
 

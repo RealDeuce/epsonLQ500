@@ -321,10 +321,9 @@ Startup panel mode dispatch:
    defaults, and VR/adjustment reads.
 2. Correlate `VV00`/`VV01` bits from `4F37h` against the documented DIP switch
    defaults in `docs/lq500_reference.md`.
-3. Continue carriage tracing by assigning exact speed/excitation mode names to
-   the decoded `72B3h-72D8h` records. The normal `7005h` current-state bytes
-   and F003 helper call paths are decoded; remaining work is bit-polarity and
-   selector-to-manual-mode correlation.
+3. Continue carriage tracing by mapping the decoded `72B3h-72D8h` records to
+   Table 2-7 rows, then to the detailed Tables 2-8/2-9. The normal `7005h`
+   current-state bytes and F003 helper call paths are decoded.
 4. Build xrefs around every `F002h` write and nearby `8000h`/`8600h` reads.
 5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,
