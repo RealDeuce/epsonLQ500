@@ -29,6 +29,100 @@ def signed8(v: int) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Epson Extended Graphics character set → Unicode mapping
+# ---------------------------------------------------------------------------
+# The LQ-500 CG ROM character set follows the Epson Extended Graphics layout,
+# which is essentially IBM Code Page 437 for 0x80-0xAF and 0xE0-0xEF.
+# Codes 0xB0-0xDF (box-drawing/shading in CP437) have no glyphs in this ROM.
+# Codes 0x01-0x06 and 0x15 are special international-substitution-only slots.
+
+EPSON_CHARMAP: dict[int, str] = {
+    # International substitution-only codes (not in normal font tables)
+    0x01: "\u00B0",  # ° degree sign
+    0x02: "\u00A4",  # ¤ currency sign
+    0x03: "\u00DF",  # ß sharp s
+    0x04: "\u00D8",  # Ø Latin capital O with stroke
+    0x05: "\u00F8",  # ø Latin small o with stroke
+    0x06: "\u00A8",  # ¨ diaeresis
+    0x15: "\u00A7",  # § section sign
+    # Extended characters 0x80-0xAF
+    0x80: "\u00C7",  # Ç
+    0x81: "\u00FC",  # ü
+    0x82: "\u00E9",  # é
+    0x83: "\u00E2",  # â
+    0x84: "\u00E4",  # ä
+    0x85: "\u00E0",  # à
+    0x86: "\u00E5",  # å
+    0x87: "\u00E7",  # ç
+    0x88: "\u00EA",  # ê
+    0x89: "\u00EB",  # ë
+    0x8A: "\u00E8",  # è
+    0x8B: "\u00EF",  # ï
+    0x8C: "\u00EE",  # î
+    0x8D: "\u00EC",  # ì
+    0x8E: "\u00C4",  # Ä
+    0x8F: "\u00C5",  # Å
+    0x90: "\u00C9",  # É
+    0x91: "\u00E6",  # æ
+    0x92: "\u00C6",  # Æ
+    0x93: "\u00F4",  # ô
+    0x94: "\u00F6",  # ö
+    0x95: "\u00F2",  # ò
+    0x96: "\u00FB",  # û
+    0x97: "\u00F9",  # ù
+    0x98: "\u00FF",  # ÿ
+    0x99: "\u00D6",  # Ö
+    0x9A: "\u00DC",  # Ü
+    0x9B: "\u00A2",  # ¢
+    0x9C: "\u00A3",  # £
+    0x9D: "\u00A5",  # ¥
+    0x9E: "\u20A7",  # ₧ peseta sign
+    0x9F: "\u0192",  # ƒ Latin small f with hook
+    0xA0: "\u00E1",  # á
+    0xA1: "\u00ED",  # í
+    0xA2: "\u00F3",  # ó
+    0xA3: "\u00FA",  # ú
+    0xA4: "\u00F1",  # ñ
+    0xA5: "\u00D1",  # Ñ
+    0xA6: "\u00AA",  # ª
+    0xA7: "\u00BA",  # º
+    0xA8: "\u00BF",  # ¿
+    0xA9: "\u2310",  # ⌐ reversed not sign
+    0xAA: "\u00AC",  # ¬
+    0xAB: "\u00BD",  # ½
+    0xAC: "\u00BC",  # ¼
+    0xAD: "\u00A1",  # ¡
+    0xAE: "\u00AB",  # «
+    0xAF: "\u00BB",  # »
+    # 0xB0-0xDF: no glyphs in this ROM (box-drawing region, unused)
+    # Greek / math symbols 0xE0-0xEF
+    0xE0: "\u03B1",  # α
+    0xE1: "\u00DF",  # ß (CP437 convention; glyph is identical to 0x03)
+    0xE2: "\u0393",  # Γ
+    0xE3: "\u03C0",  # π
+    0xE4: "\u03A3",  # Σ
+    0xE5: "\u03C3",  # σ
+    0xE6: "\u00B5",  # µ micro sign
+    0xE7: "\u03C4",  # τ
+    0xE8: "\u03A6",  # Φ
+    0xE9: "\u0398",  # Θ
+    0xEA: "\u03A9",  # Ω
+    0xEB: "\u03B4",  # δ
+    0xEC: "\u221E",  # ∞
+    0xED: "\u03C6",  # φ
+    0xEE: "\u03B5",  # ε
+    0xEF: "\u2229",  # ∩
+}
+
+
+def char_label(code: int) -> str:
+    """Return a display label for a character code: ASCII, Epson extended, or empty."""
+    if 0x20 <= code < 0x7F:
+        return chr(code)
+    return EPSON_CHARMAP.get(code, "")
+
+
+# ---------------------------------------------------------------------------
 # 4C CG ROM extraction
 # ---------------------------------------------------------------------------
 
@@ -199,8 +293,7 @@ def extract_4c_font_glyphs(rom4c: bytes, outdir: Path,
                     glyph_hex = " ".join(cols)
                     chars_with_data += 1
 
-                # Printable ASCII label
-                label = chr(ch) if 0x20 <= ch < 0x7F else ""
+                label = char_label(ch)
 
                 f.write(f"0x{ch:02X}\t{label}\t{start}\t{width}\t{advance}"
                         f"\t0x{glyph_ptr:05X}\t{glyph_hex}\n")
@@ -232,7 +325,7 @@ def extract_4c_secondary_metrics(rom4c: bytes, outdir: Path) -> None:
                 # Skip all-zero entries
                 if all(x == 0 for x in b):
                     continue
-                label = chr(ch) if 0x20 <= ch < 0x7F else ""
+                label = char_label(ch)
                 f.write(f"{base_name}\t0x{ch:02X}\t{label}\t"
                         f"0x{b[0]:02X}\t0x{b[1]:02X}\t0x{b[2]:02X}\t"
                         f"0x{b[3]:02X}\t0x{b[4]:02X}\t0x{b[5]:02X}\n")
@@ -288,12 +381,9 @@ def extract_3c_international_substitution(rom3c: bytes, outdir: Path) -> None:
             name = COUNTRY_NAMES[country_idx] if country_idx < len(COUNTRY_NAMES) else f"Country_{country_idx}"
             line = name
             for j, b in enumerate(row):
-                orig = base_codes[j]
-                if b == orig:
-                    label = chr(b) if 0x20 <= b < 0x7F else ""
+                label = char_label(b)
+                if label:
                     line += f"\t0x{b:02X}_{label}"
-                elif 0x20 <= b < 0x7F:
-                    line += f"\t0x{b:02X}_{chr(b)}"
                 else:
                     line += f"\t0x{b:02X}"
             f.write(line + "\n")
@@ -386,8 +476,8 @@ def extract_3c_remap_table(rom3c: bytes, outdir: Path) -> None:
         for i in range(256):
             val = rom3c[table_off + i]
             if val != i:
-                in_label = chr(i) if 0x20 <= i < 0x7F else ""
-                out_label = chr(val) if 0x20 <= val < 0x7F else ""
+                in_label = char_label(i)
+                out_label = char_label(val)
                 f.write(f"0x{i:02X}\t{in_label}\t0x{val:02X}\t{out_label}\n")
                 count += 1
 
