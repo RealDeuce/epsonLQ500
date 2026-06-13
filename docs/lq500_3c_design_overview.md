@@ -383,24 +383,37 @@ pitch/condensed/italic bits), and font commands trigger `14C6h` (CALT
 (`VV:A5`, `VV:A6`) against the directory records to find the right glyph
 data for the current font family + pitch + quality.
 
-### Bitmap Expansion
+### Print Effect Pipeline
 
-The `43DDh-4C36h` expansion engine reads glyph bitmap data from the CG
-window at `8000h`+ **without changing F002**. The bank set by `1774h` remains
-active throughout. The saved F002 value in `VV:A8` (stored at `1834h`) is
-restored after expansion completes.
+The `43DDh-4C36h` region is a **sequential print-effect pipeline**, not a
+single expansion engine. The dispatch at `1ABFh-1B18h` conditionally calls
+each effect function based on `VV:27`/`VV:28`/`VV:29`/`VV:2A` flags.
+Multiple effects can be applied in sequence to the same glyph data.
 
-Two column read formats are confirmed:
+| Order | Condition | Address | Probable effect |
+| --- | --- | --- | --- |
+| 1 | VV:28 bit 4 clear | `$4AA8` | Copy 2-byte CG columns to 3-byte work rows |
+| 2 | VV:27 bit 7 clear | `$49C5` | Condense/mask columns |
+| 3 | VV:29 bit 4 clear | `$47CB` | Clear/pad buffer |
+| 4 | VV:29 bit 7 clear | `$4C16` | Additional processing |
+| 5 | VV:29 bits 0+1 clear | `$4830` | Double/widen columns |
+| 6 | VV:27 bits 4+3 clear | `$4ACE` | Packed nibble write |
+| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Render variant |
+| 8 | VV:2A bit 6 clear | `$43DD` | 1-byte column OR overlay |
+| 9 | VV:2A bit 5 clear | `$444A` | Column copy variant |
+| 10 | VV:2A bit 7 clear | `$4900` | Packed expand by style |
 
-- **1-byte per column** (`43F4h`): one CG byte is ORed into all 3 destination
-  planes (8 vertical dots replicated across the 24-pin column). Used for
-  Draft or overlay effects.
+The CG bank set by `1774h` remains active throughout — no F002 writes occur
+during the effect chain. Two CG column formats are confirmed:
+
+- **1-byte per column** (`43F4h`): one CG byte ORed into all 3 destination
+  planes (bold/overlay effect).
 - **2-byte per column** (`4ABAh`/`4AC4h`): two CG bytes provide 16 vertical
-  dots, zero-padded to 3 bytes. `VV28` bit 3 selects vertical alignment
-  (upper 16 or lower 16 pins).
+  dots, zero-padded to 3 bytes. `VV28` bit 3 selects vertical alignment.
 
-The expansion engine has additional format converters for different
-pitch/quality/style combinations; see the glyph transform table below.
+The render entry at `281Dh` calls `1A8Ah` (CG fetch + effect pipeline),
+then `2159h` (position/metrics update). The processed glyph data ends up in
+the work buffer at `$E983` or `$EBA3`.
 
 ## Glyph Transform Families
 
