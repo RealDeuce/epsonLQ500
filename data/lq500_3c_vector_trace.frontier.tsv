@@ -29,7 +29,7 @@ address	kind	size	classification	text
 0x1448	untraced_gap_start	13	likely_data_or_untraced_code	-
 0x147C	untraced_gap_start	74	likely_data_or_untraced_code	-
 0x15D3	untraced_gap_start	13	likely_data_or_untraced_code	-
-0x169B	untraced_gap_start	7	likely_data_or_untraced_code	-
+0x16A1	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x16C3	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x16CF	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x16F1	untraced_gap_start	1	likely_data_or_untraced_code	-

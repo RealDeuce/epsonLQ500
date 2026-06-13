@@ -38,12 +38,13 @@
     "0x112E",
     "0x113D",
     "0x1697",
+    "0x169B",
     "0x11B0",
     "0x4EB9"
   ],
-  "decoded_instruction_count": 8409,
-  "code_bytes": 16787,
-  "not_reached_bytes": 15981,
+  "decoded_instruction_count": 8412,
+  "code_bytes": 16793,
+  "not_reached_bytes": 15975,
   "code_ranges": [
     [
       "0x0000",
@@ -242,8 +243,8 @@
     ],
     [
       "0x15E0",
-      "0x169B",
-      187
+      "0x16A1",
+      193
     ],
     [
       "0x16A2",
@@ -693,9 +694,9 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x169B",
+      "0x16A1",
       "0x16A2",
-      7,
+      1,
       "likely_data_or_untraced_code"
     ],
     [

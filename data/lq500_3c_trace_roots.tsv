@@ -37,5 +37,6 @@ address	source	note
 0x112E	command_handler	ESC % handler (select user-defined character set); writes VV:1B at 1196h
 0x113D	command_handler	ESC & handler (define user-defined characters)
 0x1697	font_path	VV:05 alternate bank path; reached when 16A2h RETS because VV:04 bit 7 is set
+0x169B	font_path	Resident 4C fallback; reached when 16D0h RETS because both VV:04 and VV:05 bit 7 are set
 0x11B0	command_handler	ESC : handler (copy ROM characters to user-defined); writes VV:1B at 1215h
 0x4EB9	host_consumer	consumer-side near-full handler; clears VV09 bit 0 and manages flow control

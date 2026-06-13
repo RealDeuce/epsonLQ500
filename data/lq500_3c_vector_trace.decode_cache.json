@@ -14316,6 +14316,27 @@
     "rest": "",
     "text": "169a: b8        RET"
   },
+  "0x169B": {
+    "addr": 5787,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$40",
+    "text": "169b: 69 40     MVI     A,$40"
+  },
+  "0x169D": {
+    "addr": 5789,
+    "size": 3,
+    "op": "CALL",
+    "rest": "$16FE",
+    "text": "169d: 40 fe 16  CALL    $16FE"
+  },
+  "0x16A0": {
+    "addr": 5792,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "16a0: b8        RET"
+  },
   "0x16A2": {
     "addr": 5794,
     "size": 3,
