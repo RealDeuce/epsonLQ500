@@ -72,6 +72,24 @@
     "0x0BAB",
     "0x0BAD",
     "0x0BAF",
+    "0x1454",
+    "0x1464",
+    "0x0E7D",
+    "0x0EEA",
+    "0x1F69",
+    "0x426C",
+    "0x42BA",
+    "0x41FC",
+    "0x41FF",
+    "0x4203",
+    "0x4210",
+    "0x421E",
+    "0x4246",
+    "0x4267",
+    "0x0D7E",
+    "0x0DA2",
+    "0x2011",
+    "0x201F",
     "0x0ABC",
     "0x0BB5",
     "0x0F16",
@@ -81,9 +99,9 @@
     "0x11B0",
     "0x4EB9"
   ],
-  "decoded_instruction_count": 8765,
-  "code_bytes": 17472,
-  "not_reached_bytes": 15296,
+  "decoded_instruction_count": 9139,
+  "code_bytes": 18154,
+  "not_reached_bytes": 14614,
   "code_ranges": [
     [
       "0x0000",
@@ -246,14 +264,14 @@
       478
     ],
     [
-      "0x0E66",
-      "0x0E7D",
-      23
+      "0x0D7E",
+      "0x0DE1",
+      99
     ],
     [
-      "0x0F16",
+      "0x0E02",
       "0x0F18",
-      2
+      278
     ],
     [
       "0x0F1C",
@@ -267,13 +285,8 @@
     ],
     [
       "0x105A",
-      "0x10A2",
-      72
-    ],
-    [
-      "0x10A7",
       "0x11DF",
-      312
+      389
     ],
     [
       "0x11E0",
@@ -286,9 +299,9 @@
       6
     ],
     [
-      "0x1455",
-      "0x147C",
-      39
+      "0x1454",
+      "0x1491",
+      61
     ],
     [
       "0x14C6",
@@ -352,13 +365,8 @@
     ],
     [
       "0x1F4D",
-      "0x1F69",
-      28
-    ],
-    [
-      "0x1FE4",
       "0x240C",
-      1064
+      1215
     ],
     [
       "0x2428",
@@ -396,9 +404,14 @@
       369
     ],
     [
-      "0x425A",
-      "0x4267",
-      13
+      "0x41FC",
+      "0x426F",
+      115
+    ],
+    [
+      "0x4273",
+      "0x42C1",
+      78
     ],
     [
       "0x42E8",
@@ -716,14 +729,14 @@
     ],
     [
       "0x0D5D",
-      "0x0E66",
-      265,
+      "0x0D7E",
+      33,
       "likely_data_or_untraced_code"
     ],
     [
-      "0x0E7D",
-      "0x0F16",
-      153,
+      "0x0DE1",
+      "0x0E02",
+      33,
       "likely_data_or_untraced_code"
     ],
     [
@@ -745,12 +758,6 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x10A2",
-      "0x10A7",
-      5,
-      "likely_data_or_untraced_code"
-    ],
-    [
       "0x11DF",
       "0x11E0",
       1,
@@ -764,14 +771,14 @@
     ],
     [
       "0x1448",
-      "0x1455",
-      13,
+      "0x1454",
+      12,
       "likely_data_or_untraced_code"
     ],
     [
-      "0x147C",
+      "0x1491",
       "0x14C6",
-      74,
+      53,
       "likely_data_or_untraced_code"
     ],
     [
@@ -847,12 +854,6 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x1F69",
-      "0x1FE4",
-      123,
-      "likely_data_or_untraced_code"
-    ],
-    [
       "0x240C",
       "0x2428",
       28,
@@ -908,14 +909,20 @@
     ],
     [
       "0x418F",
-      "0x425A",
-      203,
+      "0x41FC",
+      109,
       "likely_data_or_untraced_code"
     ],
     [
-      "0x4267",
+      "0x426F",
+      "0x4273",
+      4,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x42C1",
       "0x42E8",
-      129,
+      39,
       "likely_data_or_untraced_code"
     ],
     [
