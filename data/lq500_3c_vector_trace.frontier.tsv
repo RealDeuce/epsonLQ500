@@ -14,13 +14,15 @@ address	kind	size	classification	text
 0x07E8	untraced_gap_start	28	likely_data_or_untraced_code	-
 0x0811	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x0819	untraced_gap_start	29	likely_data_or_untraced_code	-
-0x0AB6	untraced_gap_start	41	likely_data_or_untraced_code	-
+0x0AB6	untraced_gap_start	6	likely_data_or_untraced_code	-
+0x0ACA	untraced_gap_start	21	likely_data_or_untraced_code	-
 0x0AE5	untraced_gap_start	6	likely_data_or_untraced_code	-
 0x0AF6	untraced_gap_start	11	likely_data_or_untraced_code	-
 0x0B18	untraced_gap_start	11	likely_data_or_untraced_code	-
 0x0B28	untraced_gap_start	9	likely_data_or_untraced_code	-
 0x0B55	untraced_gap_start	6	likely_data_or_untraced_code	-
-0x0B7B	untraced_gap_start	747	likely_data_or_untraced_code	-
+0x0B7B	untraced_gap_start	4	likely_data_or_untraced_code	-
+0x0D5D	untraced_gap_start	265	likely_data_or_untraced_code	-
 0x0E7D	untraced_gap_start	153	likely_data_or_untraced_code	-
 0x0F18	untraced_gap_start	4	likely_data_or_untraced_code	-
 0x0F23	untraced_gap_start	4	likely_data_or_untraced_code	-

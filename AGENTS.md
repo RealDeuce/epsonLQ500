@@ -60,6 +60,9 @@ manual notes, or hardware measurements.
   values across carriage TM1 records and render geometry tables.
 - `data/lq500_3c_carriage_mode_state.tsv`: state plumbing from `VV1F` through
   `VV31`/`VV32`/`VV3A` to `VV6F` and `F003h` control-bit notes.
+- `data/lq500_3c_graphics_path.tsv`: graphics command pipeline from ESC K/L/Y/Z
+  and ESC * through mode table, 8-pin expansion, column OR into image buffer,
+  and adjacent-dot restriction behavior.
 - `data/lq500_3c_cg_access_path.tsv`: character generation CG access pipeline
   from `4038h` classification through `1774h` bank selection, `1B19h` VV:A0
   store, glyph record fetch, secondary metrics read at `1CF2h`, and CALT

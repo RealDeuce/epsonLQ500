@@ -66,6 +66,13 @@ address	source	note
 0x43DD	effect_function	1-byte column OR overlay; gated by VV:2A.6 (unused on LQ-500)
 0x444A	effect_function	Column copy variant; gated by VV:2A.5 (unused on LQ-500)
 0x44C4	effect_function	Render variant; gated by VV:2A bits 5+6 (unused on LQ-500)
+0x0B7F	command_handler	ESC ? handler (reassign graphics mode)
+0x0BA9	command_handler	ESC K handler (single-density graphics)
+0x0BAB	command_handler	ESC L handler (double-density graphics)
+0x0BAD	command_handler	ESC Y handler (high-speed double-density graphics)
+0x0BAF	command_handler	ESC Z handler (quadruple-density graphics)
+0x0ABC	calt_vector	CALT ($009E) target; reads graphics data bytes from host input
+0x0BB5	command_handler	ESC * handler (select graphics mode)
 0x0F16	command_handler	ESC w handler (double-height); sets/clears VV:25 bit 7
 0x0F21	command_handler	ESC p handler (proportional); sets/clears VV:23 bit 5
 0x0F42	command_handler	ESC ! (Master Select) handler; maps parameter bits to VV:22/VV:23/VV:24 style flags

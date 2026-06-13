@@ -67,6 +67,13 @@
     "0x43DD",
     "0x444A",
     "0x44C4",
+    "0x0B7F",
+    "0x0BA9",
+    "0x0BAB",
+    "0x0BAD",
+    "0x0BAF",
+    "0x0ABC",
+    "0x0BB5",
     "0x0F16",
     "0x0F21",
     "0x0F42",
@@ -74,9 +81,9 @@
     "0x11B0",
     "0x4EB9"
   ],
-  "decoded_instruction_count": 8511,
-  "code_bytes": 16980,
-  "not_reached_bytes": 15788,
+  "decoded_instruction_count": 8765,
+  "code_bytes": 17472,
+  "not_reached_bytes": 15296,
   "code_ranges": [
     [
       "0x0000",
@@ -199,6 +206,11 @@
       640
     ],
     [
+      "0x0ABC",
+      "0x0ACA",
+      14
+    ],
+    [
       "0x0ADF",
       "0x0AE5",
       6
@@ -227,6 +239,11 @@
       "0x0B5B",
       "0x0B7B",
       32
+    ],
+    [
+      "0x0B7F",
+      "0x0D5D",
+      478
     ],
     [
       "0x0E66",
@@ -651,8 +668,14 @@
     ],
     [
       "0x0AB6",
+      "0x0ABC",
+      6,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x0ACA",
       "0x0ADF",
-      41,
+      21,
       "likely_data_or_untraced_code"
     ],
     [
@@ -687,8 +710,14 @@
     ],
     [
       "0x0B7B",
+      "0x0B7F",
+      4,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x0D5D",
       "0x0E66",
-      747,
+      265,
       "likely_data_or_untraced_code"
     ],
     [
