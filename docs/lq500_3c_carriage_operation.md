@@ -45,11 +45,13 @@ an active-low HOME assertion.
 
 The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 
-- Short `0004h` probe when PA mask 20h starts clear.
-- Long `13ECh` seek when PA mask 20h starts set or becomes set after the probe.
-- Fixed `000Ah` confirmation move across the edge.
+- If HOME is asserted at entry, a short `0004h` rightward probe checks whether
+  the carriage can move off the switch.
+- If HOME is open at entry, or becomes open after the short probe, a long
+  `13ECh` leftward seek runs until HOME is asserted.
+- A fixed `000Ah` rightward move-away check must leave HOME open.
 - HOME asserted after the confirmation/move-away check is an error condition.
-- Final long `13ECh` seek before success.
+- A final long `13ECh` leftward return must assert HOME before success.
 - `5306h` samples PA5 through PA mask 20h three times per interval; `D` increments only for
   PA mask 20h clear samples.
 - Success seeds `EF0F=EF11=0003h`.
@@ -95,7 +97,9 @@ F003 control paths are decoded in `data/lq500_3c_f003_control_paths.tsv`:
 - `CALT ($00B8)` is the AND-update vector to `51EDh`.
 - `CALT ($00BA)` is the OR-update vector to `51E9h`.
 - Startup home seek uses those vectors to set up F003 bits 0 and 1 for each
-  seek leg.
+  seek leg. In the startup sequence, F003 bit 1 set / `VV61.0` clear is the
+  rightward move-away direction; F003 bit 1 clear / `VV61.0` set is the
+  leftward return-to-home direction.
 - During normal `540Dh` dispatch, selected state-byte bit 7 controls F003 bit
   0 before the byte is masked with `7Fh` for the current-state jump table.
 - After record setup, `5625h-5630h` maps `VV61.0` to F003 bit 1.
@@ -106,8 +110,6 @@ detailed Tables 2-8 and 2-9, not as a separate polarity source.
 
 ## Open Items
 
-- Resolve F003 bit1/`VV61.0` direction polarity for the startup home probe,
-  move-away check, and final return-to-home leg.
 - Map `VV3A`/`VV6F` selector values to the Table 2-7 rows, then use Tables
   2-8/2-9 for the detailed carriage mode behavior.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`
