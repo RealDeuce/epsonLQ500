@@ -304,6 +304,27 @@ After the initial metrics, when `VV27` bit 2 is clear the code reaches
 - Bytes 1 and 2 are loaded into `EF99`/`EF9B`.
 - Restores `F002` and returns.
 
+### International Character Substitution
+
+When `VV21` bit 7 is set (extended-range characters at `$B0-$EF`), the
+classifier calls `1464h`, which indexes the substitution table at
+`689Ch-6943h`. The active country is set by `ESC R n`, which stores a row
+offset into the table. This replaces specific character codes before they
+reach the CG fetch path.
+
+### Per-Pitch Font Data
+
+The 4C CG ROM contains separate glyph data for each pitch/quality
+combination, not a single set that is rescaled. The `164Bh` font
+configuration builder encodes pitch and quality into `VV:A6` (bit 0 from
+pitch flags, bit 2 from Draft/LQ mode, bit 4 from condensed mode), and the
+`1774h` bank selector maps `VV:04`/`VV:05` to different F002 bank values
+(`$80`, `$81`, `$82`, `$00`). Each bank value selects a different 8K page of
+the 4C ROM, so Draft 10 cpi, Draft 12 cpi, LQ Roman 10 cpi, LQ Sans Serif,
+etc. each have their own glyph bitmaps at native resolution. The exact
+mapping from `VV:A6`/`VV:A5` (typestyle family) through `1677h`/`154Eh` to
+`VV:04`/`VV:05` bank values has not been fully traced yet.
+
 ### Bitmap Expansion
 
 The `43DDh-4C36h` expansion engine reads glyph bitmap data from the CG
@@ -311,7 +332,16 @@ window at `8000h`+ **without changing F002**. The bank set by `1774h` remains
 active throughout. The saved F002 value in `VV:A8` (stored at `1834h`) is
 restored after expansion completes.
 
-The expansion engine has multiple format converters for different
+Two column read formats are confirmed:
+
+- **1-byte per column** (`43F4h`): one CG byte is ORed into all 3 destination
+  planes (8 vertical dots replicated across the 24-pin column). Used for
+  Draft or overlay effects.
+- **2-byte per column** (`4ABAh`/`4AC4h`): two CG bytes provide 16 vertical
+  dots, zero-padded to 3 bytes. `VV28` bit 3 selects vertical alignment
+  (upper 16 or lower 16 pins).
+
+The expansion engine has additional format converters for different
 pitch/quality/style combinations; see the glyph transform table below.
 
 ## Glyph Transform Families
