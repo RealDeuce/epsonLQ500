@@ -43,7 +43,7 @@ manual notes, or hardware measurements.
 - `data/lq500_3c_carriage_path.tsv`: carriage manual anchors, home seek,
   current-control states, and PC7/TM timing-path notes.
 - `data/lq500_3c_carriage_home_seek.tsv`: decoded startup `51F7h-5253h`
-  PA20/HOME branch sequence and timed seek core.
+  PA5 / `PA mask 20h` HOME branch sequence and timed seek core.
 - `data/lq500_3c_carriage_sequence_records.tsv`: decoded five-byte
   `72B3h-72D8h` carriage scheduler records copied to `EF7C..EF80`.
 - `data/lq500_3c_carriage_output_state_records.tsv`: decoded normal

@@ -37,7 +37,7 @@ ROM anchor unless schematic or scope evidence proves otherwise.
 ## Startup Home Seek
 
 Startup calls the carriage home-seek path at `51F7h-5253h`. This path samples
-raw `PA20`, runs carriage timing tables, and pulses the gate-array `TM` input
+raw `PA mask 20h`, runs carriage timing tables, and pulses the gate-array `TM` input
 rather than the paper-feed `PB3`/`PB4` phase bits. Schematic review identifies
 this input as physical PA5 with a 15K pullup to `+5 V`, so a clear sample means
 the line is being pulled low. Active HOME polarity still depends on the switch
@@ -45,12 +45,12 @@ circuit.
 
 The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 
-- Short `0004h` probe when PA20 starts clear.
-- Long `13ECh` seek when PA20 starts set or becomes set after the probe.
+- Short `0004h` probe when PA mask 20h starts clear.
+- Long `13ECh` seek when PA mask 20h starts set or becomes set after the probe.
 - Fixed `000Ah` confirmation move across the edge.
 - Final long `13ECh` seek before success.
-- `5306h` samples PA20 three times per interval; `D` increments only for
-  PA20-clear samples.
+- `5306h` samples PA5 through PA mask 20h three times per interval; `D` increments only for
+  PA mask 20h clear samples.
 - Success seeds `EF0F=EF11=0003h`.
 
 `53B9h` later compares requested positions against `EF0F` with a `001Ah`
@@ -104,7 +104,7 @@ selects CW/CCW. Exact active polarity still needs manual/schematic correlation.
 
 ## Open Items
 
-- Confirm active HOME polarity for pulled-up PA5 / `PA20`.
+- Confirm active HOME polarity for pulled-up PA5 / `PA mask 20h`.
 - Correlate F003 bit polarity and `VV3A`/`VV6F` selector values to manual Table
   2-7 speed/excitation mode names.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`

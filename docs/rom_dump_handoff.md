@@ -120,13 +120,13 @@ the workspace loss.
       `55CBh` because uPD7810 `BLOCK` copies `C+1` bytes; for the selected
       `708Eh` command-feed record, the copied `EF60` value is `00`.
       Separately, startup calls the carriage home-seek path at `51F7h-5253h`.
-      It branches on raw `PA20` set/clear state, performs a short `0004h`
-      probe when PA20 starts clear, a fixed `000Ah` confirmation move across
+      It branches on raw `PA mask 20h` set/clear state, performs a short `0004h`
+      probe when PA mask 20h starts clear, a fixed `000Ah` confirmation move across
       the edge, and long `13ECh` seeks on the other legs; the branch map is in
-      `data/lq500_3c_carriage_home_seek.tsv`. `5306h` samples PA20 three times
-      per timing interval and increments `D` only for PA20-clear samples.
+      `data/lq500_3c_carriage_home_seek.tsv`. `5306h` samples PA5 through PA mask 20h three times
+      per timing interval and increments `D` only for PA mask 20h clear samples.
       Schematic review identifies this as physical PA5 with a 15K pullup to
-      `+5 V`, so PA20-clear samples mean the line is being pulled low. The
+      `+5 V`, so PA mask 20h clear samples mean the line is being pulled low. The
       success path seeds `EF0F=EF11=0003h`; `53B9h` later compares targets
       against `EF0F` with a `001Ah` limit, but the firmware expression of the
       manual's 22 phase-switch print-area offset is not yet proven.
