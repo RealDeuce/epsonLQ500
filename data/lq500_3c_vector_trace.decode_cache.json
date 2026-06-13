@@ -25544,12 +25544,54 @@
     "rest": "",
     "text": "23e8: b8     RET"
   },
+  "0x23E9": {
+    "addr": 9193,
+    "size": 1,
+    "op": "INX",
+    "rest": "SP",
+    "text": "23e9: 02     INX     SP"
+  },
+  "0x23EA": {
+    "addr": 9194,
+    "size": 2,
+    "op": "LDAW",
+    "rest": "VV:03",
+    "text": "23ea: 01 03  LDAW    VV:03"
+  },
+  "0x23EC": {
+    "addr": 9196,
+    "size": 2,
+    "op": "LDAW",
+    "rest": "VV:04",
+    "text": "23ec: 01 04  LDAW    VV:04"
+  },
+  "0x23EE": {
+    "addr": 9198,
+    "size": 2,
+    "op": "LDAW",
+    "rest": "VV:06",
+    "text": "23ee: 01 06  LDAW    VV:06"
+  },
+  "0x23F0": {
+    "addr": 9200,
+    "size": 2,
+    "op": "LDAW",
+    "rest": "VV:01",
+    "text": "23f0: 01 01  LDAW    VV:01"
+  },
   "0x23F1": {
     "addr": 9201,
     "size": 2,
     "op": "LDAW",
     "rest": "VV:3A",
     "text": "23f1: 01 3a  LDAW    VV:3A"
+  },
+  "0x23F2": {
+    "addr": 9202,
+    "size": 1,
+    "op": "STAX",
+    "rest": "(DE)",
+    "text": "23f2: 3a     STAX    (DE)"
   },
   "0x23F3": {
     "addr": 9203,

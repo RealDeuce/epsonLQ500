@@ -54,6 +54,18 @@ address	source	note
 0x4399	command_handler	ESC T handler (super/subscript off)
 0x439E	command_handler	SI handler (condensed on); sets VV:22 bit 5
 0x43A2	command_handler	DC2 handler (condensed off); expected to clear VV:23 bit 4
+0x217C	render_band	Render-band image buffer development; called from 286Eh/289Dh
+0x23E9	render_band	Render-band dispatch table at 23E9h; JEA target from 23E2h/240Ah
+0x4AA8	effect_function	2-byte column copy to 3-byte work rows; gated by VV:28.4 (super/subscript)
+0x49C5	effect_function	Gated by VV:27.7 (condensed-Draft)
+0x47CB	effect_function	Gated by VV:29.4 (emphasized)
+0x4C16	effect_function	Gated by VV:29.7 (internal render flag)
+0x4830	effect_function	Gated by VV:29 bits 0+1 (double-wide)
+0x4ACE	effect_function	Gated by VV:27 bits 4+3 (italic available)
+0x4900	effect_function	Gated by VV:2A.7 (double-height)
+0x43DD	effect_function	1-byte column OR overlay; gated by VV:2A.6 (unused on LQ-500)
+0x444A	effect_function	Column copy variant; gated by VV:2A.5 (unused on LQ-500)
+0x44C4	effect_function	Render variant; gated by VV:2A bits 5+6 (unused on LQ-500)
 0x0F16	command_handler	ESC w handler (double-height); sets/clears VV:25 bit 7
 0x0F21	command_handler	ESC p handler (proportional); sets/clears VV:23 bit 5
 0x0F42	command_handler	ESC ! (Master Select) handler; maps parameter bits to VV:22/VV:23/VV:24 style flags
