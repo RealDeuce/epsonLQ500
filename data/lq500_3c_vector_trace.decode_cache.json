@@ -8653,6 +8653,230 @@
     "rest": "",
     "text": "0e7c: b8        RET"
   },
+  "0x0F16": {
+    "addr": 3862,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0086)",
+    "text": "0f16: 83        CALT    ($0086)"
+  },
+  "0x0F17": {
+    "addr": 3863,
+    "size": 1,
+    "op": "JR",
+    "rest": "$0F1C",
+    "text": "0f17: c4        JR      $0F1C"
+  },
+  "0x0F1C": {
+    "addr": 3868,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:25,$80",
+    "text": "0f1c: 15 25 80  ORIW    VV:25,$80"
+  },
+  "0x0F1F": {
+    "addr": 3871,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "0f1f: 89        CALT    ($0092)"
+  },
+  "0x0F20": {
+    "addr": 3872,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "0f20: b8        RET"
+  },
+  "0x0F21": {
+    "addr": 3873,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0086)",
+    "text": "0f21: 83        CALT    ($0086)"
+  },
+  "0x0F22": {
+    "addr": 3874,
+    "size": 1,
+    "op": "JR",
+    "rest": "$0F27",
+    "text": "0f22: c4        JR      $0F27"
+  },
+  "0x0F27": {
+    "addr": 3879,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:23,$20",
+    "text": "0f27: 15 23 20  ORIW    VV:23,$20"
+  },
+  "0x0F2A": {
+    "addr": 3882,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "0f2a: 89        CALT    ($0092)"
+  },
+  "0x0F2B": {
+    "addr": 3883,
+    "size": 3,
+    "op": "JMP",
+    "rest": "$7B52",
+    "text": "0f2b: 54 52 7b  JMP     $7B52"
+  },
+  "0x0F42": {
+    "addr": 3906,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0080)",
+    "text": "0f42: 80        CALT    ($0080)"
+  },
+  "0x0F43": {
+    "addr": 3907,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:22,$DF",
+    "text": "0f43: 05 22 df  ANIW    VV:22,$DF"
+  },
+  "0x0F46": {
+    "addr": 3910,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:23,$5C",
+    "text": "0f46: 05 23 5c  ANIW    VV:23,$5C"
+  },
+  "0x0F49": {
+    "addr": 3913,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:24,$A4",
+    "text": "0f49: 05 24 a4  ANIW    VV:24,$A4"
+  },
+  "0x0F4C": {
+    "addr": 3916,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$80",
+    "text": "0f4c: 57 80     OFFI    A,$80"
+  },
+  "0x0F4E": {
+    "addr": 3918,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:23,$01",
+    "text": "0f4e: 15 23 01  ORIW    VV:23,$01"
+  },
+  "0x0F51": {
+    "addr": 3921,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$40",
+    "text": "0f51: 57 40     OFFI    A,$40"
+  },
+  "0x0F53": {
+    "addr": 3923,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:24,$08",
+    "text": "0f53: 15 24 08  ORIW    VV:24,$08"
+  },
+  "0x0F56": {
+    "addr": 3926,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$20",
+    "text": "0f56: 57 20     OFFI    A,$20"
+  },
+  "0x0F58": {
+    "addr": 3928,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:24,$03",
+    "text": "0f58: 15 24 03  ORIW    VV:24,$03"
+  },
+  "0x0F5B": {
+    "addr": 3931,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$10",
+    "text": "0f5b: 57 10     OFFI    A,$10"
+  },
+  "0x0F5D": {
+    "addr": 3933,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:24,$40",
+    "text": "0f5d: 15 24 40  ORIW    VV:24,$40"
+  },
+  "0x0F60": {
+    "addr": 3936,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$08",
+    "text": "0f60: 57 08     OFFI    A,$08"
+  },
+  "0x0F62": {
+    "addr": 3938,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:24,$10",
+    "text": "0f62: 15 24 10  ORIW    VV:24,$10"
+  },
+  "0x0F65": {
+    "addr": 3941,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$04",
+    "text": "0f65: 57 04     OFFI    A,$04"
+  },
+  "0x0F67": {
+    "addr": 3943,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:22,$20",
+    "text": "0f67: 15 22 20  ORIW    VV:22,$20"
+  },
+  "0x0F6A": {
+    "addr": 3946,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$02",
+    "text": "0f6a: 57 02     OFFI    A,$02"
+  },
+  "0x0F6C": {
+    "addr": 3948,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:23,$20",
+    "text": "0f6c: 15 23 20  ORIW    VV:23,$20"
+  },
+  "0x0F6F": {
+    "addr": 3951,
+    "size": 2,
+    "op": "OFFI",
+    "rest": "A,$01",
+    "text": "0f6f: 57 01     OFFI    A,$01"
+  },
+  "0x0F71": {
+    "addr": 3953,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:23,$02",
+    "text": "0f71: 15 23 02  ORIW    VV:23,$02"
+  },
+  "0x0F74": {
+    "addr": 3956,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "0f74: 89        CALT    ($0092)"
+  },
+  "0x0F75": {
+    "addr": 3957,
+    "size": 3,
+    "op": "JMP",
+    "rest": "$7B52",
+    "text": "0f75: 54 52 7b  JMP     $7B52"
+  },
   "0x0F78": {
     "addr": 3960,
     "size": 1,
@@ -34342,6 +34566,167 @@
     "op": "RET",
     "rest": "",
     "text": "4314: b8        RET"
+  },
+  "0x437E": {
+    "addr": 17278,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0082)",
+    "text": "437e: 81     CALT    ($0082)"
+  },
+  "0x437F": {
+    "addr": 17279,
+    "size": 2,
+    "op": "LTI",
+    "rest": "A,$30",
+    "text": "437f: 37 30  LTI     A,$30"
+  },
+  "0x4381": {
+    "addr": 17281,
+    "size": 2,
+    "op": "SUI",
+    "rest": "A,$30",
+    "text": "4381: 66 30  SUI     A,$30"
+  },
+  "0x4383": {
+    "addr": 17283,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$00",
+    "text": "4383: 67 00  NEI     A,$00"
+  },
+  "0x4385": {
+    "addr": 17285,
+    "size": 2,
+    "op": "JRE",
+    "rest": "$438C",
+    "text": "4385: 4e 05     JRE     $438C"
+  },
+  "0x4387": {
+    "addr": 17287,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$01",
+    "text": "4387: 67 01     NEI     A,$01"
+  },
+  "0x4389": {
+    "addr": 17289,
+    "size": 2,
+    "op": "JRE",
+    "rest": "$4391",
+    "text": "4389: 4e 06     JRE     $4391"
+  },
+  "0x438B": {
+    "addr": 17291,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "438b: b8        RET"
+  },
+  "0x438C": {
+    "addr": 17292,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:23,$18",
+    "text": "438c: 15 23 18  ORIW    VV:23,$18"
+  },
+  "0x438F": {
+    "addr": 17295,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "438f: 89        CALT    ($0092)"
+  },
+  "0x4390": {
+    "addr": 17296,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "4390: b8        RET"
+  },
+  "0x4391": {
+    "addr": 17297,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:23,$F7",
+    "text": "4391: 05 23 f7  ANIW    VV:23,$F7"
+  },
+  "0x4394": {
+    "addr": 17300,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:23,$10",
+    "text": "4394: 15 23 10  ORIW    VV:23,$10"
+  },
+  "0x4397": {
+    "addr": 17303,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "4397: 89        CALT    ($0092)"
+  },
+  "0x4398": {
+    "addr": 17304,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "4398: b8        RET"
+  },
+  "0x4399": {
+    "addr": 17305,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:23,$EF",
+    "text": "4399: 05 23 ef  ANIW    VV:23,$EF"
+  },
+  "0x439C": {
+    "addr": 17308,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "439c: 89        CALT    ($0092)"
+  },
+  "0x439D": {
+    "addr": 17309,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "439d: b8        RET"
+  },
+  "0x439E": {
+    "addr": 17310,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:22,$20",
+    "text": "439e: 15 22 20  ORIW    VV:22,$20"
+  },
+  "0x43A1": {
+    "addr": 17313,
+    "size": 1,
+    "op": "JR",
+    "rest": "$43A5",
+    "text": "43a1: c3        JR      $43A5"
+  },
+  "0x43A2": {
+    "addr": 17314,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:22,$DF",
+    "text": "43a2: 05 22 df  ANIW    VV:22,$DF"
+  },
+  "0x43A5": {
+    "addr": 17317,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0092)",
+    "text": "43a5: 89        CALT    ($0092)"
+  },
+  "0x43A6": {
+    "addr": 17318,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "43a6: b8        RET"
   },
   "0x43DD": {
     "addr": 17373,

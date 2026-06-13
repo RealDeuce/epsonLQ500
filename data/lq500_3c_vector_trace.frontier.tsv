@@ -21,7 +21,10 @@ address	kind	size	classification	text
 0x0B28	untraced_gap_start	9	likely_data_or_untraced_code	-
 0x0B55	untraced_gap_start	6	likely_data_or_untraced_code	-
 0x0B7B	untraced_gap_start	747	likely_data_or_untraced_code	-
-0x0E7D	untraced_gap_start	251	likely_data_or_untraced_code	-
+0x0E7D	untraced_gap_start	153	likely_data_or_untraced_code	-
+0x0F18	untraced_gap_start	4	likely_data_or_untraced_code	-
+0x0F23	untraced_gap_start	4	likely_data_or_untraced_code	-
+0x0F2E	untraced_gap_start	20	likely_data_or_untraced_code	-
 0x0FD0	untraced_gap_start	138	likely_data_or_untraced_code	-
 0x10A2	untraced_gap_start	5	likely_data_or_untraced_code	-
 0x11DF	untraced_gap_start	1	likely_data_or_untraced_code	-
@@ -49,7 +52,8 @@ address	kind	size	classification	text
 0x401D	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x418F	untraced_gap_start	203	likely_data_or_untraced_code	-
 0x4267	untraced_gap_start	129	likely_data_or_untraced_code	-
-0x4315	untraced_gap_start	200	likely_data_or_untraced_code	-
+0x4315	untraced_gap_start	105	likely_data_or_untraced_code	-
+0x43A7	untraced_gap_start	54	likely_data_or_untraced_code	-
 0x4C6C	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x4C85	untraced_gap_start	12	likely_data_or_untraced_code	-
 0x4F36	untraced_gap_start	1	likely_data_or_untraced_code	-

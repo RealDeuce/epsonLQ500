@@ -390,24 +390,36 @@ single expansion engine. The dispatch at `1ABFh-1B18h` conditionally calls
 each effect function based on `VV:27`/`VV:28`/`VV:29`/`VV:2A` flags.
 Multiple effects can be applied in sequence to the same glyph data.
 
-| Order | Condition | Address |
-| --- | --- | --- |
-| 1 | VV:28 bit 4 clear | `$4AA8` |
-| 2 | VV:27 bit 7 clear | `$49C5` |
-| 3 | VV:29 bit 4 clear | `$47CB` |
-| 4 | VV:29 bit 7 clear | `$4C16` |
-| 5 | VV:29 bits 0+1 clear | `$4830` |
-| 6 | VV:27 bits 4+3 clear | `$4ACE` |
-| 7 | VV:2A bits 5+6 = 11 | `$44C4` |
-| 8 | VV:2A bit 6 clear | `$43DD` |
-| 9 | VV:2A bit 5 clear | `$444A` |
-| 10 | VV:2A bit 7 clear | `$4900` |
+| Order | Condition | Address | Gate (from ESC ! and individual commands) |
+| --- | --- | --- | --- |
+| 1 | VV:28 bit 4 clear | `$4AA8` | Not super/subscript (VV:23.4 = ESC S/T) |
+| 2 | VV:27 bit 7 clear | `$49C5` | VV:22.7 (render mode flag from `14C6h`) |
+| 3 | VV:29 bit 4 clear | `$47CB` | Not emphasized (VV:24.4 = ESC E/F) |
+| 4 | VV:29 bit 7 clear | `$4C16` | VV:24.7 (render flag) |
+| 5 | VV:29 bits 0+1 clear | `$4830` | Not double-width (VV:24.0+1 = ESC W/ESC ! bit 5) |
+| 6 | VV:27 bits 4+3 clear | `$4ACE` | VV:22 bits 4+3 (classifier flags) |
+| 7 | VV:2A bits 5+6 = 11 | `$44C4` | VV:25 bits 5+6 |
+| 8 | VV:2A bit 6 clear | `$43DD` | VV:25.6 |
+| 9 | VV:2A bit 5 clear | `$444A` | VV:25.5 |
+| 10 | VV:2A bit 7 clear | `$4900` | Not double-height (VV:25.7 = ESC w) |
 
-The effect names and the mapping from VV flags to ESC/P commands (bold,
-double-strike, condensed, double-width, italic, etc.) have not been
-correlated yet. The flags come from VV:27 (font-style selector), VV:28
-(compiled config), VV:29 (render setup), and VV:2A (style bits), which
-are set by `14C6h` font reconfig and individual style commands.
+VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
+Confirmed VV bit assignments from ESC ! Master Select (`0F42h`) and
+individual command handlers:
+
+| VV register | Bit | ESC/P effect | Set by |
+| --- | --- | --- | --- |
+| VV:22 | 5 | Condensed | SI/DC2, ESC ! bit 2 |
+| VV:23 | 0 | Underline | ESC -, ESC ! bit 7 |
+| VV:23 | 1 | Elite (12 cpi) | ESC M, ESC ! bit 0 |
+| VV:23 | 3 | Superscript flag | ESC S 0 |
+| VV:23 | 4 | Super/subscript active | ESC S 0/1, ESC T |
+| VV:23 | 5 | Proportional | ESC p, ESC ! bit 1 |
+| VV:24 | 0+1 | Double-width | ESC W, ESC ! bit 5 |
+| VV:24 | 3 | Italic | ESC 4/5, ESC ! bit 6 |
+| VV:24 | 4 | Emphasized | ESC E/F, ESC ! bit 3 |
+| VV:24 | 6 | Double-strike | ESC G/H, ESC ! bit 4 |
+| VV:25 | 7 | Double-height | ESC w |
 
 The CG bank set by `1774h` remains active throughout — no F002 writes occur
 during the effect chain. Two CG column formats are confirmed:
