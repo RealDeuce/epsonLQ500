@@ -261,10 +261,10 @@ gate-array `TM` pulse on CPU `PC7`.
 Service-manual pages 68-85 identify the carriage motor as a gate-array mediated
 stepper path. CPU `CO1`/`PC7` feeds the E01A05KA `TM` input; after each pulse,
 the gate array performs the carriage phase switching. The manual's carriage
-control table is printed as `WR F002H`, while surrounding text says the carriage
-motor control port is assigned to `F003h`. Firmware writes `F003h` through
-`51F2h`, so `F003h` is the working ROM anchor unless the schematic proves the
-manual table address instead.
+control prose assigns the motor control port to `F003h`; its Table 2-4 header is
+printed as `WR F002H`, which is treated as a table typo. Firmware writes the
+carriage control shadow `VV15` to `F003h` through `51F2h`, while `F002h` is the
+bank-selector path.
 
 | Address | Working label | Evidence |
 | --- | --- | --- |

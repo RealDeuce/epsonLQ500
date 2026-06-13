@@ -44,8 +44,8 @@ firmware uses external windows and buffers outside this ROM:
 | `FF00h` | Scratch/print string buffer. |
 | `F000h` | Gate-array/status or host data byte read by the `0582h` ISR. Candidate parallel-port input path, but the exact board signal is still unconfirmed. |
 | `F001h` | Gate-array control/select register. Manual says bit 7 low selects external PROM when valid. Firmware also toggles bits 0, 1, 2, and 3 here. |
-| `F002h` | Gate-array bank register. Manual says bank lines 7 and 6 are involved in CG selection. |
-| `F003h` | Gate-array/status or mode register; initialized from `VV15`. |
+| `F002h` | Gate-array bank register. Manual says bank lines 7 and 6 are involved in CG selection; firmware uses it around banked ROM/window reads. |
+| `F003h` | Gate-array carriage control register initialized from `VV15`. The `WR F002H` header in manual Table 2-4 is treated as a table typo. |
 | `F004h-F005h` | Gate-array/head-interface registers touched during CPU/port init and print paths. |
 
 ## Top-Level Segments
@@ -134,10 +134,10 @@ The most important hardware anchors for CG/ROM-bank work are:
 
 - `F001h`: touched in reset at `01BFh`/`01E3h`, ISR paths at `05C0h` and
   `0A85h`, and the helper cluster at `4DECh-4EDEh`.
-- `F002h`: written in ISR buffering paths (`05B6h`, `060Eh`, `062Dh`,
+- `F002h`: bank-selector path written in ISR buffering paths (`05B6h`, `060Eh`, `062Dh`,
   `064Ah`, `065Eh`, `06EEh`) and helper paths (`084Eh`, `086Eh`, `089Fh`,
   `08C6h`, `0A46h`, `0A4Eh`, `0B23h`, `508Dh`, `7594h` reads it).
-- `F003h`: initialized at `0315h` and `0497h`; updated through CALT vectors
+- `F003h`: carriage-control path initialized at `0315h` and `0497h`; updated through CALT vectors
   `00B8h` -> `51EDh` (AND `VV15`) and `00BAh` -> `51E9h` (OR `VV15`), with
   both helpers writing `F003h` through `51F2h`.
 - `F004h/F005h`: initialized at `0487h-0492h`; `08D0h` writes `F004=0C0h`
@@ -311,8 +311,8 @@ Startup panel mode dispatch:
   separation. The current labels only mark high-fan-in helpers.
 - `4000h-5793h` may be alternate/external-PROM-related code or a second major
   firmware body behind the `PBLS` check. It is real code, not filler.
-- The relationship between `F002h` writes and the 4C `BK2`/`A15`,
-  `BK3`/`A16`, and `/CE` selection is not yet resolved.
+- `F002h` is the bank-selector path, but the exact value-to-line mapping for
+  4C `BK2`/`A15`, `BK3`/`A16`, and `/CE` is not yet resolved.
 
 ## Next Pass
 

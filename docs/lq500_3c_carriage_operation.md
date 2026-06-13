@@ -23,10 +23,10 @@ stepper path. CPU `CO1`/`PC7` feeds the E01A05KA gate-array `TM` input; after
 each pulse, the gate array performs carriage phase switching. Firmware `0908h`
 pulses `PC7` and is therefore the carriage phase-step pulse anchor.
 
-The manual's carriage control table is printed as `WR F002H`, while surrounding
-text says the carriage motor control port is assigned to `F003h`. Firmware uses
-`VV15`/`F003h` through direct writes and CALT helpers, so `F003h` is the working
-ROM anchor unless schematic or scope evidence proves otherwise.
+The manual's carriage control prose assigns the motor control port to `F003h`.
+Its Table 2-4 header is printed as `WR F002H`, which is treated as a table typo:
+firmware uses `VV15`/`F003h` through direct writes and CALT helpers for carriage
+control, while `F002h` is the bank-selector path.
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
