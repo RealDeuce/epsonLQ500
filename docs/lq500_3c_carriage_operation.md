@@ -39,9 +39,8 @@ ROM anchor unless schematic or scope evidence proves otherwise.
 Startup calls the carriage home-seek path at `51F7h-5253h`. This path samples
 raw `PA mask 20h`, runs carriage timing tables, and pulses the gate-array `TM` input
 rather than the paper-feed `PB3`/`PB4` phase bits. Schematic review identifies
-this input as physical PA5 with a 15K pullup to `+5 V`, so a clear sample means
-the line is being pulled low. Active HOME polarity still depends on the switch
-circuit.
+this input as physical PA5 with a 15K pullup to `+5 V`. The HOME switch closes
+to ground, so a clear sample is an active-low HOME assertion.
 
 The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 
@@ -104,7 +103,8 @@ selects CW/CCW. Exact active polarity still needs manual/schematic correlation.
 
 ## Open Items
 
-- Confirm active HOME polarity for pulled-up PA5 / `PA mask 20h`.
+- Map the active-low HOME branch sequence to the service-manual starting-position
+  cases.
 - Correlate F003 bit polarity and `VV3A`/`VV6F` selector values to manual Table
   2-7 speed/excitation mode names.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`

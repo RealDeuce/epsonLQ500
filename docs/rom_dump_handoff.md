@@ -126,7 +126,8 @@ the workspace loss.
       `data/lq500_3c_carriage_home_seek.tsv`. `5306h` samples PA5 through PA mask 20h three times
       per timing interval and increments `D` only for PA mask 20h clear samples.
       Schematic review identifies this as physical PA5 with a 15K pullup to
-      `+5 V`, so PA mask 20h clear samples mean the line is being pulled low. The
+      `+5 V`; the HOME switch closes to ground, so PA mask 20h clear samples
+      are active-low HOME assertions. The
       success path seeds `EF0F=EF11=0003h`; `53B9h` later compares targets
       against `EF0F` with a `001Ah` limit, but the firmware expression of the
       manual's 22 phase-switch print-area offset is not yet proven.
