@@ -137,7 +137,12 @@ the workspace loss.
       `7005h` record bytes that `540Dh` maps to those current states. In
       `VV62=0` carriage mode, `540Dh` strips bit 7 before indexing the `7007h`
       jump table, so raw bytes `03h` and `83h` both select `5488h`; bit 7 is
-      handled separately as a direction/phase-control side effect.
+      handled separately as an excitation-select side effect.
+      `data/lq500_3c_f003_control_paths.tsv` decodes that side effect and the
+      other F003 updates: `CALT 00B8h` vectors to `51EDh` for AND masks,
+      `CALT 00BAh` vectors to `51E9h` for OR masks, `540Dh` maps selected
+      state-byte bit 7 to F003 bit 0, and `5625h-5630h` maps `VV61.0` to F003
+      bit 1. Exact active polarity still needs manual/schematic correlation.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`

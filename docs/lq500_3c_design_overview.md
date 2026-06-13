@@ -261,7 +261,7 @@ manual table address instead.
 | Address | Working label | Evidence |
 | --- | --- | --- |
 | `0908h` | `carriage_gate_array_tm_pulse` | Writes `MB=03h`, pulses `PC bit 7` low then high, and updates motion counters. Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input. |
-| `51E9h`/`51EDh`/`51F2h` | `write_carriage_control_f003_from_vv15` | Root-confirmed helpers: `51E9h` ORs `A` into `VV15`, `51EDh` ANDs `A` with `VV15`, `51F0h` stores the result, and `51F2h` writes `F003h`. Manual carriage-control bits are enable, phase polarity, direction, and excitation mode. No traced caller or literal `CALL` byte sequence to these helpers is identified yet. |
+| `00B8h`/`00BAh`/`51E9h`/`51EDh`/`51F2h` | `write_carriage_control_f003_from_vv15` | CALT vectors at `00B8h`/`00BAh` enter the root-confirmed `51EDh` AND helper and `51E9h` OR helper. `51F0h` stores the updated `VV15`, and `51F2h` writes `F003h`. Manual carriage-control bits are enable, phase polarity, direction, and excitation mode. |
 | `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`. Branches on raw `PA20` set/clear state, seeds `VV61` with direction/mode values, and calls the timed seek sequence at `5253h`. |
 | `5253h` | `startup_carriage_home_seek_timed_sequence` | Selects current state `547Eh`, walks carriage timing tables around `7287h`/`72AFh`, samples `PA20` through `5306h`, pulses `PC7` through `0908h`, then restores hold state `546Ah`. |
 | `5306h` | `sample_pa20_clear_count_during_carriage_delay` | Splits a delay interval into thirds and samples `PA20` three times; `D` increments only for PA20-clear samples. |
@@ -303,6 +303,17 @@ bytes `03h` and `83h` select normalized index 3 and reach `5488h`; records
 `0` and `1` use the low-current state through `EF4Dh`/`EF4Eh`, while records
 `2` through `4` use it through `EF4Dh=83h`.
 
+The F003 control helper call paths are decoded in
+`data/lq500_3c_f003_control_paths.tsv`. `CALT ($00B8)` is the AND-update
+vector to `51EDh`, and `CALT ($00BA)` is the OR-update vector to `51E9h`.
+Startup home seek uses those vectors to set up F003 bits 0 and 1 for each seek
+leg. During normal `540Dh` dispatch, selected state-byte bit 7 controls F003
+bit 0 before the byte is masked with `7Fh` for the current-state jump table;
+after record setup, `5625h-5630h` maps `VV61.0` to F003 bit 1. This ties the
+record high bit to the manual excitation-select bit and `VV61.0` to the manual
+direction bit, while exact active polarity is still left to manual/schematic
+correlation.
+
 The normal carriage scheduler path is now separated from the paper-feed
 `5676h` callers. `5676h` copies fifteen bytes from `EF38..EF46` to
 `EF6D..EF7B`; the byte mapping makes `EF3A` become `VV6F`, which is the record
@@ -321,8 +332,9 @@ state copies put the same selector byte into `VV6F` for the carriage TM1 record
 selection. `563Ch` also uses `VV6F.1` as a count-scale bit: when set, `EF64` is
 halved before being saved as `EF79`. The current side-by-side selector map is in
 `data/lq500_3c_vv3a_mode_selector.tsv`; exact user-facing speed/excitation mode
-names still need correlation to the `F003h` helper callers, but the current
-states selected by the normal `7005h` records are now decoded separately.
+names still need bit-polarity correlation, but the current states selected by
+the normal `7005h` records and the F003 helper call paths are now decoded
+separately.
 
 The selector state path is now separated from the selector value table in
 `data/lq500_3c_carriage_mode_state.tsv`. `4038h` copies a saved print/style bank
@@ -330,8 +342,8 @@ into `VV1F`; setup paths preserve that value in `VV31` and `VV32`; active
 render/movement paths restore `VV31`/`VV32` into `VV3A`; and the scheduler-state
 copy makes source+2 become `VV6F`. This proves the state plumbing into the
 carriage records, but not the manual Table 2-7 excitation-mode name for each
-record because the `51E9h`/`51EDh`/`51F2h` `F003h` helper callers are still not
-traced.
+record because the F003 bit polarity still needs to be correlated with the
+manual mode names.
 
 ### Head / Pin Firing
 

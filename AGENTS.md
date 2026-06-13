@@ -42,6 +42,8 @@ manual notes, or hardware measurements.
   `72B3h-72D8h` carriage scheduler records copied to `EF7C..EF80`.
 - `data/lq500_3c_carriage_output_state_records.tsv`: decoded normal
   `7005h` record bytes that `540Dh` maps to carriage current states.
+- `data/lq500_3c_f003_control_paths.tsv`: CALT vector and caller map for
+  `VV15`/`F003h` carriage control-bit updates.
 - `data/lq500_3c_carriage_scheduler_contexts.tsv`: callers and runtime-state
   paths around the normal `56C8h-5712h` carriage scheduler.
 - `data/lq500_3c_vv3a_mode_selector.tsv`: shared `VV3A`/`VV6F` selector
@@ -113,3 +115,6 @@ adding missing roots, such as hand-confirmed computed jump/table targets, to
 - uPD7810 `BLOCK` copies one byte, increments source/destination, decrements
   `C`, and repeats by backing up `PC` until `C` underflows to `FFh`. Thus an
   initial `C=n` copies `n+1` bytes.
+- uPD7810 `CALT` entries are vector-table entries, not linear code. For
+  example, bytes at `00B8h`/`00BAh` are the vectors to `51EDh`/`51E9h`;
+  do not treat the apparent linear disassembly at those bytes as executed code.
