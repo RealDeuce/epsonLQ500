@@ -62,7 +62,8 @@ the workspace loss.
   - current naming focus is mechanical outputs, in priority order:
     paper advance/retard, carriage movement, and pin firing. Cut-sheet feeder
     and other option mechanisms are lower priority unless they share these
-    output paths.
+    output paths. Pin firing is a separate head-output workstream, not an open
+    item under carriage movement.
     - paper-feed hardware anchor from service manual Figure 2-47: the paper
       feed motor is a 4-phase, 48-step motor using 2-2 phase excitation. One
       phase switch advances paper `1/180` inch. `PB2` is active-low drive:

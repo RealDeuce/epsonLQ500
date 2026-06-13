@@ -199,7 +199,8 @@ quality, width, and style combinations.
 
 Current priority is paper advance/retard, carriage movement, and pin firing.
 Cut-sheet feeder and other option-specific mechanisms should stay secondary
-unless they share one of these output paths.
+unless they share one of these output paths. Pin firing is tracked as a
+separate head-output workstream, not as part of carriage movement.
 
 ### Paper Feed Stepper Phase
 
@@ -346,6 +347,10 @@ record because the F003 bit polarity still needs to be correlated with the
 manual mode names.
 
 ### Head / Pin Firing
+
+This is intentionally separate from carriage movement. The carriage work covers
+carriage position, timing, current, home seek, and F003/TM control; pin firing
+will be decoded as its own output group.
 
 `F004h/F005h` look like the head-interface registers. `045Dh` initializes
 `F004=20h` and clears three writes through `F005h`; the print path later uses

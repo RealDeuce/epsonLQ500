@@ -158,7 +158,8 @@ directly write `F002h`.
 
 The current mechanical priority order is paper advance/retard, carriage
 movement, and pin firing. Option mechanisms such as the cut-sheet feeder remain
-lower priority unless they share these paths.
+lower priority unless they share these paths. Pin firing is a separate
+head-output workstream, not part of the carriage movement scope.
 
 | Mechanism | Best current anchors | Firmware evidence |
 | --- | --- | --- |
