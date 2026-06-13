@@ -39,8 +39,9 @@ control.
 Startup calls the carriage home-seek path at `51F7h-5253h`. This path samples
 raw `PA mask 20h`, runs carriage timing tables, and pulses the gate-array `TM` input
 rather than the paper-feed `PB3`/`PB4` phase bits. Schematic review identifies
-this input as physical PA5 with a 15K pullup to `+5 V`. The HOME switch closes
-to ground, so a clear sample is an active-low HOME assertion.
+this input as physical PA5 with a 15K pullup to `+5 V`. The HOME switch is at
+the far-left end of carriage travel and closes to ground, so a clear sample is
+an active-low HOME assertion.
 
 The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 
@@ -104,7 +105,7 @@ detailed Tables 2-8 and 2-9, not as a separate polarity source.
 
 ## Open Items
 
-- Identify the motion direction and HOME edge used by each startup seek leg,
+- Identify which far-left HOME edge each startup seek leg is searching for,
   then tie the successful edge to the `EF0F`/`EF11=0003h` reference point.
 - Map `VV3A`/`VV6F` selector values to the Table 2-7 rows, then use Tables
   2-8/2-9 for the detailed carriage mode behavior.
