@@ -48,6 +48,7 @@ The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 - Short `0004h` probe when PA mask 20h starts clear.
 - Long `13ECh` seek when PA mask 20h starts set or becomes set after the probe.
 - Fixed `000Ah` confirmation move across the edge.
+- HOME asserted after the confirmation/move-away check is an error condition.
 - Final long `13ECh` seek before success.
 - `5306h` samples PA5 through PA mask 20h three times per interval; `D` increments only for
   PA mask 20h clear samples.
@@ -105,8 +106,8 @@ detailed Tables 2-8 and 2-9, not as a separate polarity source.
 
 ## Open Items
 
-- Identify which far-left HOME edge each startup seek leg is searching for,
-  then tie the successful edge to the `EF0F`/`EF11=0003h` reference point.
+- Resolve F003 bit1/`VV61.0` direction polarity for the startup home probe,
+  move-away check, and final return-to-home leg.
 - Map `VV3A`/`VV6F` selector values to the Table 2-7 rows, then use Tables
   2-8/2-9 for the detailed carriage mode behavior.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`
