@@ -18,6 +18,12 @@ manual notes, or hardware measurements.
 - `docs/rom_dump_handoff.md`: resume point and current state.
 - `docs/lq500_3c_program_rom_map.md`: conservative program ROM map.
 - `docs/lq500_3c_design_overview.md`: architecture notes and current theory.
+- `docs/lq500_3c_paper_feed.md`: paper advance/retard hardware, command path,
+  timing, and drive-window notes.
+- `docs/lq500_3c_carriage_operation.md`: carriage home seek, timing, current,
+  F003 control, and scheduler notes.
+- `docs/lq500_3c_printhead.md`: printhead register anchors and pin-firing
+  workstream notes.
 - `docs/lq500_reference.md`: extracted manual facts.
 - `data/lq500_3c_program_labels.tsv`: working symbol labels.
 - `data/lq500_3c_command_dispatch_tables.tsv`: parsed primary/ESC command

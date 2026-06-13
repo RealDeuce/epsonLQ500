@@ -7,6 +7,9 @@ Source dump:
 - SHA1 `7275ef3547ad1bbb12210d626c796a827f308bb6`
 - Disassembly: `roms/lq500_3c_m25a10pa_internal_prom.asm`
 - First-pass labels: `data/lq500_3c_program_labels.tsv`
+- Paper feed detail: `docs/lq500_3c_paper_feed.md`
+- Carriage operation detail: `docs/lq500_3c_carriage_operation.md`
+- Printhead detail: `docs/lq500_3c_printhead.md`
 - `6000h-6FFFh` data usage: `data/lq500_3c_6000_block_usage.tsv`
 - `7000h-7FFFh` data/code usage: `data/lq500_3c_7000_block_usage.tsv`
 - Parsed command dispatch tables: `data/lq500_3c_command_dispatch_tables.tsv`
@@ -156,16 +159,21 @@ directly write `F002h`.
 
 ## Mechanical Output Anchors
 
-The current mechanical priority order is paper advance/retard, carriage
-movement, and pin firing. Option mechanisms such as the cut-sheet feeder remain
-lower priority unless they share these paths. Pin firing is a separate
-head-output workstream, not part of the carriage movement scope.
+Mechanical documentation is split by subsystem:
+
+- Paper Feed: `docs/lq500_3c_paper_feed.md`
+- Carriage Operation: `docs/lq500_3c_carriage_operation.md`
+- Printhead: `docs/lq500_3c_printhead.md`
+
+Option mechanisms such as the cut-sheet feeder remain lower priority unless
+they share these paths. Pin firing is a separate head-output workstream, not
+part of the carriage movement scope.
 
 | Mechanism | Best current anchors | Firmware evidence |
 | --- | --- | --- |
 | Paper feed phase / drive | `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch, with a `400 PPS` drive frequency matching the `2.5 ms` steady timing word. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB & 18h` and controls `PB & 04h` in `540Dh`. The `18h`/`04h` values are PB port masks, not pin names. `549Ch` clears `PB & 04h` low for +24 V drive; `5498h` sets it high for hold. The manual labels the excitation-table order clockwise/paper-forward, and firmware `0953h` follows that order from the reset-start phase. |
 | Carriage phase / current | `0908h`, `00B8h`, `00BAh`, `51E9h`, `51EDh`, `51F2h`, `51F7h`, `5253h`, `5306h`, `546Ah`, `5474h`, `547Eh`, `5488h`, `7287h`, `72B3h` | Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input; firmware `0908h` pulses that bit when `VV62=0`. Startup `51F7h-5253h` samples raw `PA20` while walking carriage timing tables and pulsing `TM`; active HOME polarity still depends on the switch circuit. CALT vectors at `00B8h`/`00BAh` update `VV15`/`F003h` through the `51EDh`/`51E9h` helpers; `540Dh` maps state-byte bit 7 to F003 bit 0 before selecting the current-state jump table. The `546Ah-5488h` states match the manual's carriage-current control shape; schematic review shows PB1 is AFXT/AUTOFEED and PA1 goes through a transistor to STK69818 pins 9/11, so PA1 is the SPDH speed-high selector despite the manual table's PB1 label. |
-| Head / pin firing | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
+| Printhead | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
 | Paper feed / retard command path | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance reaches the timed output scheduler through `2864h`/`5676h`. Because `2864h` sets `VV38.3`, `5676h` copies that to `VV6D.3` and takes the `569Ah-56C5h` path, setting `VV62=1`, `VV63=0`, and `EF64` from the feed-distance state. |
 
 The service manual now resolves the physical paper-feed unit: one phase switch

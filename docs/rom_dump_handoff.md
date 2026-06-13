@@ -59,11 +59,14 @@ the workspace loss.
       whose LQ-500 table entry consumes one byte only. `ESC r n` and `ESC h n`
       were not found in the checked FX-80 notes and currently look like
       one-byte compatibility/no-op consumers.
-  - current naming focus is mechanical outputs, in priority order:
-    paper advance/retard, carriage movement, and pin firing. Cut-sheet feeder
-    and other option mechanisms are lower priority unless they share these
-    output paths. Pin firing is a separate head-output workstream, not an open
-    item under carriage movement.
+  - mechanical documentation is split by subsystem:
+    `docs/lq500_3c_paper_feed.md`,
+    `docs/lq500_3c_carriage_operation.md`, and
+    `docs/lq500_3c_printhead.md`. The priority order remains paper
+    advance/retard, carriage movement, then printhead/pin firing. Cut-sheet
+    feeder and other option mechanisms are lower priority unless they share
+    these output paths. Pin firing is a separate head-output workstream, not an
+    open item under carriage movement.
     - paper-feed hardware anchor from service manual Figure 2-47: the paper
       feed motor is a 4-phase, 48-step motor using 2-2 phase excitation. One
       phase switch advances paper `1/180` inch. `PB2` is active-low drive:

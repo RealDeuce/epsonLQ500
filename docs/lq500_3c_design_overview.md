@@ -197,12 +197,19 @@ quality, width, and style combinations.
 
 ## Mechanical Outputs
 
-Current priority is paper advance/retard, carriage movement, and pin firing.
-Cut-sheet feeder and other option-specific mechanisms should stay secondary
-unless they share one of these output paths. Pin firing is tracked as a
-separate head-output workstream, not as part of carriage movement.
+Mechanical documentation is split by subsystem:
 
-### Paper Feed Stepper Phase
+| Subsystem | Detailed doc | Scope |
+| --- | --- | --- |
+| Paper Feed | `docs/lq500_3c_paper_feed.md` | Paper advance/retard, `PB2` drive/hold, `PB3`/`PB4` phase switching, ESC J/j feed distance, and paper-feed timing. |
+| Carriage Operation | `docs/lq500_3c_carriage_operation.md` | Carriage home seek, position/timing, current selection, `PC7`/`TM`, and `F003h` control. |
+| Printhead | `docs/lq500_3c_printhead.md` | Head-interface registers, print-data burst output, and future pin firing analysis. |
+
+Keep these domains separate. Print pin firing is a head-output workstream, not
+part of carriage movement, even though normal printing couples head timing to
+carriage motion.
+
+### Paper Feed
 
 The service manual identifies the paper-feed motor as a 4-phase, 48-step motor
 driven with 2-2 phase excitation. Each phase switch advances paper by `1/180`
@@ -249,7 +256,7 @@ The previous working label treated `PB mask 18h` as carriage phase output. Figur
 CPU-port bit labels. Carriage movement is now anchored separately through the
 gate-array `TM` pulse on CPU `PC7`.
 
-### Carriage Movement
+### Carriage Operation
 
 Service-manual pages 68-85 identify the carriage motor as a gate-array mediated
 stepper path. CPU `CO1`/`PC7` feeds the E01A05KA `TM` input; after each pulse,
@@ -346,7 +353,7 @@ carriage records, but not the manual Table 2-7 excitation-mode name for each
 record because the F003 bit polarity still needs to be correlated with the
 manual mode names.
 
-### Head / Pin Firing
+### Printhead
 
 This is intentionally separate from carriage movement. The carriage work covers
 carriage position, timing, current, home seek, and F003/TM control; pin firing
@@ -367,7 +374,7 @@ The main unresolved detail is whether `F005h` is a direct 24-pin latch or a
 gate-array staging port. Firmware evidence says the data is emitted as three
 successive bytes, forward or reverse depending print direction.
 
-### Paper Feed / Retard Candidate
+### Paper Feed Command Path
 
 Paper advance and reverse feed should be followed through the immediate-feed
 commands, then through the vertical-distance counters and timed output
