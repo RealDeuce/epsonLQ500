@@ -390,18 +390,18 @@ single expansion engine. The dispatch at `1ABFh-1B18h` conditionally calls
 each effect function based on `VV:27`/`VV:28`/`VV:29`/`VV:2A` flags.
 Multiple effects can be applied in sequence to the same glyph data.
 
-| Order | Condition | Address | Effect |
-| --- | --- | --- | --- |
-| 1 | VV:28.4 clear | `$4AA8` | Not super/subscript: normal 2→3 byte column copy |
-| 2 | VV:27.7 clear | `$49C5` | Not condensed-Draft mode |
-| 3 | VV:29.4 clear | `$47CB` | Not emphasized |
-| 4 | VV:29.7 clear | `$4C16` | Internal render flag (not a user command) |
-| 5 | VV:29 bits 0+1 clear | `$4830` | Not double-wide |
-| 6 | VV:27 bits 4+3 clear | `$4ACE` | Italic active and available in font |
-| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Never fires on LQ-500 (bits never set) |
-| 8 | VV:2A.6 clear | `$43DD` | Never fires on LQ-500 |
-| 9 | VV:2A.5 clear | `$444A` | Never fires on LQ-500 |
-| 10 | VV:2A.7 clear | `$4900` | Not double-height |
+| Order | Condition | Address | Effect | Data operation |
+| --- | --- | --- | --- | --- |
+| 1 | VV:28.4 set | `$4AA8` | Super/subscript active | Copies 2-byte CG columns → 3-byte with zero-fill; VV:28.3 selects upper/lower 16-pin alignment |
+| 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears destination, XOR-inverts and ANDs adjacent columns to merge/halve column count |
+| 3 | VV:29.4 set | `$47CB` | Emphasized | Copies columns with BLOCK × 3 planes plus zero padding for bold offset |
+| 4 | VV:29.7 set | `$4C16` | Double-strike prep | Clears VV:29.7, copies each 3-byte column with 3 bytes zero spacing (interleave for second strike) |
+| 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Clears double-width destination, duplicates each 3-byte column (STAX (DE+) plus STAX (DE+$02)) |
+| 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into nibbles, ORs upper nibble at current position and lower nibble at stride-offset position to create rightward slant |
+| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Unused on LQ-500 | — |
+| 8 | VV:2A.6 set | `$43DD` | Unused on LQ-500 | — |
+| 9 | VV:2A.5 set | `$444A` | Unused on LQ-500 | — |
+| 10 | VV:2A.7 set | `$4900` | Double-height | Expands each 4-bit nibble → 8 bits (each dot becomes 2-dot pair) via `$49AD`; VV:89 bits select extraction mode |
 
 VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
 Confirmed VV bit assignments from ESC ! Master Select (`0F42h`) and
