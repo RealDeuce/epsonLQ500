@@ -37,7 +37,20 @@ address	source	note
 0x112E	command_handler	ESC % handler (select user-defined character set); writes VV:1B at 1196h
 0x113D	command_handler	ESC & handler (define user-defined characters)
 0x1697	font_path	VV:05 alternate bank path; reached when 16A2h RETS because VV:04 bit 7 is set
-0x437E	command_handler	ESC S handler (super/subscript on); check which VV:23/VV:24 bits
+0x4362	command_handler	ESC E handler (emphasized on); sets VV:24 bit 4
+0x4367	command_handler	ESC F handler (emphasized off); clears VV:24 bit 4
+0x4376	command_handler	ESC G handler (double-strike on); sets VV:24 bit 6
+0x437A	command_handler	ESC H handler (double-strike off); clears VV:24 bit 6
+0x436C	command_handler	ESC 4 handler (italic on); sets VV:24 bit 3
+0x4371	command_handler	ESC 5 handler (italic off); clears VV:24 bit 3
+0x43A7	command_handler	ESC W handler (double-wide on/off)
+0x43B1	command_handler	SO handler (double-wide one line)
+0x43B5	command_handler	DC4 handler (cancel double-wide one line)
+0x43B9	command_handler	ESC - handler (underline on/off)
+0x0F2E	command_handler	ESC P handler (10 CPI)
+0x0F32	command_handler	ESC M handler (12 CPI)
+0x0F3A	command_handler	ESC g handler (15 CPI)
+0x437E	command_handler	ESC S handler (super/subscript on)
 0x4399	command_handler	ESC T handler (super/subscript off)
 0x439E	command_handler	SI handler (condensed on); sets VV:22 bit 5
 0x43A2	command_handler	DC2 handler (condensed off); expected to clear VV:23 bit 4

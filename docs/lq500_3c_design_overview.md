@@ -390,18 +390,18 @@ single expansion engine. The dispatch at `1ABFh-1B18h` conditionally calls
 each effect function based on `VV:27`/`VV:28`/`VV:29`/`VV:2A` flags.
 Multiple effects can be applied in sequence to the same glyph data.
 
-| Order | Condition | Address | Gate (from ESC ! and individual commands) |
+| Order | Condition | Address | Effect |
 | --- | --- | --- | --- |
-| 1 | VV:28 bit 4 clear | `$4AA8` | Not super/subscript (VV:23.4 = ESC S/T) |
-| 2 | VV:27 bit 7 clear | `$49C5` | VV:22.7 (render mode flag from `14C6h`) |
-| 3 | VV:29 bit 4 clear | `$47CB` | Not emphasized (VV:24.4 = ESC E/F) |
-| 4 | VV:29 bit 7 clear | `$4C16` | VV:24.7 (render flag) |
-| 5 | VV:29 bits 0+1 clear | `$4830` | Not double-width (VV:24.0+1 = ESC W/ESC ! bit 5) |
-| 6 | VV:27 bits 4+3 clear | `$4ACE` | VV:22 bits 4+3 (classifier flags) |
-| 7 | VV:2A bits 5+6 = 11 | `$44C4` | VV:25 bits 5+6 |
-| 8 | VV:2A bit 6 clear | `$43DD` | VV:25.6 |
-| 9 | VV:2A bit 5 clear | `$444A` | VV:25.5 |
-| 10 | VV:2A bit 7 clear | `$4900` | Not double-height (VV:25.7 = ESC w) |
+| 1 | VV:28.4 clear | `$4AA8` | Not super/subscript: normal 2→3 byte column copy |
+| 2 | VV:27.7 clear | `$49C5` | Not condensed-Draft mode |
+| 3 | VV:29.4 clear | `$47CB` | Not emphasized |
+| 4 | VV:29.7 clear | `$4C16` | Internal render flag (not a user command) |
+| 5 | VV:29 bits 0+1 clear | `$4830` | Not double-wide |
+| 6 | VV:27 bits 4+3 clear | `$4ACE` | Italic active and available in font |
+| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Never fires on LQ-500 (bits never set) |
+| 8 | VV:2A.6 clear | `$43DD` | Never fires on LQ-500 |
+| 9 | VV:2A.5 clear | `$444A` | Never fires on LQ-500 |
+| 10 | VV:2A.7 clear | `$4900` | Not double-height |
 
 VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
 Confirmed VV bit assignments from ESC ! Master Select (`0F42h`) and
@@ -409,17 +409,27 @@ individual command handlers, verified against `lq500_u1.pdf` page 6-4:
 
 | VV register | Bit | ESC/P effect | Set by |
 | --- | --- | --- | --- |
+| VV:22 | 3 | Not-italic (per classifier, inverse of VV:24.3) | `4038h` classifier |
+| VV:22 | 4 | Italic fallback (italic requested but not in font) | `154Eh` font scan |
 | VV:22 | 5 | Condensed | SI/DC2, ESC ! bit 2 |
+| VV:22 | 7 | Condensed-Draft mode (condensed AND Draft AND not proportional) | `14C6h` reconfig |
 | VV:23 | 0 | Underline | ESC -, ESC ! bit 7 |
-| VV:23 | 1 | Elite (12 cpi) | ESC M, ESC ! bit 0 |
-| VV:23 | 3 | Superscript flag | ESC S 0 |
+| VV:23 | 1 | Elite (12 cpi) | ESC M/P, ESC ! bit 0 |
+| VV:23 | 3 | Superscript (vs subscript when bit 4 set) | ESC S 0 |
 | VV:23 | 4 | Super/subscript active | ESC S 0/1, ESC T |
 | VV:23 | 5 | Proportional | ESC p, ESC ! bit 1 |
-| VV:24 | 0+1 | Double-width | ESC W, ESC ! bit 5 |
+| VV:23 | 7 | 15 cpi | ESC g, cleared by ESC P/M |
+| VV:24 | 0 | Double-wide one-line (SO, DC4 cancels) | SO/DC4 |
+| VV:24 | 0+1 | Double-wide persistent | ESC W, ESC ! bit 5 |
 | VV:24 | 3 | Italic | ESC 4/5, ESC ! bit 6 |
 | VV:24 | 4 | Emphasized | ESC E/F, ESC ! bit 3 |
 | VV:24 | 6 | Double-strike | ESC G/H, ESC ! bit 4 |
+| VV:25 | 4 | Extended character ($F0+ range excl $F4/$F5) | `4038h` classifier |
+| VV:25 | 5-6 | Unused on LQ-500 (ESC q not supported) | — |
 | VV:25 | 7 | Double-height | ESC w |
+
+Note: ESC G/H (double-strike) do not trigger font reconfig via CALT
+($0092). All other style commands do.
 
 The CG bank set by `1774h` remains active throughout — no F002 writes occur
 during the effect chain. Two CG column formats are confirmed:
