@@ -390,18 +390,24 @@ single expansion engine. The dispatch at `1ABFh-1B18h` conditionally calls
 each effect function based on `VV:27`/`VV:28`/`VV:29`/`VV:2A` flags.
 Multiple effects can be applied in sequence to the same glyph data.
 
-| Order | Condition | Address | Probable effect |
-| --- | --- | --- | --- |
-| 1 | VV:28 bit 4 clear | `$4AA8` | Copy 2-byte CG columns to 3-byte work rows |
-| 2 | VV:27 bit 7 clear | `$49C5` | Condense/mask columns |
-| 3 | VV:29 bit 4 clear | `$47CB` | Clear/pad buffer |
-| 4 | VV:29 bit 7 clear | `$4C16` | Additional processing |
-| 5 | VV:29 bits 0+1 clear | `$4830` | Double/widen columns |
-| 6 | VV:27 bits 4+3 clear | `$4ACE` | Packed nibble write |
-| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Render variant |
-| 8 | VV:2A bit 6 clear | `$43DD` | 1-byte column OR overlay |
-| 9 | VV:2A bit 5 clear | `$444A` | Column copy variant |
-| 10 | VV:2A bit 7 clear | `$4900` | Packed expand by style |
+| Order | Condition | Address |
+| --- | --- | --- |
+| 1 | VV:28 bit 4 clear | `$4AA8` |
+| 2 | VV:27 bit 7 clear | `$49C5` |
+| 3 | VV:29 bit 4 clear | `$47CB` |
+| 4 | VV:29 bit 7 clear | `$4C16` |
+| 5 | VV:29 bits 0+1 clear | `$4830` |
+| 6 | VV:27 bits 4+3 clear | `$4ACE` |
+| 7 | VV:2A bits 5+6 = 11 | `$44C4` |
+| 8 | VV:2A bit 6 clear | `$43DD` |
+| 9 | VV:2A bit 5 clear | `$444A` |
+| 10 | VV:2A bit 7 clear | `$4900` |
+
+The effect names and the mapping from VV flags to ESC/P commands (bold,
+double-strike, condensed, double-width, italic, etc.) have not been
+correlated yet. The flags come from VV:27 (font-style selector), VV:28
+(compiled config), VV:29 (render setup), and VV:2A (style bits), which
+are set by `14C6h` font reconfig and individual style commands.
 
 The CG bank set by `1774h` remains active throughout — no F002 writes occur
 during the effect chain. Two CG column formats are confirmed:
