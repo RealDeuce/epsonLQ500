@@ -46,6 +46,8 @@ manual notes, or hardware measurements.
   PA5 / `PA mask 20h` HOME branch sequence and timed seek core.
 - `data/lq500_3c_carriage_sequence_records.tsv`: decoded five-byte
   `72B3h-72D8h` carriage scheduler records copied to `EF7C..EF80`.
+- `data/lq500_3c_carriage_speed_modes.tsv`: service-manual Table 2-7 carriage
+  speed modes and their firmware timing/profile anchors.
 - `data/lq500_3c_carriage_timing_profiles.tsv`: runtime `7005h` carriage
   timing profile map tying `VV63` records to Tables 2-12 through 2-15.
 - `data/lq500_3c_carriage_output_state_records.tsv`: decoded normal

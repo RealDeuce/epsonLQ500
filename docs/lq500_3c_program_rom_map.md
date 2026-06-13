@@ -75,7 +75,7 @@ firmware uses external windows and buffers outside this ROM:
 | `6A5Ah-6FFFh` | Fill | All `0xFF`. |
 | `7001h-7218h` | Mechanism/head timing and output tables | `5635h` selects timing records at `7005h`/`7088h`; `540Dh` indexes the overlapping PA/PB output jump table at `7007h`. |
 | `7219h-7286h` | CR0/timing lookup table | `06DFh` indexes the `7219h` table from the CR0 range; `55E4h` directly loads a word at `725Fh`. |
-| `7287h-72D8h` | Startup delay and carriage sequence tables | `5253h` walks startup delay/sequence data around `7287h` and `72AFh`; `5719h` indexes eight five-byte normal carriage scheduler records from `72B3h`. Runtime carriage accel/decel profiles are the `7005h` records and `70BFh-7218h` pointer lists. |
+| `7287h-72D8h` | Startup delay and carriage sequence tables | `5253h` walks startup delay/sequence data around `7287h` and `72AFh`; `5719h` indexes eight five-byte normal carriage scheduler records from `72B3h`. The manual Table 2-7 speed grouping is tracked in `data/lq500_3c_carriage_speed_modes.tsv`; runtime carriage accel/decel profiles are the `7005h` records and `70BFh-7218h` pointer lists. |
 | `72D9h-739Ah` | Render geometry lookup tables | `21F1h-2322h` consume small byte/word tables at `7307h`, `7317h`, `7341h`, `735Bh`, `736Bh`, `737Bh`, and `738Bh`. |
 | `739Bh-7B73h` | Service/self-test/adjustment code | Includes power-on service dispatch, data-dump mode, self-test status printing, bidirectional adjustment/calibration UI, embedded adjustment strings, and PA/PB output helpers. |
 | `7B74h-7FFFh` | Fill | All `0xFF`. |

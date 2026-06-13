@@ -294,20 +294,28 @@ other legs. `5306h` samples PA5 through PA mask 20h three times per timing inter
 but the exact firmware expression of the manual's 22 phase-switch print-area
 offset is still not proven.
 
-Carriage timing has two mapped ROM encodings. Startup home seek uses the compact
-10-us delay table at `7287h-72AEh`; `5253h` walks `7287h`, `729Bh`, and
-`72ADh` while sampling PA5 and pulsing `PC7`. Normal carriage movement uses the
-`7005h` record family copied by `55B1h` into `EF49..EF60`; `VV4C`/`EF4F` drive
-the accel list, `EF51` is the initial timer addend, and `VV54`/`EF57` drive the
-decel list through the FE1 walker at `0772h`/`0799h`. The runtime profile map is
-`data/lq500_3c_carriage_timing_profiles.tsv`: records 0/1 match Tables
-2-12/2-13 for the 2-2 x3/x2 profiles, records 2/3 match Tables 2-14/2-15 for
-the 1-2 x1.5/x1 profiles, and record 4 is a slower 1-2-family profile. The
-five-byte records at `72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the
+Service-manual Table 2-7 is the carriage speed grouping: x3 is 900 PPS 2-2,
+x2 is 600 PPS 2-2, x1.5 is 900 PPS 1-2, and x1 is 600 PPS 1-2. Tables 2-8 and
+2-9 define the drive sequences for those excitation systems, and Tables
+2-12 through 2-15 define the accel/decel timings. This manual grouping is
+tracked in `data/lq500_3c_carriage_speed_modes.tsv`.
+
+The firmware anchors for the Table 2-7 profiles are the `7005h` records copied
+by `55B1h` into `EF49..EF60`. `VV4C`/`EF4F` drive the accel list, `EF51` is
+the initial timer addend, and `VV54`/`EF57` drive the decel list through the
+FE1 walker at `0772h`/`0799h`; see
+`data/lq500_3c_carriage_timing_profiles.tsv`. Startup home seek is separate
+from the four speed modes: `5253h` walks the compact 10-us `7287h-72AEh` delay
+table while sampling PA5 and pulsing `PC7`, matching the manual's separate
+home-seek procedure.
+
+The five-byte records at `72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the
 carriage scheduler; see `data/lq500_3c_carriage_sequence_records.tsv`.
 `56CE-56D3h` copies each record to `EF7C..EF80`; `EF7C` can become `VV63`,
 `EF7D` is the `TM1` reload-cycle length, and `EF7E..EF80` are the cyclic `TM1`
-reload bytes used at `09AC-09BCh`.
+reload bytes used at `09AC-09BCh`. These selector rows are not the same thing
+as Table 2-7; some rows select a Table 2-7 timing profile with alternate TM1
+cycle bytes.
 
 The `VV63` value selects one of the normal `7005h` timing/output records copied
 to `EF49..EF60`; decoded output bytes are in
@@ -327,11 +335,9 @@ leg. During normal `540Dh` dispatch, selected state-byte bit 7 controls F003
 bit 0 before the byte is masked with `7Fh` for the current-state jump table;
 after record setup, `5625h-5630h` maps `VV61.0` to F003 bit 1. This ties the
 record high bit to the manual excitation-select bit and `VV61.0` to the manual
-direction bit. Table 2-7 is treated as the carriage mode index into the
-detailed Tables 2-8 and 2-9. The `VV3A`/`VV6F` mapping now ties each selector
-row to a concrete `VV63` runtime timing profile, and the 1-2 movement timing
-profiles from Tables 2-14/2-15 are located at the `7127h`/`715Bh` and
-`718Fh`/`71C3h` pointer lists.
+direction bit. The `VV3A`/`VV6F` mapping ties selector rows to concrete `VV63`
+runtime timing profiles; the `table_2_7_relation` column distinguishes clear
+manual modes from firmware variants with alternate TM1 cycle bytes.
 
 The normal carriage scheduler path is now separated from the paper-feed
 `5676h` callers. `5676h` copies fifteen bytes from `EF38..EF46` to
@@ -352,18 +358,17 @@ state copies put the same selector byte into `VV6F` for the carriage TM1 record
 selection. `563Ch` also uses `VV6F.1` as a count-scale bit: when set, `EF64` is
 halved before being saved as `EF79`. The current side-by-side selector map is in
 `data/lq500_3c_vv3a_mode_selector.tsv`; that table carries the selector rows,
-paired TM1 records, render geometry bytes, `EF79` scaling, and linked runtime
-timing profile. The current states selected by the normal `7005h` records and
-the F003 helper call paths are decoded separately.
+paired TM1 records, render geometry bytes, `EF79` scaling, linked runtime
+timing profile, and Table 2-7 relation. The current states selected by the
+normal `7005h` records and the F003 helper call paths are decoded separately.
 
 The selector state path is now separated from the selector value table in
 `data/lq500_3c_carriage_mode_state.tsv`. `4038h` copies a saved print/style bank
 into `VV1F`; setup paths preserve that value in `VV31` and `VV32`; active
 render/movement paths restore `VV31`/`VV32` into `VV3A`; and the scheduler-state
 copy makes source+2 become `VV6F`. This proves the state plumbing into the
-carriage records. Table 2-7 is just the manual index layer; Tables 2-8/2-9
-carry the detailed mode behavior, and Tables 2-12 through 2-15 carry the
-movement timing profiles now matched to the `7005h` runtime records.
+carriage records, while `data/lq500_3c_carriage_speed_modes.tsv` keeps the
+manual Table 2-7 grouping separate from firmware selector variants.
 
 ### Printhead
 

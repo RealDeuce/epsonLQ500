@@ -150,13 +150,14 @@ the workspace loss.
       other F003 updates: `CALT 00B8h` vectors to `51EDh` for AND masks,
       `CALT 00BAh` vectors to `51E9h` for OR masks, `540Dh` maps selected
       state-byte bit 7 to F003 bit 0, and `5625h-5630h` maps `VV61.0` to F003
-      bit 1. Table 2-7 should be treated as the carriage mode index into the
-      detailed Tables 2-8/2-9.
-      `data/lq500_3c_carriage_timing_profiles.tsv` now maps the runtime
-      `7005h` carriage timing records: records 0/1 match Tables 2-12/2-13
-      2-2 profiles, records 2/3 match Tables 2-14/2-15 1-2 x1.5/x1 profiles,
-      and record 4 is a slower 1-2-family profile. The compact `7287h` table is
-      startup timed-seek delay data, not the normal runtime profile source.
+      bit 1. `data/lq500_3c_carriage_speed_modes.tsv` is the Table 2-7 source
+      of truth: x3=900 PPS/2-2, x2=600 PPS/2-2, x1.5=900 PPS/1-2, and
+      x1=600 PPS/1-2. `data/lq500_3c_carriage_timing_profiles.tsv` maps the
+      runtime `7005h` timing records behind those modes; selector rows in
+      `72B3h-72D8h` can also use alternate TM1 bytes, so they are tracked as
+      Table 2-7 relations rather than as the speed grouping itself. The compact
+      `7287h` table is startup timed-seek delay data from the separate home-seek
+      procedure.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for
       immediate feed: nonzero `ESC J`/`ESC j` counts produce one `PB mask 18h`

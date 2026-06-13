@@ -319,6 +319,21 @@ the current DIP switch settings. Firmware tracing shows the selected settings
 are printed in emphasized/bold mode, while the unselected alternatives remain in
 normal weight.
 
+Carriage motor speed modes from service manual Table 2-7:
+
+| Carriage speed | Drive frequency | Phase-excitation method |
+| --- | ---: | --- |
+| x3 | 900 PPS | 2-2 phase |
+| x2 | 600 PPS | 2-2 phase |
+| x1.5 | 900 PPS | 1-2 phase |
+| x1 | 600 PPS | 1-2 phase |
+
+Tables 2-8 and 2-9 define the phase drive sequences for 2-2 and 1-2
+excitation. Table 2-11 gives constant-speed timing: x3 and x1.5 use `1.11 ms`;
+x2 and x1 use `1.66 ms`. Home-position seek is described separately: after
+power-on the printer uses 2-2 excitation for `20` or `30 ms` and checks HOME,
+regardless of the phase-switching timing.
+
 Paper-feed motor details from service manual Figure 2-47:
 
 - The paper-feed motor is a 4-phase, 48-step stepper motor.
