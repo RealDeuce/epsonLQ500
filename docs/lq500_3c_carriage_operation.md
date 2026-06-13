@@ -58,8 +58,10 @@ The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
 - Success seeds `EF0F=EF11=0003h`.
 
 `53B9h` later compares requested positions against `EF0F` with a `001Ah`
-limit. This may relate to the manual's 22 phase-switch print-area offset, but
-the exact firmware expression of that offset is not proven.
+local-motion limit before scheduling the move. That is a carriage scheduler
+guard, not an unresolved part of the home-seek sequence. The manual's 22
+phase-switch distance from HOME to the print area is treated as a print-area
+geometry anchor when correlating horizontal coordinate variables.
 
 ## Speed Modes And Timing
 

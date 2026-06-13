@@ -130,8 +130,10 @@ the workspace loss.
       closes to ground, so PA mask 20h clear samples are active-low HOME
       assertions. The
       success path seeds `EF0F=EF11=0003h`; `53B9h` later compares targets
-      against `EF0F` with a `001Ah` limit, but the firmware expression of the
-      manual's 22 phase-switch print-area offset is not yet proven.
+      against `EF0F` with a `001Ah` local-motion limit before scheduling a
+      move. Treat that as a scheduler guard, and keep the manual's 22
+      phase-switch distance from HOME to print area as a horizontal
+      coordinate-geometry anchor rather than as an open home-seek item.
       The trace now includes confirmed `7007h` computed jump-table target
       `5488h`, so all four carriage-current states (`546Ah`, `5474h`, `547Eh`,
       `5488h`) are in `data/lq500_3c_vector_trace.instructions.tsv`. Their

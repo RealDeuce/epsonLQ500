@@ -289,10 +289,12 @@ The startup branch sequence is decoded in
 set/clear states, performs a short `0004h` probe when PA mask 20h starts clear, a
 fixed `000Ah` confirmation move across the edge, and long `13ECh` seeks on the
 other legs. `5306h` samples PA5 through PA mask 20h three times per timing interval and increments
-`D` only for PA mask 20h clear samples. The success path seeds `EF0F=EF11=0003h`;
-`53B9h` later compares requested positions against `EF0F` with a `001Ah` limit,
-but the exact firmware expression of the manual's 22 phase-switch print-area
-offset is still not proven.
+`D` only for PA mask 20h clear samples. The success path seeds `EF0F=EF11=0003h`.
+`53B9h` later compares requested positions against `EF0F` with a `001Ah`
+local-motion limit before scheduling the move; this is a scheduler guard, not
+an unresolved home-seek stage. The manual's 22 phase-switch distance from HOME
+to the print area remains a print-area geometry anchor for horizontal
+coordinate correlation.
 
 Service-manual Table 2-7 is the carriage speed grouping: x3 is 900 PPS 2-2,
 x2 is 600 PPS 2-2, x1.5 is 900 PPS 1-2, and x1 is 600 PPS 1-2. Tables 2-8 and
