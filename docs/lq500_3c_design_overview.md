@@ -231,13 +231,85 @@ Current split:
 | `audited_partial` | Entry behavior is traced far enough to identify parameters and key state updates, but shared render/feed/graphics/user-character machinery still needs deeper decomposition. |
 | `needs_hardware_correlation` | Firmware behavior is known, but the documented command effect depends on external signal meaning. |
 
-High-confidence simple handlers now include the style/pitch flags (`ESC E/F`,
-`ESC G/H`, `ESC 4/5`, `ESC P/M/g`, `ESC p`, `ESC W`, `SO/SI/DC2/DC4`), MSB
-control (`ESC #`, `ESC =`, `ESC >`), tab selection (`ESC /`), line-spacing raw updates
-(`ESC 0/2/3/A`), and compatibility/no-op consumers (`ESC s/r/h`). Larger
-paths that still need follow-up are the shared feed/advance path
-(`LF/CR/FF/VT`, `ESC J/j`), graphics (`ESC *` and `ESC K/L/Y/Z`), and
-user-defined character commands (`ESC &`, `ESC :`).
+All major command paths are now traced. See the individual sections below
+for graphics commands, character generation, print effects, and mechanical
+output. Remaining command-level details are in
+`data/lq500_3c_command_behaviors.tsv`.
+
+## Line Spacing and Paper Feed Translation
+
+Line spacing is stored in `EF8B` in 1/360 inch units:
+
+| Command | Formula | Example |
+| --- | --- | --- |
+| `ESC 0` | `EF8B = 45` | 1/8 inch = 45/360 |
+| `ESC 2` | `EF8B = 60` | 1/6 inch = 60/360 |
+| `ESC A n` | `EF8B = n × 6` | n/60 inch |
+| `ESC 3 n` | `EF8B = n × 2` | n/180 inch |
+
+LF at `2011h` loads `EF8B` and calls `$50EB` to convert to paper-feed
+phase steps. `$50EB` divides by 2 (DSLR → 1/180 inch steps, matching one
+phase switch per 1/180 inch), with dithered rounding via `VV:93` to handle
+odd values: the low bit alternates between rounding up and down on
+successive lines to keep the average spacing correct.
+
+## Page Formatting
+
+| Register | Set by | Meaning |
+| --- | --- | --- |
+| `EF8D` | `ESC C` | Page length (1/360 inch). n lines: n × EF8B / 2. n inches: n × 180. |
+| `EF8F` | `ESC N` | Skip-over-perforation boundary (n × EF8B / 2, clamped to page). |
+| `VV:90` bit 7 | `ESC N`/`ESC O` | Skip-over-perf active. `ESC O` clears. |
+| `EF91` | `ESC C` | Cleared when page length is set. |
+| `EE5C` | `ESC Q` | Right margin (column position, clamped to max $2F89). |
+| `EE5E` | `ESC l` | Left margin. Must be less than `EE5C`. |
+
+FF at `201Fh` loads `EF8D` (page length) and advances to the next page
+boundary. If `EF8D` is zero (no page length set), FF enters the shared
+advance path at `2048h` without feeding.
+
+## Tab Stops
+
+**Horizontal tabs**: HT stop table at `$FF00` (scratch RAM), up to 31
+entries stored in ascending order and zero-terminated. `ESC D` (`$0EEA`)
+reads stop values from the host, inserts them sorted, and sets `VV:BC`
+bit 7 to enable HT. HT (`$0E7D`) scans the table from `$FF00`, converts
+each stop to a dot position via `CALT ($009E)` using `EFBF` as the column
+metric, and advances to the first stop past the current position. The
+position is clamped to the right margin (`EE5C`).
+
+**Vertical tabs**: VT stop tables at `$FF20+` in scratch RAM, with up to
+8 channels (selected by `ESC /`, stored in `VV:30`). Each channel's table
+address is `$FF20 + channel × 2`. `ESC B` (`$426C`) stores up to 15
+stops per channel, sorted and zero-terminated, with the current line
+spacing `EF8B` saved at the channel's table base. VT (`$1F69`) loads
+`VV:BE` (current channel), halves `EF8B` for position computation, and
+advances to the next VT stop or triggers FF if past page end.
+
+## International Character Substitution
+
+`ESC R n` (`$1454`) sets `VV:BB = n × 12` (country offset, max n=12).
+The substitution table at `$689C` has 12 substitutable ASCII positions
+(`#$@[\]^`{|}~`), followed by 13 country rows of 12 replacement bytes.
+Country 0 (USA) is the identity mapping. The substitution function at
+`$1464` scans the 12 base codes for a match, then indexes the replacement
+table at `$689C + VV:BB + match_index` to get the national character.
+
+## User-Defined Character Download
+
+`ESC & 0 n1 n2 [d0 d1 d2 data...]` (`$113D`) downloads characters n1
+through n2. If the 8K input buffer is not available (`VV:09` bit 2
+clear), the data is consumed and discarded. Otherwise:
+
+- `$13CC` clears `$8900-$8A7F` (640 bytes = 128 × 5-byte index entries)
+  under `F002=$C0` (external RAM) and sets `EF18 = $8B80` (data pointer).
+- For each character: d0 = left space, d1 = body width, d2 = right space.
+  Column data is d1 × 3 bytes (normal) or d1 × 2 bytes (super/subscript,
+  per `VV:23` bit 4). Data grows downward from `$8B80` via `EF18`.
+- `VV:1B` (font cache) is updated to reflect the new user-defined set.
+
+At render time, `VV:26` bit 7 clear selects user-defined characters:
+source `DE=$8900`, `F002=$C0` (external RAM) instead of the CG ROM.
 
 ## Character Path
 
