@@ -481,7 +481,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 | 1 | VV:28.4 set | `$4AA8` | Super/subscript active | Copies 2-byte CG columns → 3-byte with zero-fill; VV:28.3 selects upper/lower 16-pin alignment |
 | 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears destination, XOR-inverts and ANDs adjacent columns to merge/halve column count |
 | 3 | VV:29.4 set | `$47CB` | Emphasized | Copies columns with BLOCK × 3 planes plus zero padding for bold offset |
-| 4 | VV:29.7 set | `$4C16` | Double-strike prep | Clears VV:29.7, copies each 3-byte column with 3 bytes zero spacing (interleave for second strike) |
+| 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
 | 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Clears double-width destination, duplicates each 3-byte column (STAX (DE+) plus STAX (DE+$02)) |
 | 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into nibbles, ORs upper nibble at current position and lower nibble at stride-offset position to create rightward slant |
 | 7 | VV:2A bits 5+6 = 11 | `$44C4` | Unused on LQ-500 | — |
@@ -569,9 +569,18 @@ bit). When set, the firmware at `1BC9h` (`OFFI H,$80`) calls `$1E23`:
 3. Halves `EF97` (start) and `EF95` (total advance) via `DSLR`.
 4. Recomputes `EF9B`.
 
-The glyph bitmap in ROM contains only `(width+1)/2` columns. During
-the effect pipeline, `VV:29` bit 7 triggers effect #4 (`$4C16`), which
-doubles each column to restore the full rendered width.
+The glyph bitmap in ROM contains only the non-blank columns —
+`(width+1)/2` of them. During the effect pipeline, `VV:29` bit 7
+triggers effect #4 (`$4C16`), which calls `$1E52` to double the
+metrics back to full values, then copies each 3-byte column followed
+by 3 zero bytes. This inserts the missing blank columns to restore
+the full-width sparse dot pattern that matches full-resolution glyphs.
+
+Full-resolution LQ glyphs have the sparse/non-adjacent dot spacing
+baked directly into their column data (every other column is typically
+`000000`). Half-resolution glyphs store only the non-blank columns,
+and `$4C16` reconstructs the same pattern by interleaving blanks.
+Both produce visually identical output.
 
 Characters with this flag include punctuation that is identical across
 font families (`+`, `−`, `.`, `:`, `[`, `]`, `^`, `_`, `|`) and some
