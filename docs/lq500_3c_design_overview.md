@@ -342,7 +342,7 @@ the character code in `VV:A0` and selects the CG data source:
 For CG ROM characters, `1774h` selects the F002 bank value from the
 `VV:04`/`VV:05` font configuration state:
 
-| VV:04 bits | F002 | VV:A7 | Likely font |
+| VV:04 bits | F002 | VV:A7 init | Likely font |
 | --- | --- | --- | --- |
 | Bit 6 clear, bit 5 clear | `$80` | `$80` | Draft default |
 | Bit 6 set | `$81` | `$80` | Draft variant |
@@ -350,19 +350,33 @@ For CG ROM characters, `1774h` selects the F002 bank value from the
 | Bits 6+5 set, bit 3 set | `$80` | `$00` | LQ default |
 | Bit 7 set | uses VV:05 | varies | Alternate font set |
 
-After writing F002, the code writes a sub-page selector byte `B` to
-`$8000` and reads back to validate the font's presence. The header byte
-encodes the character range (low 6 bits) and glyph record size (top 2 bits:
-`$40` selects 12-byte records, other values select 15-byte records).
+After writing F002, `17F5h` reads the font header byte at `$8000`.
+The low 6 bits encode the record count; the top 2 bits encode a size
+flag. At `180Ch`-`1812h` the header flag also updates `VV:A7`: bit 6
+is cleared (`ANIW $BF`), then set (`ORIW $40`) when the flag is `$40`.
+On the stock 4C (header `$4D`, flag `$40`), `VV:A7 = $40` after the
+header parse — not `$00` as initially written by `17EBh`.
+
+The size flag selects directory record size via `EQI C,$40` at `1729h`:
+when `$40`, the 12-byte `LXI` at `172Ch` is skipped and the 15-byte
+`LXI` at `172Fh` executes. The stock 4C uses 15-byte directory records.
 
 ### Glyph Record Fetch
 
 At `1B4Bh`, the firmware reads the glyph metrics record:
 
 - Record address = base + char_index × 5 (or 6 when `VV:A7` bit 6 set).
+  On the stock 4C (`VV:A7 = $40`), records are always 6 bytes.
 - Byte 0 → `EF97` (start column offset as word, `H=0`).
 - Byte 1 → `VV99` (active width / column count).
 - Byte 2 → sign-extended value (advance adjustment).
+- Bytes 3-4-5 → glyph data pointer (16-bit LE address + bank/flag byte).
+  Bit 7 of byte 5 is **not** an address bit — the `DSLL`/`RLL` rotation
+  discards it. Instead it is a **half-resolution flag**: the firmware
+  preserves it in `H` at `175Ah` and tests it at `1BC9h` (`OFFI H,$80`).
+  When set, `$1E23` halves `VV:99` to `(width+1)/2` stored columns and
+  sets `VV:29` bit 7 so the rendering pipeline (`$4C16`) doubles each
+  column on output. See "Half-Resolution Glyphs" below.
 - `EF9B` and `EF95` are derived from these metrics plus mode flags.
 
 ### Second CG Read
@@ -512,8 +526,57 @@ during the effect chain. Two CG column formats are confirmed:
   dots, zero-padded to 3 bytes. `VV28` bit 3 selects vertical alignment.
 
 The render entry at `281Dh` calls `1A8Ah` (CG fetch + effect pipeline),
-then `2159h` (position/metrics update). The processed glyph data ends up in
-the work buffer at `$E983` or `$EBA3`.
+then `2159h` (position/metrics update). When effects fire, the processed
+glyph data ends up in the work buffer at `$E983` or `$EBA3` and `EE88`
+is updated to point there. When no effects fire (basic LQ with no style
+attributes), `EE88` still points into the CG ROM window.
+
+### Normal LQ Render Path (No Effects)
+
+For a plain LQ character with no style attributes, the pre-pipeline flag
+checks at `1A8Dh`-`1AB8h` route through `VV:27` bit 2 (LQ flag, set),
+which causes `JR $1AAB` at `1AA4h`. The entire effect dispatch at
+`1ABFh`-`1B18h` is then a no-op: every gate condition is false, and
+the pipeline returns without calling any effect function.
+
+The per-character render loop at `$2948` then calls `$1E7F`, which reads
+3 bytes per column directly from the CG source (pointed to by `EE88`)
+and ORs them into the image buffer:
+
+```
+1E7F: EA = EE66 + 3 × EF97           ; dest = buffer position + 3 × start
+1E8E: DE = EE88                       ; source = CG glyph data
+1E9A-1EA7: for VV:99 columns:
+               LDAX (DE+) → ORAX (HL) → STAX (HL+)   ; byte 0
+               LDAX (DE+) → ORAX (HL) → STAX (HL+)   ; byte 1
+               LDAX (DE+) → ORAX (HL) → STAX (HL+)   ; byte 2
+1EA9: EA = position + 3 × EF9B       ; advance by 3 × advance value
+1EB8: SHLD EE66                       ; update buffer position
+```
+
+There is **no column duplication or vertical interleave** for normal LQ
+characters. Each CG column (3 bytes = 24 vertical dots) maps 1:1 to one
+image buffer column. The OR operation allows overlapping characters
+(strike-over, accents) to merge.
+
+### Half-Resolution Glyphs
+
+Glyph pointer byte 5 bit 7 is a half-resolution flag (not an address
+bit). When set, the firmware at `1BC9h` (`OFFI H,$80`) calls `$1E23`:
+
+1. Sets `VV:29` bit 7 (half-res render flag).
+2. Halves `VV:99` (active width) → `(width + 1) / 2` stored columns.
+3. Halves `EF97` (start) and `EF95` (total advance) via `DSLR`.
+4. Recomputes `EF9B`.
+
+The glyph bitmap in ROM contains only `(width+1)/2` columns. During
+the effect pipeline, `VV:29` bit 7 triggers effect #4 (`$4C16`), which
+doubles each column to restore the full rendered width.
+
+Characters with this flag include punctuation that is identical across
+font families (`+`, `−`, `.`, `:`, `[`, `]`, `^`, `_`, `|`) and some
+letterforms with simple symmetric shapes (`H`, `I`, `L`, `T` in Sans
+Serif; `H`, `T`, `l` in Roman).
 
 ## Glyph Transform Families
 
@@ -721,10 +784,28 @@ bits 5+6) are skipped.
 | Aspect | Draft | LQ |
 | --- | --- | --- |
 | Image buffer column stride | 4 bytes | 3 bytes |
+| CG column format | 3 bytes per column (24 dots) | 3 bytes per column (24 dots) |
 | CG font column resolution | Lower (fewer columns per glyph) | Higher (more columns) |
 | Condensed-Draft effect | Active (merges adjacent columns) | Not active (different font used) |
 | Render geometry table mode | Modes 0-4 | Modes 5-7 |
 | Bidirectional adjustment | VR1 at n/240 inch | VR2 at n/720 inch |
+| Half-resolution glyphs | Not observed | Present (byte 5 bit 7 flag) |
+
+### Image Buffer Structure
+
+The image buffer uses 3 bytes per column for LQ (4 for Draft). Each
+3-byte column represents 24 vertical pins. The `$1E7F` column write
+loop ORs glyph data directly into the buffer — there is no separate
+"develop" step for normal LQ characters.
+
+Start and advance values from the per-character metrics record are
+multiplied by the column stride (3 for LQ) to get byte offsets within
+the buffer. Each glyph column maps to exactly one buffer column; the
+buffer is at glyph-column resolution, not a doubled 360 DPI grid.
+
+The render geometry tables at `$7307`-`$739A` control per-mode
+addressing parameters (base offsets, clipping bounds, column stride)
+used by `$217C` to compute the buffer destination for each character.
 
 ### CG Font Coverage from Extracted Directory
 
