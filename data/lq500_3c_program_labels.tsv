@@ -57,7 +57,7 @@ address	label	kind	confidence	notes
 0x2864	process_pending_vertical_advance_distance	code	medium	Bridge from the render/advance state machine to timed output scheduling. If EE7A has a nonzero distance, stores it in EF40, sets VV38 bit 3, and calls 0x5676 after scheduler-availability checks.
 0x26F1	initialize_print_geometry_state	code	low	Called during reset and adjustment-mode initialization.
 0x2824	classify_extended_printable_character	code	medium	Range ladder over 0xAF-0xDE and 0xF4 using RET/RETS as boolean result; used before selecting font/state tables.
-0x28CE	restore_scheduler_snapshot_to_ef38	code	medium	When VV82 reaches 04h, copies 15 bytes from FFB0h+15*VV83 into EF38..EF46, increments VV83, and wraps at five slots.
+0x28CE	queue_scheduler_template_to_ffb0	code	high	Waits while VV82 equals 04h, increments the queued-slot count, copies 15 bytes from EF38..EF46 into FFB0h+15*VV83, then advances VV83 and wraps at five slots.
 0x29B3	setup_8000_render_window_state	code	medium	Seeds EE46/EE48/EE4A/EE4C/EE4E/EE50 around the 0x8000 work window before the main render loop.
 0x2DCE	inline_calt_dispatch_tail_table	data	medium	Inline byte table reached by 0x2DC8/0x0FC3 dispatch; disassembles as instructions but is table-like tail data before the 0xFF fill.
 0x2DE3	unused_ff_gap_2de3_3fff	data	high	Long 0xFF fill from 0x2DE3 through 0x3FFF.

@@ -28,7 +28,7 @@ This area has not yet been deeply decoded. The next pass should follow how the
 render path prepares the three-byte rows consumed by `0978h`, then connect the
 timer reloads to printhead fire timing.
 
-## Open Items
+## Next Workstream
 
 - Determine whether `F005h` is a direct pin latch or a gate-array staging port.
 - Map the three emitted bytes to physical pins.

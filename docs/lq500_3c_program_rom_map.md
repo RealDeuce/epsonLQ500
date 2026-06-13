@@ -75,7 +75,7 @@ firmware uses external windows and buffers outside this ROM:
 | `6A5Ah-6FFFh` | Fill | All `0xFF`. |
 | `7001h-7218h` | Mechanism/head timing and output tables | `5635h` selects timing records at `7005h`/`7088h`; `540Dh` indexes the overlapping PA/PB output jump table at `7007h`. |
 | `7219h-7286h` | CR0/timing lookup table | `06DFh` indexes the `7219h` table from the CR0 range; `55E4h` directly loads a word at `725Fh`. |
-| `7287h-72D8h` | Mechanism delay/sequence tables | `5253h` walks delay/sequence data around `7287h` and `72AFh`; `5719h` also indexes from `72B3h`. |
+| `7287h-72D8h` | Startup delay and carriage sequence tables | `5253h` walks startup delay/sequence data around `7287h` and `72AFh`; `5719h` indexes eight five-byte normal carriage scheduler records from `72B3h`. Runtime carriage accel/decel profiles are the `7005h` records and `70BFh-7218h` pointer lists. |
 | `72D9h-739Ah` | Render geometry lookup tables | `21F1h-2322h` consume small byte/word tables at `7307h`, `7317h`, `7341h`, `735Bh`, `736Bh`, `737Bh`, and `738Bh`. |
 | `739Bh-7B73h` | Service/self-test/adjustment code | Includes power-on service dispatch, data-dump mode, self-test status printing, bidirectional adjustment/calibration UI, embedded adjustment strings, and PA/PB output helpers. |
 | `7B74h-7FFFh` | Fill | All `0xFF`. |
@@ -324,17 +324,14 @@ Startup panel mode dispatch:
    defaults, and VR/adjustment reads.
 2. Correlate `VV00`/`VV01` bits from `4F37h` against the documented DIP switch
    defaults in `docs/lq500_reference.md`.
-3. Continue carriage tracing by mapping the decoded `72B3h-72D8h` records to
-   Table 2-7 rows, then to the detailed Tables 2-8/2-9. The normal `7005h`
-   current-state bytes and F003 helper call paths are decoded.
-4. Build xrefs around `F002h` writes in the `40h..79h` range and nearby
+3. Build xrefs around `F002h` writes in the `40h..79h` range and nearby
    `8000h`/`8600h` reads.
-5. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
+4. Split `0F16h-2DCDh` into command parsing, font/style state, and glyph fetch
    helpers by tracing high-fan-in calls (`1677h`, `1DDFh`, `1DFEh`, `2011h`,
    `24D4h`, `26F1h`).
-6. Align and label the `CALT` service stubs.
-7. Cross-reference ESC/P command constants from `data/lq500_commands.json`
+5. Align and label the `CALT` service stubs.
+6. Cross-reference ESC/P command constants from `data/lq500_commands.json`
    against immediate comparisons in the disassembly.
-8. Recover the computed `JEA` targets, add confirmed targets to
+7. Recover the computed `JEA` targets, add confirmed targets to
    `data/lq500_3c_trace_roots.tsv`, and rerun
    `tools/trace_upd7810_unidasm.py`.

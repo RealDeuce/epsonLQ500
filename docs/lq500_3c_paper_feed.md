@@ -97,7 +97,10 @@ these timing lists at `0772h` and `0799h`. The first five words at `725Fh` are
 `1086h`, `0DC6h`, `0CB8h`, `0C24h`, `0C00h`; the first five at `7269h` are
 `0C24h`, `0C24h`, `0CB8h`, `0DC6h`, `0FFCh`. The command-feed first lead word
 is about `3.44 ms`, so it appears to be a ROM-revised first movement interval
-relative to the manual's `3.33 ms` `tc1`.
+relative to the manual's `3.33 ms` `tc1`. The only `0FFCh` words in the ROM are
+at `7271h` and `7285h`; `7271h` is the fifth tail word from `EF57=7269h`, and
+no traced forward or reverse command-feed path uses `0FFCh` as the first lead
+interval.
 
 The entry gate at `0675h` handles `VV37=1` before the first phase update:
 `07BBh` calls `540Dh` with the drive-on record value, then jumps back to
@@ -111,9 +114,5 @@ through the selector to `EF60`. For the selected `708Eh` command-feed record,
 `EF60=00`, so the zero value takes the `5498h` branch and sets `PB & 04h` high
 for hold before the later `EF5C`/`EF5E` delays and final FE1 masking.
 
-## Open Items
-
-- Verify whether reverse/path variants use the manual-nominal `0FFCh` first
-  interval elsewhere.
-- Keep option mechanisms lower priority unless they share the `PB2`/`PB3`/`PB4`
-  paper-feed path.
+Option mechanisms remain outside this paper-feed path unless they share
+`PB2`/`PB3`/`PB4`.

@@ -62,23 +62,48 @@ the exact firmware expression of that offset is not proven.
 
 ## Timing And Scheduler
 
-The carriage timing words at `7287h-72AEh` are in 10 us units and line up with
-the manual carriage acceleration/deceleration tables. Examples include
-`0162h` near `3.56 ms`, `00E7h` at `2.31 ms`, `00C8h` at `2.00 ms`, `00A6h`
-at `1.66 ms`, and `007Ah` at `1.22 ms`.
+There are two carriage timing encodings in the mapped ROM:
+
+- Startup home seek uses the compact `7287h-72AEh` delay table. `5253h` loads
+  `7287h`, `729Bh`, and `72ADh` directly, calls `5306h` to sample PA5 during
+  each interval, and pulses `PC7` through `0908h`. These words are 10 us
+  scaled, e.g. `0162h=3.54 ms`, `00E7h=2.31 ms`, `00C8h=2.00 ms`,
+  `00A6h=1.66 ms`, and `007Ah=1.22 ms`.
+- Normal carriage movement uses the `7005h` record family copied by `55B1h`
+  into `EF49..EF60`. `VV4C`/`EF4F` drive the accel list, `EF51` is the initial
+  timer addend, `VV54`/`EF57` drive the decel list, and FE1 walks those lists at
+  `0772h` and `0799h`. These are `ECNT` timer addends rather than 10 us
+  literals; `0999h` is about `2.00 ms`, `0554h` about `1.11 ms`, `07F7h` about
+  `1.66 ms`, and `0C7Ah` about `2.60 ms`.
+
+The runtime profiles are mapped in
+`data/lq500_3c_carriage_timing_profiles.tsv`:
+
+| Runtime record | Manual timing profile | Key ROM anchors |
+| --- | --- | --- |
+| `runtime_record_0` / `VV63=00h` | Tables 2-12/2-13, x3 900 PPS, 2-2 | record `700Fh`, accel `70BFh`, decel `70D9h`, counts `0Dh/0Dh` |
+| `runtime_record_1` / `VV63=01h` | Tables 2-12/2-13, x2 600 PPS, 2-2 | record `7027h`, accel `70F3h`, decel `710Dh`, counts `0Dh/0Dh` |
+| `runtime_record_2` / `VV63=02h` | Tables 2-14/2-15, x1.5 900 PPS, 1-2 | record `703Fh`, accel `7127h`, decel `715Bh`, counts `1Ah/1Ah` |
+| `runtime_record_3` / `VV63=03h` | Tables 2-14/2-15, x1 600 PPS, 1-2 | record `7057h`, accel `718Fh`, decel `71C3h`, counts `1Ah/1Ah` |
+| `runtime_record_4` / `VV63=04h` | slower/intermediate 1-2-family profile | record `706Fh`, accel `71F7h`, decel `722Bh`, counts `1Ah/1Ah` |
 
 Normal carriage scheduling uses five-byte records at `72B3h-72D8h`, indexed by
 `(VV6F & 7) * 5` in `5715h`. `56CEh-56D3h` copies each record to
 `EF7C..EF80`; `EF7C` can become `VV63`, `EF7D` is the `TM1` reload-cycle
 length, and `EF7E..EF80` are cyclic `TM1` reload bytes consumed at
-`09ACh-09BCh`.
+`09ACh-09BCh`. This ties every `VV3A`/`VV6F` selector row to a concrete runtime
+profile, including the 1-2 profiles corresponding to Tables 2-14/2-15; see
+`data/lq500_3c_carriage_sequence_records.tsv` and
+`data/lq500_3c_vv3a_mode_selector.tsv`.
 
 The confirmed normal-scheduler entry is the print ISR path `086Ah->563Ch`,
 which enters through `567Fh` without setting `VV6D.3` and ORs `VV6F` with
 `04h`. That constrains immediate `72B3h` record selection to indices `4..7`.
-The runtime queue around `FFB0h + 15*slot` can restore the same 15-byte state
-into either `EF38..EF46` or the live `EF6D..EF7B` window; see
-`data/lq500_3c_carriage_scheduler_contexts.tsv`.
+The runtime queue producer is `28CEh-28EEh`: it waits while `VV82==04h`, copies
+the `EF38..EF46` template into `FFB0h + 15*VV83`, increments the queued count,
+and advances the write index. The FE1-side consumer at `08AAh-08C3h` copies
+`FFB0h + 15*VV84` into the live `EF6D..EF7B` scheduler window; `09E5h-09F6h`
+also probes the first byte of the pending read slot.
 
 ## Current And F003 Control
 
@@ -106,11 +131,7 @@ F003 control paths are decoded in `data/lq500_3c_f003_control_paths.tsv`:
 
 Manual Table 2-4 says F003 bit 0 selects 2-2 versus 1-2 excitation and bit 1
 selects CW/CCW. Table 2-7 should be treated as the carriage mode index into the
-detailed Tables 2-8 and 2-9, not as a separate polarity source.
-
-## Open Items
-
-- Map `VV3A`/`VV6F` selector values to the Table 2-7 rows, then use Tables
-  2-8/2-9 for the detailed carriage mode behavior.
-- Identify the producer for queued scheduler state in the `FFB0h + 15*slot`
-  ring.
+detailed Tables 2-8 and 2-9, not as a separate polarity source. The
+`VV3A`/`VV6F` selector map now ties the F003 bit0 excitation side effect to the
+same `VV63` runtime profile records that hold the 2-2 and 1-2
+acceleration/deceleration data.
