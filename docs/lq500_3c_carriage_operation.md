@@ -26,7 +26,7 @@ pulses `PC7` and is therefore the carriage phase-step pulse anchor.
 The manual's carriage control prose assigns the motor control port to `F003h`.
 Its Table 2-4 header is printed as `WR F002H`, which is treated as a table typo:
 firmware uses `VV15`/`F003h` through direct writes and CALT helpers for carriage
-control, while `F002h` is the bank-selector path.
+control.
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
