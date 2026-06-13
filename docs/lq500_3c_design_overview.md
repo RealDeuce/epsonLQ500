@@ -305,9 +305,10 @@ by `55B1h` into `EF49..EF60`. `VV4C`/`EF4F` drive the accel list, `EF51` is
 the initial timer addend, and `VV54`/`EF57` drive the decel list through the
 FE1 walker at `0772h`/`0799h`; see
 `data/lq500_3c_carriage_timing_profiles.tsv`. Startup home seek is separate
-from the four speed modes: `5253h` walks the compact 10-us `7287h-72AEh` delay
-table while sampling PA5 and pulsing `PC7`, matching the manual's separate
-home-seek procedure.
+from the four speed modes: it uses the 2-2 excitation system for the manual's
+HOME check interval, but it is not x3 or x2. Firmware `5253h` walks the compact
+10-us `7287h-72AEh` delay table while sampling PA5 and pulsing `PC7`, rather
+than selecting the `7005h` x3/x2 runtime profiles.
 
 The five-byte records at `72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the
 carriage scheduler; see `data/lq500_3c_carriage_sequence_records.tsv`.

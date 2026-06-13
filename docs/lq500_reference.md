@@ -330,9 +330,10 @@ Carriage motor speed modes from service manual Table 2-7:
 
 Tables 2-8 and 2-9 define the phase drive sequences for 2-2 and 1-2
 excitation. Table 2-11 gives constant-speed timing: x3 and x1.5 use `1.11 ms`;
-x2 and x1 use `1.66 ms`. Home-position seek is described separately: after
-power-on the printer uses 2-2 excitation for `20` or `30 ms` and checks HOME,
-regardless of the phase-switching timing.
+x2 and x1 use `1.66 ms`. Home-position seek is described separately, not as
+x3 or x2: after power-on the printer uses the 2-2 excitation system for a
+`20` or `30 ms` check interval, regardless of the normal phase-switching
+timing.
 
 Paper-feed motor details from service manual Figure 2-47:
 

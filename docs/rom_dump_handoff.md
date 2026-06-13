@@ -155,8 +155,9 @@ the workspace loss.
       x1=600 PPS/1-2. `data/lq500_3c_carriage_timing_profiles.tsv` maps the
       runtime `7005h` timing records behind those modes; selector rows in
       `72B3h-72D8h` can also use alternate TM1 bytes, so they are tracked as
-      Table 2-7 relations rather than as the speed grouping itself. The compact
-      `7287h` table is startup timed-seek delay data from the separate home-seek
+      Table 2-7 relations rather than as the speed grouping itself. Home seek
+      uses the 2-2 excitation system but is neither x3 nor x2; the compact
+      `7287h` table is startup timed-seek delay data from that separate
       procedure.
     - `data/lq500_3c_paper_advance_path.tsv` tracks the paper-feed staging
       model. The command-distance-to-phase mapping is now resolved for

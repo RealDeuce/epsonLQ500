@@ -85,11 +85,12 @@ than 10 us literals; `0999h` is about `2.00 ms`, `0554h` about `1.11 ms`,
 `07F7h` about `1.66 ms`, and `0C7Ah` about `2.60 ms`. Runtime records are
 decoded in `data/lq500_3c_carriage_timing_profiles.tsv`.
 
-Home seek is not a fifth Table 2-7 mode. It is the separate startup procedure
-documented after the speed tables: it uses 2-2 excitation for `20` or `30 ms`
-and checks HOME regardless of phase-switching timing. Firmware implements that
-path with the compact `7287h-72AEh` delay table in `5253h`, sampling PA5
-through `5306h` and pulsing `PC7` through `0908h`.
+Home seek is not x3 or x2, and it is not a fifth Table 2-7 mode. The manual's
+home-seek note identifies the 2-2 excitation system for a `20` or `30 ms` HOME
+check interval, regardless of normal phase-switching timing. Firmware implements
+that separate startup path with the compact `7287h-72AEh` delay table in
+`5253h`, sampling PA5 through `5306h` and pulsing `PC7` through `0908h`, rather
+than selecting the `7005h` x3/x2 runtime profiles.
 
 Normal carriage scheduling uses five-byte records at `72B3h-72D8h`, indexed by
 `(VV6F & 7) * 5` in `5715h`. `56CEh-56D3h` copies each record to
