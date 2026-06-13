@@ -104,8 +104,8 @@ detailed Tables 2-8 and 2-9, not as a separate polarity source.
 
 ## Open Items
 
-- Map the active-low HOME branch sequence to the service-manual starting-position
-  cases.
+- Identify the motion direction and HOME edge used by each startup seek leg,
+  then tie the successful edge to the `EF0F`/`EF11=0003h` reference point.
 - Map `VV3A`/`VV6F` selector values to the Table 2-7 rows, then use Tables
   2-8/2-9 for the detailed carriage mode behavior.
 - Identify the producer for queued scheduler state in the `FFB0h + 15*slot`
