@@ -312,18 +312,44 @@ classifier calls `1464h`, which indexes the substitution table at
 offset into the table. This replaces specific character codes before they
 reach the CG fetch path.
 
+### 4C CG ROM Directory Structure
+
+The 4C CG ROM is self-describing. Each banked page begins with a font
+directory that the firmware scans to find the right font/pitch combination:
+
+- **Header byte** at `$8000`: top 2 bits = record size flag (`$40` → 12
+  bytes, else → 15 bytes), low 6 bits = number of directory records.
+- **Directory records**: each starts with a font family ID byte (matched
+  against `VV:A5` = typestyle from `ESC k`: 0=Roman, 1=Sans Serif) and a
+  config byte (low 7 bits matched against `VV:A6` = compiled pitch/quality
+  flags). The remaining bytes contain glyph data pointers and character
+  range metadata.
+
+At startup (`04A4h-04B7h`), the firmware probes F002 banks `$80`, `$00`,
+and `$40` with multiple sub-page selectors. For each valid directory found,
+it builds a capability bitmap in `VV:04`/`VV:05`:
+
+| Bit | Meaning |
+| --- | --- |
+| 7 | Valid header with nonzero top bits (font data present) |
+| 6 | F002=base, sub-page=`$00` valid |
+| 5 | F002=base+1, sub-page=`$00` valid |
+| 4 | F002=base, sub-page=`$80` valid |
+| 3 | F002=base+2 or alternate valid |
+
+`VV:04` records banks `$80`/`$81`/`$82`; `VV:05` records banks
+`$00`/`$01`/`$02`. The `1774h` bank selector reads these bitmaps to choose
+the correct F002 value at runtime.
+
 ### Per-Pitch Font Data
 
-The 4C CG ROM contains separate glyph data for each pitch/quality
-combination, not a single set that is rescaled. The `164Bh` font
-configuration builder encodes pitch and quality into `VV:A6` (bit 0 from
-pitch flags, bit 2 from Draft/LQ mode, bit 4 from condensed mode), and the
-`1774h` bank selector maps `VV:04`/`VV:05` to different F002 bank values
-(`$80`, `$81`, `$82`, `$00`). Each bank value selects a different 8K page of
-the 4C ROM, so Draft 10 cpi, Draft 12 cpi, LQ Roman 10 cpi, LQ Sans Serif,
-etc. each have their own glyph bitmaps at native resolution. The exact
-mapping from `VV:A6`/`VV:A5` (typestyle family) through `1677h`/`154Eh` to
-`VV:04`/`VV:05` bank values has not been fully traced yet.
+The CG ROM contains separate glyph bitmaps for each pitch/quality
+combination at native resolution. The `164Bh` font configuration builder
+encodes pitch and quality into `VV:A6` (bit 2 = Draft when clear, plus
+pitch/condensed/italic bits), and font commands trigger `14C6h` (CALT
+`$0092`) to rescan the font directory via `1677h`/`154Eh`. The scan matches
+(`VV:A5`, `VV:A6`) against the directory records to find the right glyph
+data for the current font family + pitch + quality.
 
 ### Bitmap Expansion
 
