@@ -405,7 +405,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 
 VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
 Confirmed VV bit assignments from ESC ! Master Select (`0F42h`) and
-individual command handlers:
+individual command handlers, verified against `lq500_u1.pdf` page 6-4:
 
 | VV register | Bit | ESC/P effect | Set by |
 | --- | --- | --- | --- |
