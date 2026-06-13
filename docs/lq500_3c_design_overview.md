@@ -340,20 +340,38 @@ it builds a capability bitmap in `VV:04`/`VV:05`:
 `VV:04` records the primary bank range; `VV:05` records the alternate
 range. The complete bank mapping from `16A2h`/`16D0h`:
 
-| Source | VV:0x bits | F002 | Sub-page |
+| Source | VV:0x bits | F002 | Chip |
 | --- | --- | --- | --- |
-| VV:04 | 6,5 clear | `$80` | `$00` or `$80` (bit 4) |
-| VV:04 | 6 set, 5 clear | `$81` | `$00` |
-| VV:04 | 6+5 set, 3 clear | `$80` | `$00` |
-| VV:04 | 6+5 set, 3 set | `$82` | `$00` |
-| VV:05 | 6,5 clear | `$00` | `$00` or `$80` (bit 4) |
-| VV:05 | 6 set, 5 clear | `$01` | `$00` |
-| VV:05 | 6+5 set, 3 clear | `$00` | `$00` |
-| VV:05 | 6+5 set, 3 set | `$02` | `$00` |
+| VV:04 | 6,5 clear | `$80` | External CG (CN3 font module) |
+| VV:04 | 6 set, 5 clear | `$81` | External CG |
+| VV:04 | 6+5 set, 3 clear | `$80` | External CG |
+| VV:04 | 6+5 set, 3 set | `$82` | External CG |
+| VV:05 | 6,5 clear | `$00` | 4MCG (5C) |
+| VV:05 | 6 set, 5 clear | `$01` | 4MCG |
+| VV:05 | 6+5 set, 3 clear | `$00` | 4MCG |
+| VV:05 | 6+5 set, 3 set | `$02` | 4MCG |
 
-The secondary metrics table uses a fixed `F002=$4F` (at `1CF2h`), separate
-from the font-specific banks above. `1774h` mirrors the same VV:04/VV:05
-logic for runtime bank selection.
+These scan **optional** font sources (external module and 4MCG). The
+resident 4C ROM (1MCG) at `F002=$40-$4F` is always available. The
+secondary metrics read at `1CF2h` uses `F002=$4F` (4C page 15,
+offset `$1E000`). The primary font directory at `F002=$40` (4C page 0,
+offset `$00000`) has header `$4D`.
+
+### Gate-Array Chip Select
+
+Service-manual Figures 2-7, 2-8, and Section 2.2.4 define the `$8000`
+window chip select from F002 BANK bits 7:6:
+
+| BANK 7:6 | F002 range | Chip | Size |
+| --- | --- | --- | --- |
+| 00 | `$00-$3F` | 4MCG (5C) | 512K |
+| 01 | `$40-$7F` | 1MCG (4C) | 128K |
+| 10 | `$80-$BF` | External CG (CN3) | varies |
+| 11 | `$C0-$FF` | PSRAM (2C) | 32K |
+
+For the 4C ROM: BANK bits 3:0 provide `A16:A13`, CPU bus provides
+`A12:A0`. ROM offset = `(F002 & $0F) × $2000`. `1774h` mirrors the same
+VV:04/VV:05 logic for runtime bank selection.
 
 ### Per-Pitch Font Data
 

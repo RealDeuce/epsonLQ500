@@ -47,7 +47,7 @@ firmware uses external windows and buffers outside this ROM:
 | `FF00h` | Scratch/print string buffer. |
 | `F000h` | Parallel interface data register (Table 2-20 `RD F000H`). Reading auto-resets hardware BUSY. The `0582h` ISR reads this to capture each host byte. |
 | `F001h` | Parallel interface signal register (Table 2-20). RD/WR: bit 7 int/ext ROM, bit 5 STRB edge, bit 4 hw BUSY, bit 3 sw BUSY, bit 2 ACK, bit 1 ERR, bit 0 PE. ISRs toggle bits 2/3 for ACK and BUSY; power-on default has sw BUSY active. |
-| `F002h` | Gate-array bank register. `C0h` selects external RAM for input-buffer access; other values select CG/ROM bank windows. |
+| `F002h` | Gate-array bank register (Table 2-3). Bits 7:6 select the chip at `$8000`: `00`=4MCG (5C), `01`=1MCG (4C resident CG), `10`=External CG (CN3), `11`=PSRAM (2C). Bits 3:0 provide upper address lines to the selected chip. `C0h` selects PSRAM for input-buffer access. |
 | `F003h` | Dual function. `RD F003h` reads parallel data without BUSY reset (Table 2-20). `WR F003h` is the carriage gate-array control register initialized from `VV15`. |
 | `F004h-F005h` | Gate-array/head-interface registers touched during CPU/port init and print paths. |
 
