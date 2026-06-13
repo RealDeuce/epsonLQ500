@@ -31,7 +31,7 @@ The most useful hardware-facing split so far is:
 | `4EEAh` | `read_panel_buttons_debounced` | Returns a compact button/action bitfield: `01h` = LINE FEED/AUTO LOAD, `02h` = FORM FEED, `04h` = ON LINE. Bidirectional-adjustment mode waits for return to zero before accepting another action. |
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup switch read. Calls the ADC/table reader twice, writes `VV00`/`VV01`, then folds PA bits `04h` and `08h` into `VV01`. |
 | `4F54h` | `read_adc_switch_table_bits` | Walks compact tables at `4F96h`/`4F9Fh`; each entry chooses an `F002h`/ADC mode through `508Dh` and compares the resulting sample against a threshold. |
-| `4FB1h` | `sample_vr_adjustment_adc_offsets` | Startup and bidirectional-adjustment sampler. It averages ADC channels and stores signed/clamped offsets in the `EE28h` area used by the adjustment UI. |
+| `4FB1h` | `sample_vr_adjustment_adc_offsets` | Startup and bidirectional-adjustment sampler. It averages ADC channels for VR1/VR2 and stores signed/clamped offsets in the `EE28h` slot table later consumed by the normal render geometry path at `21F1h-21FFh`. |
 
 This means the DIP switches and service-panel inputs are likely a mix of direct
 port bits and analog/multiplexed switch reads. The code does not support a
@@ -90,6 +90,17 @@ power-on panel dispatch, data dump, self-test status printing, and the
 bidirectional adjustment/calibration UI. The adjustment UI starts at `7818h`,
 prints `Bi-d Adjustment Mode`, displays `VR1`/`VR2`, reads panel actions via
 `4EEAh`, and refreshes ADC-derived offset values via `4FB1h`.
+
+This adjustment is not purely analog after the pots are read. Service-manual
+Section 2.2.8 says the A/D converter reads bidirectional adjustment on
+`AN2..AN7`, Section 4.3.2 says VR1 is Draft and VR2 is LQ, and Tables 4-4/4-5
+define correction as print-start displacement. VR1 is `n/240` inch with valid
+values `-7..+7`; VR2 is `n/720` inch with valid values `-11..+11`. Firmware
+`4FB1h` converts ADC readings into the signed `EE28h` slot table, and normal
+render geometry at `21F1h-21FFh` indexes that table with `VV3A & 07h`. For
+emulator output, clamp applied bidirectional offset to `+/-1/480` inch for
+Draft and `+/-1/1440` inch for LQ. See
+`data/lq500_3c_bidirectional_adjustment.tsv`.
 
 ## Input Pipeline
 
@@ -203,7 +214,7 @@ Mechanical documentation is split by subsystem:
 | --- | --- | --- |
 | Paper Feed | `docs/lq500_3c_paper_feed.md` | Paper advance/retard, `PB2` drive/hold, `PB3`/`PB4` phase switching, ESC J/j feed distance, and paper-feed timing. |
 | Carriage Operation | `docs/lq500_3c_carriage_operation.md` | Carriage home seek, position/timing, current selection, `PC7`/`TM`, and `F003h` control. |
-| Printhead | `docs/lq500_3c_printhead.md` | Head-interface registers, print-data burst output, and future pin firing analysis. |
+| Printhead | `docs/lq500_3c_printhead.md` | Head-interface registers, three-byte latch burst output, HPW timing, and E05A02LA/CN5/CN6/Figure 5-3 wire placement. |
 
 Keep these domains separate. Print pin firing is a head-output workstream, not
 part of carriage movement, even though normal printing couples head timing to
@@ -221,9 +232,11 @@ Current ROM anchors:
   scheduler, `72B3h` TM1 sequence records, `7005h` timing/output records, and
   F003 control helpers. One `0908h` pulse is one gate-array phase switch:
   `1/120` inch in 2-2 excitation and `1/240` inch in 1-2 excitation.
-- Printhead output is currently anchored at `F004h/F005h`: `08D0h` arms a
-  burst, `0978h` emits three bytes through the alternate-register `BC=F005h`
-  path, and `563Ch` sets up the data pointers and timing values.
+- Printhead output is anchored at the E05A02LA `F004h/F005h` interface:
+  `5681h` resets the latch counter with `F004=20h`, `08D0h` writes
+  direction-dependent `F004=40h`/`C0h`, `0978h` emits exactly three bytes
+  through alternate-register `BC=F005h`, and `06D7h-06E9h` updates the
+  `EE3Ah` HPW timer addend from the `CR0` voltage-compensation table.
 
 ## Service/Test Path
 
@@ -245,7 +258,8 @@ mechanism/timing and render-layout code:
 - `755Dh` prints `00h`/`FFh` terminated strings.
 - `7719h` handles the documented data dump paper length messaging.
 - `7818h` handles bidirectional adjustment mode and its `VR1`/`VR2` display,
-  using `4EEAh` panel-action reads and `4FB1h` ADC offset refreshes.
+  using `4EEAh` panel-action reads and `4FB1h` ADC offset refreshes. VR1 is
+  the Draft `n/240` inch correction; VR2 is the LQ `n/720` inch correction.
 - `79D4h`, `79F6h`, and `7A00h` are local adjustment display helpers for
   marker output, service strings, and value formatting.
 - `7A18h-7A52h` holds the adjustment title, `VR1`/`VR2` labels, plus/minus

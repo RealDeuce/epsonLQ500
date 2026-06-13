@@ -60,6 +60,13 @@ manual notes, or hardware measurements.
   values across carriage TM1 records and render geometry tables.
 - `data/lq500_3c_carriage_mode_state.tsv`: state plumbing from `VV1F` through
   `VV31`/`VV32`/`VV3A` to `VV6F` and `F003h` control-bit notes.
+- `data/lq500_3c_printhead_path.tsv`: printhead mechanical-output path,
+  E05A02LA `F004h/F005h` command/data behavior, and HPW timing notes.
+- `data/lq500_3c_printhead_wire_map.tsv`: E05A02LA `H1..H24` pin/output
+  map to CN5/CN6 head connector pins and Figure 5-3 physical wire placement.
+- `data/lq500_3c_bidirectional_adjustment.tsv`: VR1/VR2 bidirectional
+  alignment correction slots, manual units, firmware consumers, and emulator
+  offset limits.
 - `data/lq500_3c_trace_roots.tsv`: editable recursive trace roots.
 - `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
   for custom `4C` pin-22/A16 read experiments.

@@ -21,6 +21,9 @@ Source dump:
 - Carriage scheduler contexts: `data/lq500_3c_carriage_scheduler_contexts.tsv`
 - Shared `VV3A`/`VV6F` mode selector: `data/lq500_3c_vv3a_mode_selector.tsv`
 - Carriage mode-state plumbing: `data/lq500_3c_carriage_mode_state.tsv`
+- Printhead mechanical-output path: `data/lq500_3c_printhead_path.tsv`
+- Printhead wire/output map: `data/lq500_3c_printhead_wire_map.tsv`
+- Bidirectional adjustment slots: `data/lq500_3c_bidirectional_adjustment.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`
 - Self-test status selector table: `data/lq500_3c_selftest_status_selectors.tsv`
 - Recursive vector trace: `data/lq500_3c_vector_trace.md`
@@ -74,9 +77,11 @@ firmware uses external windows and buffers outside this ROM:
 | `696Eh-6A59h` | Command dispatch tables | Count-prefixed primary and ESC command tables consumed by `6944h`/`695Bh`. |
 | `6A5Ah-6FFFh` | Fill | All `0xFF`. |
 | `7001h-7218h` | Mechanism/head timing and output tables | `5635h` selects timing records at `7005h`/`7088h`; `540Dh` indexes the overlapping PA/PB output jump table at `7007h`. |
-| `7219h-7286h` | CR0/timing lookup table | `06DFh` indexes the `7219h` table from the CR0 range; `55E4h` directly loads a word at `725Fh`. |
+| `7219h-7286h` | Timing/lookup overlap | `06DFh` loads `7219h` as a biased base for raw-`CR0` indexing; `55E4h` directly loads a word at `725Fh`. |
 | `7287h-72D8h` | Startup delay and carriage sequence tables | `5253h` walks startup delay/sequence data around `7287h` and `72AFh`; `5719h` indexes eight five-byte normal carriage scheduler records from `72B3h`. The manual Table 2-7 speed grouping is tracked in `data/lq500_3c_carriage_speed_modes.tsv`; runtime carriage accel/decel profiles are the `7005h` records and `70BFh-7218h` pointer lists. |
-| `72D9h-739Ah` | Render geometry lookup tables | `21F1h-2322h` consume small byte/word tables at `7307h`, `7317h`, `7341h`, `735Bh`, `736Bh`, `737Bh`, and `738Bh`. |
+| `72D9h-72DAh` | Unclassified bytes | Two bytes remain unclassified between the carriage sequence records and the head HPW voltage table. |
+| `72DBh-7306h` | Head HPW voltage-compensation table | `06DFh`/`06E2h` consume this descending table through `HL=7219h` plus raw `CR0`; selected bytes feed `EE3Ah` for the head `ETM0` reload. |
+| `7307h-739Ah` | Render geometry lookup tables | `21F1h-2322h` consume small byte/word tables at `7307h`, `7317h`, `7341h`, `735Bh`, `736Bh`, `737Bh`, and `738Bh`. |
 | `739Bh-7B73h` | Service/self-test/adjustment code | Includes power-on service dispatch, data-dump mode, self-test status printing, bidirectional adjustment/calibration UI, embedded adjustment strings, and PA/PB output helpers. |
 | `7B74h-7FFFh` | Fill | All `0xFF`. |
 
@@ -90,13 +95,14 @@ firmware uses external windows and buffers outside this ROM:
 | `0582h` | `isr_gate_f000_input_capture_buffer` | Interrupt path reads `F000h` through the gate-array window and stores the byte into the shared `EE20h` input buffer. Candidate parallel-port data path. |
 | `05E2h` | `isr_rxb_host_receive_buffer` | Reads `RXB`, checks `ER`, stores received byte into the `EE20h` buffer with temporary `F002` bank changes. |
 | `07D0h` | `paper_feed_pb2_release_delay_state` | FE1 tail-exit state reached from `VV37=10h`; changes the state to `20h`, calls `540Dh`, and releases active-low `PB2` to high/hold through the `EF60=00` / `5498h` path. |
-| `08D0h` | `arm_head_f005_burst_output` | Writes `F004=0C0h`, presets alternate-register `BC=F005h`, loads head-data/timing pointers, and arms the timer path. Strong candidate head-fire setup. |
+| `08D0h` | `arm_head_f005_burst_output` | Writes direction-dependent `F004=40h` or `F004=C0h`, presets alternate-register `BC=F005h`, loads head source/count state, and arms the timer path. |
 | `0908h` | `carriage_gate_array_tm_pulse` | Writes `MB=03h`, pulses `PC bit 7`, and updates motion counters. Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input. |
 | `093Eh` | `paper_feed_pb_bits_3_4_phase_update_candidate` | Rotates the `VV16` phase via `0953h`/`095Fh`, then updates position/state helpers. |
 | `096Ah` | `write_pb_bits_3_4_stepper_phase_outputs` | Maps `VV16 & 18h` directly to `PB & 18h`; `18h` is a port mask, not a pin name. Service manual Figure 2-47 identifies paper-feed phase signals as `PB3`/`PB4`, matching these mask bits if bit numbering is zero-based. |
-| `0978h` | `isr_head_f005_burst_transfer_reload` | Writes three bytes through alternate-register `BC`, which `08D0h` presets to `F005h`; likely 24-pin head data burst. |
+| `0978h` | `isr_head_f005_burst_transfer_reload` | Writes exactly three bytes through alternate-register `BC=F005h`, reloads `ETM0` from `ECNT+EE3Ah`, and advances or terminates the burst run. |
 | `0A0Bh` | `read_next_host_input_byte` | Consumes from the shared input buffer using `EE22h` as the read pointer and `EE1Eh` as the pending count. This is `CALT ($0080)`. |
 | `0B23h` | `write_bank_register_f002` | Single-purpose helper: `MOV ($F002),A; RET`. |
+| `21F1h` | `apply_bidirectional_alignment_offset_to_geometry` | Uses `VV3A & 07h` to select render geometry data at `730Fh+A` and a signed correction from `EE28h+2*A`; the `EE28h` slots are populated from VR1/VR2 ADC readings by `4FB1h`. |
 | `2530h` | `esc_J_immediate_forward_feed` | `ESC J n`: reads one byte and enters the immediate-feed path with a positive distance. |
 | `2534h` | `shared_immediate_feed_or_advance_entry` | Shared `ESC J`/`ESC j` entry; marks `VV:C1` bits `E0h` and normally jumps through `1FEAh`/`2048h` into the signed vertical-advance setup at `256Eh`. |
 | `2568h` | `esc_j_immediate_reverse_feed_fx80_compat` | `ESC j n`: FX-80 compatibility reverse feed; reads one byte and enters the same immediate-feed path with the high byte set to `80h`. |
@@ -108,7 +114,7 @@ firmware uses external windows and buffers outside this ROM:
 | `4F2Fh` | `delay_03e8` | Loads `BC=03E8h`, delays via `CALT ($0090)`. |
 | `4F37h` | `read_dip_switches_and_panel_pa_bits` | Startup DIP/panel read. Uses table-driven ADC switch reads and then folds in direct PA bits. |
 | `4F54h` | `read_adc_switch_table_bits` | Consumes compact tables at `4F96h`/`4F9Fh`, samples ADC via `508Dh`, and builds switch bitfields. |
-| `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages/clamps ADC-derived adjustment values used at startup and by bidirectional adjustment mode. |
+| `4FB1h` | `sample_vr_adjustment_adc_offsets` | Averages ADC channels for VR1/VR2 and stores signed correction values in the `EE28h` slot table. The clamp sentinels match the manual ranges: VR1 Draft is `n/240` inch, valid `-7..+7`, with ROM sentinels `-8/+8`; VR2 LQ is `n/720` inch, valid `-11..+11`, with ROM sentinels `-12/+12`. |
 | `51F7h` | `startup_carriage_home_seek_entry` | Only traced caller is startup at `0340h`; branches on raw `PA mask 20h` set/clear state, sets `VV61` carriage direction/mode values, and calls the timed home-seek sequence at `5253h` with `0004h`, `000Ah`, or `13ECh`. |
 | `5253h` | `startup_carriage_home_seek_timed_sequence` | Drives table-based carriage delays, samples PA5 through `PA mask 20h` at `5306h`, pulses PC7 through `0908h`, selects `547Eh` drive current, restores `546Ah` hold current, and waits through `72AFh`/`72B1h` delay words. |
 | `540Dh` | `mechanism_output_state_dispatch` | Selects output states from `VV37`/`EFxx`. With uPD7810 skip semantics, `VV62!=0` reaches the `PB mask 04h` set/clear branch matching the service-manual active-low `PB2` paper-feed drive/hold control; `VV62==0` strips bit 7 from the selected state byte and indexes the `7007h` PA/PB jump table. |
@@ -140,9 +146,11 @@ The most important hardware anchors for CG/ROM-bank work are:
 - `F003h`: carriage-control path initialized at `0315h` and `0497h`; updated through CALT vectors
   `00B8h` -> `51EDh` (AND `VV15`) and `00BAh` -> `51E9h` (OR `VV15`), with
   both helpers writing `F003h` through `51F2h`.
-- `F004h/F005h`: initialized at `0487h-0492h`; `08D0h` writes `F004=0C0h`
-  and presets alternate-register `BC=F005h`, while `0978h` writes three bytes
-  through that pointer. `5681h` writes the idle/arm value `F004=20h`.
+- `F004h/F005h`: initialized at `0487h-0492h`; `5681h` writes `F004=20h`
+  to reset the head latch counter with HPW invalid. `08D0h` writes
+  `F004=40h` or `C0h` for HPW-valid ascending/descending latch order and
+  presets alternate-register `BC=F005h`; `0978h` writes exactly three bytes
+  through that pointer and reloads `ETM0` from `ECNT+EE3Ah`.
 
 The `4C` CG dump is now a stable 128 KiB custom PROM read. The schematic
 reportedly confirms `4C` pin 1 is `A15`, so each 64 KiB A16 bank has valid
@@ -175,7 +183,7 @@ part of the carriage movement scope.
 | --- | --- | --- |
 | Paper feed phase / drive | `093Eh`, `0953h`, `095Fh`, `096Ah`, `540Dh`, `5498h`, `549Ch` | Service manual Figure 2-47 says the paper-feed motor is a 4-phase 48-step motor using 2-2 phase excitation, one phase switch per `1/180` inch, with a `400 PPS` drive frequency matching the `2.5 ms` steady timing word. It identifies `PB2` as active-low +24 V drive/hold control and `PB3`/`PB4` as phase A/B and C/D; firmware maps `VV16 & 18h` to `PB & 18h` and controls `PB & 04h` in `540Dh`. The `18h`/`04h` values are PB port masks, not pin names. `549Ch` clears `PB & 04h` low for +24 V drive; `5498h` sets it high for hold. The manual labels the excitation-table order clockwise/paper-forward, and firmware `0953h` follows that order from the reset-start phase. |
 | Carriage phase / current | `0908h`, `00B8h`, `00BAh`, `51E9h`, `51EDh`, `51F2h`, `51F7h`, `5253h`, `5306h`, `546Ah`, `5474h`, `547Eh`, `5488h`, `7287h`, `72B3h` | Service manual Figure 2-34 identifies CPU `CO1`/`PC7` as the E01A05KA carriage gate-array `TM` input; firmware `0908h` pulses that bit when `VV62=0`. Startup `51F7h-5253h` samples PA5 through `PA mask 20h` while walking carriage timing tables and pulsing `TM`; schematic review shows PA5 has a 15K pullup to `+5 V` and the far-left HOME switch closes to ground, so clear samples are active-low HOME assertions. CALT vectors at `00B8h`/`00BAh` update `VV15`/`F003h` through the `51EDh`/`51E9h` helpers; `540Dh` maps state-byte bit 7 to F003 bit 0 before selecting the current-state jump table. The `546Ah-5488h` states match the manual's carriage-current control shape; schematic review shows PB1 is AFXT/AUTOFEED and PA1 goes through a transistor to STK69818 pins 9/11, so PA1 is the SPDH speed-high selector despite the manual table's PB1 label. |
-| Printhead | `08D0h`, `0978h`, `563Ch`, `5681h` | `08D0h` arms `F004/F005` and timer state; `0978h` emits three bytes to `F005h`; `563Ch` prepares source/count pointers. |
+| Printhead | `06D7h`, `08D0h`, `0978h`, `563Ch`, `5681h`, `72DBh` | `5681h` resets the E05A02LA latch counter through `F004=20h`; `08D0h` arms `F004/F005` with direction-dependent latch order; `0978h` emits three bytes to `F005h` and reloads `ETM0` from `EE3Ah`; `06D7h-06E9h` updates `EE3Ah` from the `CR0` voltage-compensation table at `72DBh-7306h`. Appendix A and Figure 5-3 now map E05A02LA `H1..H24` through CN5/CN6 to physical head wire placement in `data/lq500_3c_printhead_wire_map.tsv`. |
 | Paper feed / retard command path | `2530h`, `2534h`, `2048h`, `2568h`, `256Eh`, `2864h`, `5676h`, `558Dh`, `55B1h`, `540Dh` | `ESC J` and FX-80-compatible `ESC j` enter the signed vertical advance path, then nonzero pending distance reaches the timed output scheduler through `2864h`/`5676h`. Because `2864h` sets `VV38.3`, `5676h` copies that to `VV6D.3` and takes the `569Ah-56C5h` path, setting `VV62=1`, `VV63=0`, and `EF64` from the feed-distance state. |
 
 The service manual now resolves the physical paper-feed unit: one phase switch
@@ -291,6 +299,11 @@ Important FF-delimited strings:
 | `7A4Dh` | space marker |
 | `7A4Fh` | `+` |
 | `7A51h` | `-` |
+
+VR1 is the Draft `n/240` inch adjustment from service-manual Table 4-4
+(`-7..+7`); VR2 is the LQ `n/720` inch adjustment from Table 4-5
+(`-11..+11`). Emulator-applied bidirectional offsets should clamp to
+`+/-1/480` inch for Draft and `+/-1/1440` inch for LQ.
 
 Startup panel mode dispatch:
 

@@ -21,14 +21,15 @@ address	label	kind	confidence	notes
 0x0582	isr_gate_f000_input_capture_buffer	code	medium	Reads F000 through the gate-array register window, stores the byte into the EE20 input buffer, restores F002, RETI. Candidate parallel-port data path.
 0x05E2	isr_rxb_host_receive_buffer	code	high	Reads CPU RXB, checks ER, stores received byte into the shared EE20 input buffer while temporarily changing F002.
 0x0668	isr_print_engine_dispatch	code	medium	Large RETI routine dispatching on VV37/VV61 flags; calls motion/print helpers and updates timers.
+0x06D7	update_head_hpw_width_from_cr0	code	medium	Reads CR0, range-checks it, indexes the head HPW voltage-compensation table via HL=0x7219 plus raw CR0, shifts the selected byte, and stores the result at EE3A for the ETM0 head-pulse reload.
 0x07D0	paper_feed_pb2_release_delay_state	code	high	FE1 tail-exit state reached when VV37 has bit 0x10 set. Changes VV37 to 0x20, calls 0x540D, and for command feed releases PB2 high/hold because the 0x540D state selector falls through to EF60=00 and then 0x5498.
-0x08D0	arm_head_f005_burst_output	code	medium	Writes F004=0xC0, sets alternate-register BC=F005 and DE/EA pointers from EF75/EF79, programs TM1/TMM, and re-enters print timer flow. Strong candidate head-fire burst setup.
+0x08D0	arm_head_f005_burst_output	code	high	Writes F004=0x40 or 0xC0 according to VV61.0, sets alternate-register BC=F005, loads source/count state from EF75/EF77, reloads EF64 from EF79, programs TM1/TMM, and re-enters print timer flow.
 0x0908	carriage_gate_array_tm_pulse	code	high	Writes MB=0x03 and pulses PC bit 7 low/high with delay slots. Service manual Figure 2-34 identifies CPU CO1/PC7 as the E01A05KA carriage gate-array TM input; FE1 calls this when VV62=0.
 0x093E	paper_feed_pb_bits_3_4_phase_update_candidate	code	medium	Chooses phase rotation by VV61 bit 0, calls 0x0953/0x095F, then updates position/state through 0x54A0/0x54C9/0x5538. Service manual identifies PB3/PB4 as paper-feed phase A/B and C/D signals.
 0x0953	rotate_pb_bits_3_4_phase_positive	code	medium	Rotates VV16 right with wrap, sets EA=+1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
 0x095F	rotate_pb_bits_3_4_phase_negative	code	medium	Rotates VV16 left with wrap, sets EA=-1, then writes VV16 bits 0x18 into PB bits 0x18 through 0x096A.
 0x096A	write_pb_bits_3_4_stepper_phase_outputs	code	high	Stores the new VV16 phase and maps VV16 & 0x18 directly onto PB & 0x18 while preserving other PB bits. 0x18 is a mask, not a pin name; service-manual paper-feed phase lines PB3/PB4 correspond to these mask bits if bit numbering is zero-based.
-0x0978	isr_head_f005_burst_transfer_reload	code	medium	Alternate-register ISR writes three bytes to BC, which 0x08D0 presets to F005; direction follows VV61 bit 0, then reloads ETM0 from ECNT+EE3A.
+0x0978	isr_head_f005_burst_transfer_reload	code	high	Alternate-register ISR writes exactly three bytes to BC, which 0x08D0 presets to F005; source direction follows VV61 bit 0, then ETM0 is reloaded from ECNT+EE3A for HPW timing.
 0x0A0B	read_next_host_input_byte	code	high	Blocking consumer for the EE20/EE22 input ring: waits for EE1E pending count, reads one byte from EE22 under F002=0xC0, advances EE22, decrements EE1E, and returns byte in A.
 0x0A81	disable_f001_irq_or_strobe	code	medium	DI; clears F001 bits with NOP delays; masks MKL; similar sequence appears in interrupt paths.
 0x0AB2	read_next_host_input_byte_7bit	code	high	CALT helper for 7-bit command parameters: calls 0x0A0B then masks A with 0x7F.
@@ -48,6 +49,7 @@ address	label	kind	confidence	notes
 0x1DFE	compute_glyph_source_pointer_from_ee88	code	medium	High fan-in companion to 0x1DDF; starts from EE88 and returns a computed pointer in EA/HL.
 0x2011	line_feed_vertical_advance_entry	code	medium	High fan-in line-output routine; clears VV24 bit 0, converts current line spacing EF8B through 0x50EB, then enters the shared vertical advance path at 0x2048.
 0x2048	shared_vertical_advance_dispatch	code	medium	Common LF/FF/ESC J entry after distance setup. Calls 0x105A, chooses render path 0x299D only for a flag combination, otherwise snapshots EE44/EE50/EE4E and jumps to 0x256E.
+0x21F1	apply_bidirectional_alignment_offset_to_geometry	code	medium	Uses VV3A&07 to select a base byte at 730F and a signed correction word from EE28+2*index; those EE28 slots are populated from VR1/VR2 ADC readings by 4FB1.
 0x2428	update_page_position_after_advance	code	medium	Updates vertical/page position state from EF42/EF44/EF3E/EF47 and VV38 flags, storing the resulting current offset at EF11.
 0x24D4	clear_vv24_bit0	code	high	Tiny high-fan-in helper: ANIW VV24,0xFE; RET.
 0x2530	esc_J_immediate_forward_feed	code	medium	ESC J handler: reads one byte, builds positive immediate feed distance in HL, and enters shared feed path at 0x2534.
@@ -94,7 +96,7 @@ address	label	kind	confidence	notes
 0x4F2F	delay_03e8	code	high	BC=0x03E8 delay via CALT 0x0090.
 0x4F37	read_dip_switches_and_panel_pa_bits	code	medium	Calls table-driven ADC switch reader 0x4F54 twice, stores VV00/VV01, then folds PA bits 0x04/0x08 into VV01.
 0x4F54	read_adc_switch_table_bits	code	medium	Walks compact tables at 0x4F96/0x4F9F, selects F002/ANM modes through 0x508D, and builds one switch bit per threshold comparison.
-0x4FB1	sample_vr_adjustment_adc_offsets	code	medium	Startup and bidirectional-adjustment sampler; averages ADC channels, stores signed offsets at EE28/EE2E-related slots, and clamps them to small ranges.
+0x4FB1	sample_vr_adjustment_adc_offsets	code	high	Startup and bidirectional-adjustment sampler; averages ADC channels for VR1/VR2, stores signed offsets in the EE28 slot table, and uses one-beyond clamps matching Table 4-4 (-8/+8 around valid -7..+7) and Table 4-5 (-12/+12 around valid -11..+11).
 0x506D	average_adc_sample_127_times	code	medium	Calls 0x508D 0x7F times for the selected F002/ANM mode and returns the averaged sample.
 0x508D	write_f002_select_adc_average_cr0_cr3	code	medium	Writes F002 from A, configures ANM from B, waits FAD, then averages CR0-CR3 into one ADC value.
 0x51E9	or_gate_array_f003_control_bits	code	high	Root-confirmed helper reached through CALT 00BA: ORs A with VV15, stores the result back to VV15 at 51F0h, then writes F003 at 51F2h.
@@ -137,11 +139,12 @@ address	label	kind	confidence	notes
 0x7088	mechanism_timing_record_table_b	data	medium	Alternate timing/control record table selected through the 0x7001 pointer table when VV62 chooses the second record set.
 0x708E	paper_feed_short_move_threshold_overlap	data	medium	Word loaded directly by 0x55D8 from inside the 0x7088 record table. 55DC forces H=00h, so command feed compares the current count against low byte 0x0B; counts below 0x0B take the VV36 mask 04h/EF51=725Fh special path.
 0x70BF	mechanism_head_timing_word_table	data	low	Dense timing/control words following the selected mechanism records; exact sub-record boundaries still need runtime confirmation.
-0x7219	cr0_lookup_table	data	medium	Indexed from ISR at 0x06DF using CR0 range 0xC1-0xEE.
+0x7219	head_hpw_lookup_base_bias	data	medium	Loaded at 0x06DF as a biased base; because 0x06E2 indexes with raw CR0, accepted CR0 values consume the actual table at 0x72DB-0x7306.
 0x725F	paper_feed_timing_list_start_overlap	data	medium	Word loaded directly by 0x55E4 into EF51 for command-feed counts below the 0x708E threshold; also the first word of the 725Fh timing-list region matching service-manual paper-feed acceleration timing.
 0x7287	mechanism_delay_table	data	medium	Delay/compare table consumed by the 0x5253 PA5 / PA mask 20h timed mechanism sequence through offsets at 0x7287, 0x729B, and 0x72AD.
 0x72AF	carriage_sequence_table	data	medium	Carriage sequence/state table. 0x5253 uses 0x72AF for startup home seek; 0x5719 indexes 0x72B3 by (VV6F & 7) * 5 to select five-byte normal carriage TM1 sequence records.
-0x72D9	unclassified_descending_lookup_table	data	low	Table-like bytes between mechanism sequence data and render geometry tables; no direct consumer confirmed yet.
+0x72D9	unclassified_bytes_before_head_hpw_table	data	low	Only 0x72D9-0x72DA remain unclassified here; 0x72DB-0x7306 is consumed as the head HPW voltage-compensation table.
+0x72DB	head_hpw_voltage_compensation_table	data	high	Descending CR0-indexed table consumed by 0x06DF/0x06E2; selected byte is shifted and stored to EE3A for the ETM0 head-pulse reload.
 0x7307	render_geometry_byte_table	data	medium	Byte lookup consumed by 0x22DB using VV3A & 7 before downstream geometry table lookups.
 0x7317	render_geometry_word_table_7317	data	medium	Render/layout table consumed by 0x22E4 through the shared 0x23F1-style lookup path.
 0x7341	render_geometry_word_table_7341	data	medium	Render/layout table consumed by 0x220B.

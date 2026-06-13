@@ -44,7 +44,12 @@ the workspace loss.
       ADC switch tables plus direct PA bits, so the switches are not just one
       direct CPU port bank.
     - `4FB1h` samples/clamps ADC-derived VR adjustment offsets and is called
-      both at startup and from bidirectional adjustment.
+      both at startup and from bidirectional adjustment. Service-manual Tables
+      4-4/4-5 define VR1 as Draft print-start correction in `n/240` inch units
+      valid `-7..+7` and VR2 as LQ correction in `n/720` inch units valid
+      `-11..+11`; `21F1h-21FFh` consumes the `EE28h` slot table during normal
+      render geometry. Emulator applied offset limits: `+/-1/480` inch Draft,
+      `+/-1/1440` inch LQ.
   - host input now traces to the command processor:
     - `0A0Bh` is the `CALT ($0080)` shared input-byte consumer using `EE22h`
       as read pointer and `EE1Eh` as pending-byte count.
@@ -82,10 +87,18 @@ the workspace loss.
       not pin names. The old "carriage PB mask 18h" label should be treated as
       stale; carriage is now anchored separately through the `VV62==0` FE1 path
       at `0908h`, which pulses CPU `PC7` / gate-array `TM`.
-    - pin-firing/head anchor: `08D0h` writes `F004=0C0h`, presets alternate
-      `BC=F005h`, and arms timer state; vector `0978h` writes three bytes
-      through that `F005h` pointer. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`
-      and `5681h` writes `F004=20h`.
+    - printhead anchor: service-manual pages 2-54..2-59 identify the
+      E05A02LA head gate array as three 8-bit latches selected through
+      `F004h`/`F005h`; Appendix A Figure A-8/Table A-7 map E05A02LA pins to
+      `H1..H24`, Figure A-9 maps the three latch blocks, Tables A-11/A-12
+      cross-check CN5/CN6 `HD n` connector pins, and Figure 5-3 maps wire
+      numbers to the physical odd/even head columns. `5681h` writes
+      `F004=20h` to reset the latch counter with HPW invalid. `08D0h` writes
+      direction-dependent `F004=40h` or `C0h`, presets alternate `BC=F005h`,
+      and arms timer state; vector `0978h` writes exactly three bytes through
+      that `F005h` pointer and reloads `ETM0` from `ECNT+EE3Ah`.
+      `06D7h-06E9h` updates `EE3Ah` from the `CR0` voltage-compensation table
+      at `72DBh-7306h`. `563Ch` prepares `EF75h`/`EF77h`/`EF79h`.
     - paper-feed candidate: `ESC J` at `2530h` and FX-80-compatible `ESC j` at
       `2568h` converge at `2534h`, then run through `1FEAh`, `2048h`, and the
       signed vertical-advance setup at `256Eh`. Nonzero pending distance can

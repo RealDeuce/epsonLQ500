@@ -319,6 +319,22 @@ the current DIP switch settings. Firmware tracing shows the selected settings
 are printed in emphasized/bold mode, while the unselected alternatives remain in
 normal weight.
 
+Bidirectional adjustment facts from service manual Sections 2.2.8 and 4.3.2:
+
+- The A/D converter reads bidirectional adjustment on `AN2..AN7` along with
+  DIP/switch reading.
+- VR1 on the PBMA is Draft adjustment. Table 4-4 defines print-start
+  displacement as `n/240` inch from the reference position, valid `-7..+7`;
+  negative shifts left and positive shifts right.
+- VR2 on the PBMA is LQ adjustment. Table 4-5 defines print-start displacement
+  as `n/720` inch from the reference position, valid `-11..+11`; negative
+  shifts left and positive shifts right.
+- The adjustment procedure prints four patterns centered on the current VR
+  value, panel buttons select the better value, then the technician rotates the
+  matching VR until the buzzer sounds.
+- Emulator output should limit applied bidirectional offset to `+/-1/480` inch
+  for Draft and `+/-1/1440` inch for LQ.
+
 Carriage motor speed modes from service manual Table 2-7:
 
 | Carriage speed | Drive frequency | Phase-excitation method |
@@ -345,6 +361,38 @@ motor cycle, so one 1-2 phase switch is `1/240` inch. The printing area starts
 timed-movement zone model: acceleration, printing area at constant speed, and
 deceleration. In the 2-2 case shown there, the acceleration span is `22/120`
 inch.
+
+Printhead details from service manual pages 2-54 through 2-59 and Appendix A:
+
+- The printhead has `24` solenoids in a `12 x 2` staggered pin arrangement.
+- Figure 5-3 is the clearest wire-number placement reference: as drawn, odd
+  wires (`#1, #3, ... #23`) are in the right column and even wires
+  (`#2, #4, ... #24`) are in the left column.
+- Figure 1-2 supplies spacing: same-column vertical pitch is `1/90` inch, and
+  the even column is staggered by `1/180` inch relative to the odd column.
+- Drive voltage is `24 VDC +/- 10%`.
+- Coil resistance is `16 ohms +/- 10%` at `25 C`; typical current is `0.12 A`.
+- The listed solenoid drive frequency is `1.111 ms` / `900 Hz`.
+- The specifications list a `415 us` to `435 us` driving pulse width. Figures
+  2-53 through 2-55 separately label the E05A02LA output / print-driving
+  pulse-width curve around `230 us` to `287 us`.
+- The E05A02LA gate array is a three-block `8 bit x 3` latch for `H1..H24`.
+- `F004h` is the E05A02LA command port. Bit 7 selects latch order
+  (`0` ascending, `1` descending), bit 6 makes HPW valid, and bit 5 resets the
+  latch counter.
+- `F005h` is the data port. Each write latches one byte and increments the
+  internal counter; three writes fill the 24 head outputs.
+- Latched head data is inverted and output while HPW is low when HPW is valid.
+- The manual identifies CPU `PC6` as the HPW drive-pulse signal.
+- Figure 2-55 shows that print-driving pulse-width target decreasing as head
+  drive voltage rises.
+- Appendix A Figure A-8 and Table A-7 map E05A02LA pins `1..8` to `H1..H8`,
+  pins `13..20` to `H9..H16`, and pins `34..41` to `H17..H24`.
+- Appendix A Figure A-9 labels the three latch blocks as first block
+  `H1..H8`, second block `H9..H16`, and third block `H17..H24`.
+- Appendix A Tables A-11/A-12 cross-check the head connector signals as
+  CN5/CN6 `HD n` pins. Table A-12 is split across the two page columns and
+  continues through CN6 pin `15`, `HD3`.
 
 Paper-feed motor details from service manual Figure 2-47:
 
