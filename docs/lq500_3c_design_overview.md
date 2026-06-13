@@ -559,6 +559,29 @@ characters. Each CG column (3 bytes = 24 vertical dots) maps 1:1 to one
 image buffer column. The OR operation allows overlapping characters
 (strike-over, accents) to merge.
 
+### 360 DPI Two-Pass Interleave
+
+Full-resolution LQ glyphs are authored at 360 DPI horizontal with the
+two-pass interleave baked into the column data. Horizontal strokes
+have dots in every other column — for example, a Roman 'I' serif
+appears as `#.#.#.#.#.#.#.#.#.#.#` where `.` is a blank (`000000`)
+column. Vertical strokes are two dots wide at the same alternating
+spacing: `#.#`.
+
+The image buffer stores one 3-byte column per 1/360-inch dot position.
+The multi-pass carriage mechanism (VV:6F bit 1 set, EF79 = EF64/2)
+fires the image buffer in two passes:
+
+- **Pass 1**: fires all columns at their natural positions (every
+  column, including blanks, at 1/360-inch spacing).
+- **Pass 2**: fires the same columns offset by one dot position
+  (1/360 inch).
+
+The two passes together fill the gaps between the alternating dots,
+producing solid strokes at 180 DPI effective density. A 10 CPI
+character at 360 DPI occupies 36 columns (start + width + advance =
+36 for Roman LQ `M`).
+
 ### Half-Resolution Glyphs
 
 Glyph pointer byte 5 bit 7 is a half-resolution flag (not an address
@@ -569,18 +592,18 @@ bit). When set, the firmware at `1BC9h` (`OFFI H,$80`) calls `$1E23`:
 3. Halves `EF97` (start) and `EF95` (total advance) via `DSLR`.
 4. Recomputes `EF9B`.
 
-The glyph bitmap in ROM contains only the non-blank columns —
-`(width+1)/2` of them. During the effect pipeline, `VV:29` bit 7
-triggers effect #4 (`$4C16`), which calls `$1E52` to double the
-metrics back to full values, then copies each 3-byte column followed
-by 3 zero bytes. This inserts the missing blank columns to restore
-the full-width sparse dot pattern that matches full-resolution glyphs.
+Half-resolution glyphs store their column data at 180 DPI — every
+column has data, with adjacent dots forming solid strokes. The ROM
+contains `(width+1)/2` columns. During the effect pipeline, `VV:29`
+bit 7 triggers effect #4 (`$4C16`), which calls `$1E52` to double
+the metrics back to full 360 DPI values, then copies each 3-byte
+source column followed by 3 zero bytes — spreading the 180 DPI data
+into the 360 DPI two-pass interleave format.
 
-Full-resolution LQ glyphs have the sparse/non-adjacent dot spacing
-baked directly into their column data (every other column is typically
-`000000`). Half-resolution glyphs store only the non-blank columns,
-and `$4C16` reconstructs the same pattern by interleaving blanks.
-Both produce visually identical output.
+Example: Roman `H` is stored as 15 packed columns with solid strokes
+(`##`). After `$4C16` expansion to 30 columns, the strokes become
+`#.#` — the same alternating pattern as full-resolution glyphs.
+Both produce identical printed output after two-pass firing.
 
 Characters with this flag include punctuation that is identical across
 font families (`+`, `−`, `.`, `:`, `[`, `]`, `^`, `_`, `|`) and some
@@ -803,14 +826,21 @@ bits 5+6) are skipped.
 ### Image Buffer Structure
 
 The image buffer uses 3 bytes per column for LQ (4 for Draft). Each
-3-byte column represents 24 vertical pins. The `$1E7F` column write
-loop ORs glyph data directly into the buffer — there is no separate
-"develop" step for normal LQ characters.
+3-byte column represents 24 vertical pins at one 1/360-inch horizontal
+position. The buffer is at 360 DPI — a 10 CPI character occupies 36
+column positions (e.g., Roman LQ `M`: start 3 + width 29 + advance 4).
 
-Start and advance values from the per-character metrics record are
-multiplied by the column stride (3 for LQ) to get byte offsets within
-the buffer. Each glyph column maps to exactly one buffer column; the
-buffer is at glyph-column resolution, not a doubled 360 DPI grid.
+The `$1E7F` column write loop ORs glyph data directly into the buffer
+with no intermediate "develop" step. Start and advance values from the
+per-character metrics record are multiplied by the column stride (3 for
+LQ) to get byte offsets. The OR operation allows overlapping characters
+(strike-over, accents) to merge.
+
+Full-resolution LQ glyphs have the two-pass interleave baked in:
+data columns alternate with blank (`000000`) columns. The multi-pass
+carriage mechanism fires all columns on each pass, offset by one dot
+position, filling the gaps to produce solid 180 DPI output. See
+"360 DPI Two-Pass Interleave" above.
 
 The render geometry tables at `$7307`-`$739A` control per-mode
 addressing parameters (base offsets, clipping bounds, column stride)
