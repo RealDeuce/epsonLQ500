@@ -14302,6 +14302,20 @@
     "rest": "",
     "text": "1696: b8        RET"
   },
+  "0x1697": {
+    "addr": 5783,
+    "size": 3,
+    "op": "CALL",
+    "rest": "$16D0",
+    "text": "1697: 40 d0 16  CALL    $16D0"
+  },
+  "0x169A": {
+    "addr": 5786,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "169a: b8        RET"
+  },
   "0x16A2": {
     "addr": 5794,
     "size": 3,
@@ -14448,6 +14462,153 @@
     "op": "RET",
     "rest": "",
     "text": "16ce: b8        RET"
+  },
+  "0x16D0": {
+    "addr": 5840,
+    "size": 3,
+    "op": "ONIW",
+    "rest": "VV:05,$80",
+    "text": "16d0: 45 05 80  ONIW    VV:05,$80"
+  },
+  "0x16D3": {
+    "addr": 5843,
+    "size": 1,
+    "op": "RETS",
+    "rest": "",
+    "text": "16d3: b9        RETS"
+  },
+  "0x16D4": {
+    "addr": 5844,
+    "size": 3,
+    "op": "ONIW",
+    "rest": "VV:05,$60",
+    "text": "16d4: 45 05 60  ONIW    VV:05,$60"
+  },
+  "0x16D7": {
+    "addr": 5847,
+    "size": 1,
+    "op": "JR",
+    "rest": "$16F2",
+    "text": "16d7: da        JR      $16F2"
+  },
+  "0x16D8": {
+    "addr": 5848,
+    "size": 3,
+    "op": "ONIW",
+    "rest": "VV:05,$40",
+    "text": "16d8: 45 05 40  ONIW    VV:05,$40"
+  },
+  "0x16DB": {
+    "addr": 5851,
+    "size": 1,
+    "op": "JR",
+    "rest": "$16E9",
+    "text": "16db: cd        JR      $16E9"
+  },
+  "0x16DC": {
+    "addr": 5852,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$00",
+    "text": "16dc: 69 00     MVI     A,$00"
+  },
+  "0x16DE": {
+    "addr": 5854,
+    "size": 2,
+    "op": "MVI",
+    "rest": "B,$00",
+    "text": "16de: 6a 00     MVI     B,$00"
+  },
+  "0x16E0": {
+    "addr": 5856,
+    "size": 3,
+    "op": "OFFIW",
+    "rest": "VV:05,$10",
+    "text": "16e0: 55 05 10  OFFIW   VV:05,$10"
+  },
+  "0x16E3": {
+    "addr": 5859,
+    "size": 2,
+    "op": "MVI",
+    "rest": "B,$80",
+    "text": "16e3: 6a 80     MVI     B,$80"
+  },
+  "0x16E5": {
+    "addr": 5861,
+    "size": 3,
+    "op": "CALL",
+    "rest": "$16FE",
+    "text": "16e5: 40 fe 16  CALL    $16FE"
+  },
+  "0x16E8": {
+    "addr": 5864,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "16e8: b8        RET"
+  },
+  "0x16E9": {
+    "addr": 5865,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$01",
+    "text": "16e9: 69 01     MVI     A,$01"
+  },
+  "0x16EB": {
+    "addr": 5867,
+    "size": 2,
+    "op": "MVI",
+    "rest": "B,$00",
+    "text": "16eb: 6a 00     MVI     B,$00"
+  },
+  "0x16ED": {
+    "addr": 5869,
+    "size": 3,
+    "op": "CALL",
+    "rest": "$16FE",
+    "text": "16ed: 40 fe 16  CALL    $16FE"
+  },
+  "0x16F0": {
+    "addr": 5872,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "16f0: b8        RET"
+  },
+  "0x16F2": {
+    "addr": 5874,
+    "size": 3,
+    "op": "ONIW",
+    "rest": "VV:05,$08",
+    "text": "16f2: 45 05 08  ONIW    VV:05,$08"
+  },
+  "0x16F5": {
+    "addr": 5877,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$00",
+    "text": "16f5: 69 00     MVI     A,$00"
+  },
+  "0x16F7": {
+    "addr": 5879,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$02",
+    "text": "16f7: 69 02     MVI     A,$02"
+  },
+  "0x16F9": {
+    "addr": 5881,
+    "size": 3,
+    "op": "CALL",
+    "rest": "$16FE",
+    "text": "16f9: 40 fe 16  CALL    $16FE"
+  },
+  "0x16FC": {
+    "addr": 5884,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "16fc: b8        RET"
   },
   "0x16FE": {
     "addr": 5886,

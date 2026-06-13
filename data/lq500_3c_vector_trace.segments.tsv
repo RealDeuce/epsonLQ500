@@ -38,9 +38,11 @@ start	end_exclusive	size	kind	classification
 0x1455	0x147C	39	trace_code	-
 0x14C6	0x15B6	240	trace_code	-
 0x15B8	0x15D3	27	trace_code	-
-0x15E0	0x1697	183	trace_code	-
+0x15E0	0x169B	187	trace_code	-
 0x16A2	0x16C3	33	trace_code	-
 0x16C4	0x16CF	11	trace_code	-
+0x16D0	0x16F1	33	trace_code	-
+0x16F2	0x16FD	11	trace_code	-
 0x16FE	0x17A2	164	trace_code	-
 0x17A3	0x17DA	55	trace_code	-
 0x17DB	0x17F2	23	trace_code	-
@@ -118,9 +120,11 @@ start	end_exclusive	size	kind	classification
 0x147C	0x14C6	74	not_reached	likely_data_or_untraced_code
 0x15B6	0x15B8	2	not_reached	likely_text_or_table
 0x15D3	0x15E0	13	not_reached	likely_data_or_untraced_code
-0x1697	0x16A2	11	not_reached	likely_data_or_untraced_code
+0x169B	0x16A2	7	not_reached	likely_data_or_untraced_code
 0x16C3	0x16C4	1	not_reached	likely_data_or_untraced_code
-0x16CF	0x16FE	47	not_reached	likely_data_or_untraced_code
+0x16CF	0x16D0	1	not_reached	likely_data_or_untraced_code
+0x16F1	0x16F2	1	not_reached	likely_data_or_untraced_code
+0x16FD	0x16FE	1	not_reached	likely_data_or_untraced_code
 0x17A2	0x17A3	1	not_reached	likely_data_or_untraced_code
 0x17DA	0x17DB	1	not_reached	likely_data_or_untraced_code
 0x17F2	0x17F5	3	not_reached	likely_data_or_untraced_code

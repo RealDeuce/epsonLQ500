@@ -331,15 +331,29 @@ it builds a capability bitmap in `VV:04`/`VV:05`:
 
 | Bit | Meaning |
 | --- | --- |
-| 7 | Valid header with nonzero top bits (font data present) |
+| 7 | Use alternate register (VV:04 → VV:05 fallback) |
 | 6 | F002=base, sub-page=`$00` valid |
 | 5 | F002=base+1, sub-page=`$00` valid |
 | 4 | F002=base, sub-page=`$80` valid |
-| 3 | F002=base+2 or alternate valid |
+| 3 | F002=base+2 valid |
 
-`VV:04` records banks `$80`/`$81`/`$82`; `VV:05` records banks
-`$00`/`$01`/`$02`. The `1774h` bank selector reads these bitmaps to choose
-the correct F002 value at runtime.
+`VV:04` records the primary bank range; `VV:05` records the alternate
+range. The complete bank mapping from `16A2h`/`16D0h`:
+
+| Source | VV:0x bits | F002 | Sub-page |
+| --- | --- | --- | --- |
+| VV:04 | 6,5 clear | `$80` | `$00` or `$80` (bit 4) |
+| VV:04 | 6 set, 5 clear | `$81` | `$00` |
+| VV:04 | 6+5 set, 3 clear | `$80` | `$00` |
+| VV:04 | 6+5 set, 3 set | `$82` | `$00` |
+| VV:05 | 6,5 clear | `$00` | `$00` or `$80` (bit 4) |
+| VV:05 | 6 set, 5 clear | `$01` | `$00` |
+| VV:05 | 6+5 set, 3 clear | `$00` | `$00` |
+| VV:05 | 6+5 set, 3 set | `$02` | `$00` |
+
+The secondary metrics table uses a fixed `F002=$4F` (at `1CF2h`), separate
+from the font-specific banks above. `1774h` mirrors the same VV:04/VV:05
+logic for runtime bank selection.
 
 ### Per-Pitch Font Data
 
