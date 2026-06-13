@@ -18,4 +18,15 @@ address	source	note
 0x0B23	helper	single-purpose helper; writes A to F002 bank register
 0x4ECF	serial_isr	serial ISR buffer-full handler; sets software BUSY via F001 bit 3
 0x4EE2	serial_isr	serial ISR overflow handler; sets VV09 bit 2
+0x4012	printable_path	printable-byte handler; reached when 4038h returns via RETS skipping the JMP $6944 at 400Fh
+0x1845	calt_vector	CALT ($0096) target; called from printable path at 4013h
+0x1896	calt_vector	CALT ($0098) target; called after printable-byte position store at 402Ah
+0x14C6	calt_vector	CALT ($0092) target; called by font/style commands ESC k, ESC x, ESC !
+0x4C37	calt_vector	CALT ($0088) target; used in character classification guard checks
+0x4CBC	calt_vector	CALT ($008A) target; used in render advance path
+0x4DE8	calt_vector	CALT ($008C) target; used in idle/reset flows
+0x4E24	calt_vector	CALT ($008E) target; used in mechanism scheduling
+0x0ADF	calt_vector	CALT ($00AC) target; word decrement helper used atomically in consumer and counter paths
+0x1A4F	calt_vector	CALT ($009A) target; used in render/glyph paths
+0x1995	calt_vector	CALT ($009C) target; used in render/glyph paths
 0x4EB9	host_consumer	consumer-side near-full handler; clears VV09 bit 0 and manages flow control

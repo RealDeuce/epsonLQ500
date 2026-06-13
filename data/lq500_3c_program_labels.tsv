@@ -32,6 +32,7 @@ address	label	kind	confidence	notes
 0x0978	isr_head_f005_burst_transfer_reload	code	high	Alternate-register ISR writes exactly three bytes to BC, which 0x08D0 presets to F005; source direction follows VV61 bit 0, then ETM0 is reloaded from ECNT+EE3A for HPW timing.
 0x0A0B	read_next_host_input_byte	code	high	Blocking consumer for the EE20 ring via CALT ($0080). Polls EE1E, reads from EE22 under F002=C0h, decrements EE1E atomically, manages flow-control release (4EB9h clear sw BUSY/XON, or 0A81h F001 disable for serial-only), applies EE8F byte mask, handles DC1/DC3 XON/XOFF transparently.
 0x0A81	disable_f001_ack_busy_sequence	code	high	DI; clears VV09 bit 0; reads F001; clears bit 2 (ACK low); NOP delay; clears bit 3 (sw BUSY low); NOP; sets bit 2 (ACK high); EI; unmasks MKL bit 3. Used when serial is the active interface and parallel ACK/BUSY are not relevant.
+0x0ADF	decrement_word_at_de	code	high	CALT ($00AC) target. Decrements the 16-bit word at (DE). Used atomically under DI for EE1E pending count and other counters.
 0x0AB2	read_next_host_input_byte_7bit	code	high	CALT helper for 7-bit command parameters: calls 0x0A0B then masks A with 0x7F.
 0x0AB6	read_next_host_input_word	code	medium	CALT helper: reads two host input bytes through 0x0A0B and returns them as a 16-bit value in HL.
 0x0B23	write_bank_register_f002	code	high	Single helper: MOV ($F002),A; RET.
@@ -43,7 +44,13 @@ address	label	kind	confidence	notes
 0x1464	apply_international_character_substitution	code	high	Searches the base row at 0x689C for #/$/@/bracket-style replacement characters, then applies the VVBB country-row offset.
 0x147C	mode_or_geometry_helper	code	low	Called from buffer/geometry routines; returns HL/EA-derived values.
 0x1677	common_render_or_buffer_helper	code	low	High fan-in CALL target in text/graphics region.
-0x1CF2	load_cg_metrics_from_8000_or_8600	code	medium	Reads F002, selects 0x8000/0x8600 window, uses CALT 0x00B4 and VV:A0 to load EF99/EF9B metrics.
+0x14C6	reconfigure_font_render_state	code	medium	CALT ($0092) target. Called by font/style commands (ESC k, ESC x, ESC !) to recompute render state after style changes.
+0x173D	compute_cg_glyph_data_address	code	high	Converts the font header's range/format fields into a glyph data address. Loads the per-character record size (12 or 15 bytes from header top 2 bits), multiplies by the adjusted character index, adds 3 to skip the header, and stores F002 to VV:A8.
+0x1774	select_cg_bank_from_font_config	code	high	Strips VV:26 bit 7, uses VV:04/VV:05 font-configuration bits to select F002 bank value ($80/$81/$82/$00). Calls 17F5h which writes F002 via CALT ($00B4), writes a sub-page selector to $8000, and reads back to validate font presence.
+0x1845	printable_char_render_entry	code	high	CALT ($0096) target. Called from the printable-byte handler at 4013h. Calls 185Ch to save render state, then enters VV:A0 store and CG fetch at 1B19h.
+0x1896	printable_char_line_advance_entry	code	medium	CALT ($0098) target. Called from 402Ah after position store. Checks VV:C1 flags and calls 111Bh/105Ah for line advance management.
+0x1B19	store_char_and_fetch_cg_record	code	high	Stores character code to VV:A0 at 1B19h, clears VV:9F. If VV:26 bit 7 set, selects CG ROM bank via 1774h/173Dh; if clear, uses user-defined character data at F002=C0h / DE=$8900. Reads glyph metrics record (5 or 6 bytes): byte 0 → EF97, byte 1 → VV99, byte 2 → signed advance. Then computes EF9B/EF95 and sets up EE88 source pointer.
+0x1CF2	load_cg_secondary_metrics	code	high	Saves F002, writes F002=$4F via CALT ($00B4). Selects base $8000 (VV28 bit 4 set) or $8600 (clear). Reads a 6-byte record at base + VV:A0 * 6: skips byte 0, loads bytes 1/2 into EF99/EF9B. Restores F002. Reached when VV27 bit 2 is clear.
 0x1D65	fit_glyph_width_and_update_bitmap_pointers	code	medium	Compares EF97/EF9B/EE88-derived pointers, adjusts EE88 and EF9B, and normalizes VV99 width/count.
 0x1DDF	save_ee88_then_recompute_glyph_source	code	medium	Saves EE88 to EE8A, calls 0x1DFE, stores computed source pointer back to EE88, then clears a 0x021C-byte work area.
 0x1DFE	compute_glyph_source_pointer_from_ee88	code	medium	High fan-in companion to 0x1DDF; starts from EE88 and returns a computed pointer in EA/HL.

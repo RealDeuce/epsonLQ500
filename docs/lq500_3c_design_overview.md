@@ -241,19 +241,78 @@ user-defined character commands (`ESC &`, `ESC :`).
 
 ## Character Path
 
-The probable normal character flow is:
+The primary data file is `data/lq500_3c_cg_access_path.tsv`.
 
-1. A byte is read by `400Bh` through the shared input-buffer consumer at
-   `0A0Bh`.
-2. It is classified by `4038h` (`classify_input_character_and_select_style_state`).
-3. Font/style state is copied into `VV21`, `VV22`, and `VV1F`.
-4. Extended printable ranges are checked by `2824h`.
-5. Glyph metrics are derived by the `1Cxxh-1Dxxh` family:
-   - `1CF2h` selects `8000h` or `8600h` and reads per-character metrics into `EF99`/`EF9B`.
-   - `1D65h` reconciles glyph width and active buffer pointers.
-   - `1DDFh`/`1DFEh` compute source/work pointers around `EE88`.
-6. The glyph is expanded into a work buffer by one of the `43DDh-4C36h` transform paths.
-7. The print/render advance path enters through `2011h` and reaches the larger `256Eh`/`29xxh` loops.
+### Classification and Style State
+
+1. `400Bh` reads a byte via `CALT ($0080)` → `0A0Bh`.
+2. `4038h` remaps the byte through the `6000h` identity table, classifies it
+   by range, and loads style state into the working copies `VV21`/`VV22`/
+   `VV1F` from one of three source sets:
+   - Normal ($20-$AF): from `VV:A2`/`VV:CA`/`VV:CB` (persistent font state
+     set by `ESC k`, `ESC x`, `ESC !`, etc.).
+   - Extended ($B0-$EF): from `VV:2D`/`VV:2E`/`VV:2F`, preserving `VV22`
+     bit 3 (italic) from the main state.
+   - User-defined ($80-$9F when `VV20` bit 5 set): from
+     `VV:CC`/`VV:CD`/`VV:CE`.
+3. Printable bytes return via RETS, skipping the `JMP $6944` command
+   dispatch and entering the printable handler at `4012h`.
+
+### CG Bank Selection
+
+After classification, `4012h` → `CALT ($0096)` → `1845h` → `1B19h` stores
+the character code in `VV:A0` and selects the CG data source:
+
+- `VV:26` bit 7 set → CG ROM path via `1774h`.
+- `VV:26` bit 7 clear → user-defined character path: `F002=C0h`,
+  `DE=$8900` (external RAM).
+
+For CG ROM characters, `1774h` selects the F002 bank value from the
+`VV:04`/`VV:05` font configuration state:
+
+| VV:04 bits | F002 | VV:A7 | Likely font |
+| --- | --- | --- | --- |
+| Bit 6 clear, bit 5 clear | `$80` | `$80` | Draft default |
+| Bit 6 set | `$81` | `$80` | Draft variant |
+| Bits 6+5 set, bit 3 clear | `$82` | `$00` | LQ alt |
+| Bits 6+5 set, bit 3 set | `$80` | `$00` | LQ default |
+| Bit 7 set | uses VV:05 | varies | Alternate font set |
+
+After writing F002, the code writes a sub-page selector byte `B` to
+`$8000` and reads back to validate the font's presence. The header byte
+encodes the character range (low 6 bits) and glyph record size (top 2 bits:
+`$40` selects 12-byte records, other values select 15-byte records).
+
+### Glyph Record Fetch
+
+At `1B4Bh`, the firmware reads the glyph metrics record:
+
+- Record address = base + char_index × 5 (or 6 when `VV:A7` bit 6 set).
+- Byte 0 → `EF97` (start column offset as word, `H=0`).
+- Byte 1 → `VV99` (active width / column count).
+- Byte 2 → sign-extended value (advance adjustment).
+- `EF9B` and `EF95` are derived from these metrics plus mode flags.
+
+### Second CG Read
+
+After the initial metrics, when `VV27` bit 2 is clear the code reaches
+`1CEDh` → `1CF2h`, which performs a second CG read:
+
+- Sets `F002=$4F` (a fixed bank, distinct from the font-selected bank).
+- Reads a 6-byte record at (`$8000` or `$8600`) + `VV:A0` × 6.
+- `VV28` bit 4 selects the base: `$8000` when set, `$8600` when clear.
+- Bytes 1 and 2 are loaded into `EF99`/`EF9B`.
+- Restores `F002` and returns.
+
+### Bitmap Expansion
+
+The `43DDh-4C36h` expansion engine reads glyph bitmap data from the CG
+window at `8000h`+ **without changing F002**. The bank set by `1774h` remains
+active throughout. The saved F002 value in `VV:A8` (stored at `1834h`) is
+restored after expansion completes.
+
+The expansion engine has multiple format converters for different
+pitch/quality/style combinations; see the glyph transform table below.
 
 ## Glyph Transform Families
 

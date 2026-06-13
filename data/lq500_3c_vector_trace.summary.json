@@ -19,11 +19,22 @@
     "0x0B23",
     "0x4ECF",
     "0x4EE2",
+    "0x4012",
+    "0x1845",
+    "0x1896",
+    "0x14C6",
+    "0x4C37",
+    "0x4CBC",
+    "0x4DE8",
+    "0x4E24",
+    "0x0ADF",
+    "0x1A4F",
+    "0x1995",
     "0x4EB9"
   ],
-  "decoded_instruction_count": 7176,
-  "code_bytes": 14389,
-  "not_reached_bytes": 18379,
+  "decoded_instruction_count": 7900,
+  "code_bytes": 15904,
+  "not_reached_bytes": 16864,
   "code_ranges": [
     [
       "0x0000",
@@ -146,6 +157,11 @@
       640
     ],
     [
+      "0x0ADF",
+      "0x0AE5",
+      6
+    ],
+    [
       "0x0AEB",
       "0x0AF6",
       11
@@ -191,9 +207,34 @@
       39
     ],
     [
-      "0x173D",
+      "0x14C6",
+      "0x15B6",
+      240
+    ],
+    [
+      "0x15B8",
+      "0x15D3",
+      27
+    ],
+    [
+      "0x15E0",
+      "0x1697",
+      183
+    ],
+    [
+      "0x16A2",
+      "0x16C3",
+      33
+    ],
+    [
+      "0x16C4",
+      "0x16CF",
+      11
+    ],
+    [
+      "0x16FE",
       "0x17A2",
-      101
+      164
     ],
     [
       "0x17A3",
@@ -207,33 +248,13 @@
     ],
     [
       "0x17F5",
-      "0x1845",
-      80
-    ],
-    [
-      "0x1848",
-      "0x1896",
-      78
-    ],
-    [
-      "0x1965",
-      "0x1995",
-      48
-    ],
-    [
-      "0x19AF",
       "0x1A16",
-      103
+      545
     ],
     [
       "0x1A24",
-      "0x1A4F",
-      43
-    ],
-    [
-      "0x1A8A",
       "0x1F23",
-      1177
+      1279
     ],
     [
       "0x1F4D",
@@ -277,18 +298,13 @@
     ],
     [
       "0x400B",
-      "0x4012",
-      7
+      "0x401D",
+      18
     ],
     [
-      "0x4038",
-      "0x4142",
-      266
-    ],
-    [
-      "0x4173",
+      "0x401E",
       "0x418F",
-      28
+      369
     ],
     [
       "0x425A",
@@ -307,13 +323,18 @@
     ],
     [
       "0x47CB",
-      "0x4C37",
-      1132
+      "0x4C6C",
+      1185
     ],
     [
-      "0x4E28",
+      "0x4C6D",
+      "0x4C85",
+      24
+    ],
+    [
+      "0x4C91",
       "0x4F36",
-      270
+      677
     ],
     [
       "0x4F37",
@@ -327,18 +348,8 @@
     ],
     [
       "0x506D",
-      "0x50BC",
-      79
-    ],
-    [
-      "0x50EB",
-      "0x50FE",
-      19
-    ],
-    [
-      "0x5124",
       "0x51E4",
-      192
+      375
     ],
     [
       "0x51E9",
@@ -352,13 +363,8 @@
     ],
     [
       "0x53AF",
-      "0x53DF",
-      48
-    ],
-    [
-      "0x53E1",
       "0x53FD",
-      28
+      78
     ],
     [
       "0x53FE",
@@ -558,8 +564,14 @@
     ],
     [
       "0x0AB6",
+      "0x0ADF",
+      41,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x0AE5",
       "0x0AEB",
-      53,
+      6,
       "likely_data_or_untraced_code"
     ],
     [
@@ -612,8 +624,38 @@
     ],
     [
       "0x147C",
-      "0x173D",
-      705,
+      "0x14C6",
+      74,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x15B6",
+      "0x15B8",
+      2,
+      "likely_text_or_table"
+    ],
+    [
+      "0x15D3",
+      "0x15E0",
+      13,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x1697",
+      "0x16A2",
+      11,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x16C3",
+      "0x16C4",
+      1,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x16CF",
+      "0x16FE",
+      47,
       "likely_data_or_untraced_code"
     ],
     [
@@ -635,33 +677,9 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x1845",
-      "0x1848",
-      3,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x1896",
-      "0x1965",
-      207,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x1995",
-      "0x19AF",
-      26,
-      "likely_data_or_untraced_code"
-    ],
-    [
       "0x1A16",
       "0x1A24",
       14,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x1A4F",
-      "0x1A8A",
-      59,
       "likely_data_or_untraced_code"
     ],
     [
@@ -731,15 +749,9 @@
       "likely_text_or_table"
     ],
     [
-      "0x4012",
-      "0x4038",
-      38,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x4142",
-      "0x4173",
-      49,
+      "0x401D",
+      "0x401E",
+      1,
       "likely_data_or_untraced_code"
     ],
     [
@@ -767,9 +779,15 @@
       "likely_text_or_table"
     ],
     [
-      "0x4C37",
-      "0x4E28",
-      497,
+      "0x4C6C",
+      "0x4C6D",
+      1,
+      "likely_data_or_untraced_code"
+    ],
+    [
+      "0x4C85",
+      "0x4C91",
+      12,
       "likely_data_or_untraced_code"
     ],
     [
@@ -791,18 +809,6 @@
       "likely_data_or_untraced_code"
     ],
     [
-      "0x50BC",
-      "0x50EB",
-      47,
-      "likely_data_or_untraced_code"
-    ],
-    [
-      "0x50FE",
-      "0x5124",
-      38,
-      "likely_data_or_untraced_code"
-    ],
-    [
       "0x51E4",
       "0x51E9",
       5,
@@ -819,12 +825,6 @@
       "0x53AF",
       72,
       "likely_data_or_untraced_code"
-    ],
-    [
-      "0x53DF",
-      "0x53E1",
-      2,
-      "likely_text_or_table"
     ],
     [
       "0x53FD",
