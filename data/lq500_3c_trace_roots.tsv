@@ -29,4 +29,12 @@ address	source	note
 0x0ADF	calt_vector	CALT ($00AC) target; word decrement helper used atomically in consumer and counter paths
 0x1A4F	calt_vector	CALT ($009A) target; used in render/glyph paths
 0x1995	calt_vector	CALT ($009C) target; used in render/glyph paths
+0x0B31	calt_vector	CALT ($00A8) target; called at 1C1Fh and 1C7Bh during CG metrics computation
+0x0B5B	calt_vector	CALT ($00AA) target; called at 1859h after glyph width computation
+0x0B01	calt_vector	CALT ($0090) target; delay loop helper
+0x0B4E	calt_vector	CALT ($0094) target
+0x111B	render_core	Line processing entry called from 10B6h, 1899h (line advance), and 2560h
+0x112E	command_handler	ESC % handler (select user-defined character set); writes VV:1B at 1196h
+0x113D	command_handler	ESC & handler (define user-defined characters)
+0x11B0	command_handler	ESC : handler (copy ROM characters to user-defined); writes VV:1B at 1215h
 0x4EB9	host_consumer	consumer-side near-full handler; clears VV09 bit 0 and manages flow control
