@@ -1,8 +1,10 @@
 # LQ-500 3C Carriage Operation
 
-This page tracks carriage movement only: carriage position, home seek, motor
-timing, current selection, F003 control bits, and the gate-array TM pulse. Print
-pin firing is intentionally out of scope and belongs in
+This page documents traced ROM behavior for carriage movement: startup home
+seek, carriage position state, queued movement setup, timing records, current
+selection, F003 control bits, and the gate-array TM pulse. Manual and schematic
+facts are used only as evidence for signal names, electrical polarity, or
+physical units. Print pin firing is intentionally out of scope and belongs in
 `docs/lq500_3c_printhead.md`.
 
 Primary data files:
@@ -17,17 +19,44 @@ Primary data files:
 - `data/lq500_3c_carriage_mode_state.tsv`
 - `data/lq500_3c_f003_control_paths.tsv`
 
-## Hardware Anchors
+## ROM Behavior Model
 
-Service-manual pages 68-85 identify the carriage motor as a gate-array mediated
+The ROM uses two carriage paths:
+
+- Startup calls `51F7h`, which seeks the far-left HOME switch using timed
+  `PC7`/`TM` pulses, PA5 sampling, and direct F003 direction/mode writes. On
+  success it seeds `EF0F=EF11=0003h`.
+- Runtime movement is queued through the print/scheduler path. `28CEh-28EEh`
+  writes 15-byte movement templates into the `FFB0h` ring; the FE1-side
+  consumer at `08AAh-08C3h` restores a queued slot into `EF6D..EF7B`; the
+  normal carriage scheduler at `56C8h-5712h` selects a `72B3h` TM1 sequence
+  record and a `7005h` timing/output record; the FE1 timing walkers at
+  `0772h`/`0799h` and the `09ACh-09BCh` TM1 reload loop drive the timed
+  output.
+
+The physical carriage step output observed in ROM is `0908h`: it writes
+`MB=03h`, pulses `PC bit 7` low then high, and updates motion counters. The ROM
+does not directly bit-bang carriage phase windings on `PB3`/`PB4`; those are
+the paper-feed phase lines.
+
+`53B9h` is the small relative-move gate. It compares a requested target in `HL`
+against the home/reference position at `EF0F`; if the absolute difference is
+greater than `001Ah`, it returns without scheduling. If the requested target is
+within range, it passes the movement distance onward to `532Bh`, setting bit 7
+of `H` for the reverse direction case.
+
+## Signal Anchors
+
+The schematic/manual identify the carriage motor as a gate-array mediated
 stepper path. CPU `CO1`/`PC7` feeds the E01A05KA gate-array `TM` input; after
-each pulse, the gate array performs carriage phase switching. Firmware `0908h`
-pulses `PC7` and is therefore the carriage phase-step pulse anchor.
+each pulse, the gate array performs carriage phase switching. That makes
+firmware `0908h` the carriage phase-step pulse anchor.
 
-The manual's carriage control prose assigns the motor control port to `F003h`.
-Its Table 2-4 header is printed as `WR F002H`, which is treated as a table typo:
-firmware uses `VV15`/`F003h` through direct writes and CALT helpers for carriage
-control.
+The carriage control port is `F003h`: firmware writes the carriage control
+shadow `VV15` to `F003h` through direct writes and CALT helpers. The manual's
+Table 2-4 header is printed as `WR F002H`, but `F002h` is the bank-selector
+path in the ROM work, so that header is treated as a manual typo rather than a
+ROM behavior.
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
@@ -57,27 +86,27 @@ The branch sequence is decoded in `data/lq500_3c_carriage_home_seek.tsv`:
   PA mask 20h clear samples.
 - Success seeds `EF0F=EF11=0003h`.
 
-`53B9h` later compares requested positions against `EF0F` with a `001Ah`
-local-motion limit before scheduling the move. That is a carriage scheduler
-guard, not an unresolved part of the home-seek sequence. The manual's 22
-phase-switch distance from HOME to the print area is treated as a print-area
-geometry anchor when correlating horizontal coordinate variables.
+The startup path ends here. Later relative moves use `53B9h` to compare a
+requested target against `EF0F` with a `001Ah` local-motion limit before
+scheduling a move through `532Bh`; that is runtime scheduler behavior, not an
+additional home-seek stage.
 
-## Speed Modes And Timing
+## Timing And Mode Records
 
-Service-manual Table 2-7 is the carriage speed grouping:
+The ROM runtime timing records copied by `55B1h` correspond to four normal
+carriage speed/excitation groups:
 
-| Manual mode | Drive frequency | Excitation | Constant speed | Firmware profile |
+| Firmware profile | Drive frequency | Excitation | Constant speed | Selector evidence |
 | --- | ---: | --- | ---: | --- |
-| x3 | 900 PPS | 2-2 | 1.11 ms | `runtime_record_0` |
-| x2 | 600 PPS | 2-2 | 1.66 ms | `runtime_record_1` |
-| x1.5 | 900 PPS | 1-2 | 1.11 ms | `runtime_record_2` |
-| x1 | 600 PPS | 1-2 | 1.66 ms | `runtime_record_3` |
+| `runtime_record_0` | 900 PPS | 2-2 | 1.11 ms | selected by `72B3h` index 0 |
+| `runtime_record_1` | 600 PPS | 2-2 | 1.66 ms | selected by `72B8h` index 1 |
+| `runtime_record_2` | 900 PPS | 1-2 | 1.11 ms | selected by `72BDh` index 2 |
+| `runtime_record_3` | 600 PPS | 1-2 | 1.66 ms | selected by `72D1h` index 6; also used by alternate selector rows |
 
-The Table 2-7 map is tracked in
-`data/lq500_3c_carriage_speed_modes.tsv`. Tables 2-8 and 2-9 define the 2-2
-and 1-2 drive sequences. Tables 2-12/2-13 carry the 2-2 accel/decel timings,
-and Tables 2-14/2-15 carry the 1-2 accel/decel timings.
+The decoded records are tracked in `data/lq500_3c_carriage_speed_modes.tsv`
+and `data/lq500_3c_carriage_timing_profiles.tsv`. Manual Tables 2-7 through
+2-15 are evidence for naming the excitation systems and timing units, but the
+ROM behavior is the record selection and timer programming described here.
 
 The runtime firmware anchors for those modes are the `7005h` record family
 copied by `55B1h` into `EF49..EF60`. `VV4C`/`EF4F` drive the accel list,
@@ -87,12 +116,10 @@ than 10 us literals; `0999h` is about `2.00 ms`, `0554h` about `1.11 ms`,
 `07F7h` about `1.66 ms`, and `0C7Ah` about `2.60 ms`. Runtime records are
 decoded in `data/lq500_3c_carriage_timing_profiles.tsv`.
 
-Home seek is not x3 or x2, and it is not a fifth Table 2-7 mode. The manual's
-home-seek note identifies the 2-2 excitation system for a `20` or `30 ms` HOME
-check interval, regardless of normal phase-switching timing. Firmware implements
-that separate startup path with the compact `7287h-72AEh` delay table in
-`5253h`, sampling PA5 through `5306h` and pulsing `PC7` through `0908h`, rather
-than selecting the `7005h` x3/x2 runtime profiles.
+Home seek is not one of these runtime profiles. The ROM implements it through
+the separate startup path at `5253h`, using the compact `7287h-72AEh` delay
+table, PA5 sampling through `5306h`, and `PC7` pulses through `0908h`, rather
+than selecting a `7005h` runtime timing profile.
 
 Normal carriage scheduling uses five-byte records at `72B3h-72D8h`, indexed by
 `(VV6F & 7) * 5` in `5715h`. `56CEh-56D3h` copies each record to
@@ -137,9 +164,7 @@ F003 control paths are decoded in `data/lq500_3c_f003_control_paths.tsv`:
   0 before the byte is masked with `7Fh` for the current-state jump table.
 - After record setup, `5625h-5630h` maps `VV61.0` to F003 bit 1.
 
-Manual Table 2-4 says F003 bit 0 selects 2-2 versus 1-2 excitation and bit 1
-selects CW/CCW. Table 2-7 should be treated as the carriage mode index into the
-detailed Tables 2-8 and 2-9, not as a separate polarity source. The
-`VV3A`/`VV6F` selector map now ties the F003 bit0 excitation side effect to the
+The `VV3A`/`VV6F` selector map ties the F003 bit0 excitation side effect to the
 same `VV63` runtime profile records that hold the 2-2 and 1-2
-acceleration/deceleration data.
+acceleration/deceleration data. Manual Table 2-4 is used only to name F003 bit
+0 as the 2-2/1-2 excitation select and bit 1 as the direction select.

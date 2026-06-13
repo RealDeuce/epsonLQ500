@@ -258,13 +258,16 @@ gate-array `TM` pulse on CPU `PC7`.
 
 ### Carriage Operation
 
-Service-manual pages 68-85 identify the carriage motor as a gate-array mediated
-stepper path. CPU `CO1`/`PC7` feeds the E01A05KA `TM` input; after each pulse,
-the gate array performs the carriage phase switching. The manual's carriage
-control prose assigns the motor control port to `F003h`; its Table 2-4 header is
-printed as `WR F002H`, which is treated as a table typo. Firmware writes the
-carriage control shadow `VV15` to `F003h` through `51F2h`, while `F002h` is the
-bank-selector path.
+The carriage notes document ROM behavior first. Startup home seek is the
+`51F7h-5253h` path; runtime carriage movement is the queued scheduler path that
+selects `72B3h` TM1 sequence records and `7005h` timing/output records. Manual
+and schematic facts are supporting evidence for signal names, physical
+polarity, and timing units.
+
+Firmware writes the carriage control shadow `VV15` to `F003h` through `51F2h`,
+while `F002h` is the bank-selector path. The physical step pulse observed in
+ROM is `0908h`, which pulses `PC bit 7`; the gate array performs the carriage
+phase switching after each pulse.
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
@@ -275,42 +278,29 @@ bank-selector path.
 | `5306h` | `sample_pa5_low_count_during_carriage_delay` | Splits a delay interval into thirds and samples PA5 through `PA mask 20h` three times; `D` increments only for PA mask 20h clear samples. |
 | `546Ah`/`5474h`/`547Eh`/`5488h` | `carriage_current_*` | Four PA/PB output states involving `PB mask 20h`, `PA mask 02h`, and `PB mask 40h`. These match the manual's carriage-current control shape; schematic review shows `PB1` is `AFXT` to CNI/parallel `AUTOFEED`, while `PA1` goes through a transistor to STK69818 pins 9/11, so `PA1`/`PA & 02h` is the `SPDH` speed-high selector despite the manual table's `PB1` label. |
 
-The carriage startup seek now explains the old home-input path. The service manual
-describes checking the HOME signal during initialization after a timed 2-2 phase
-excitation interval, and Figure 2-44 says the printing area starts 22 phase
-switches after home. That fits `51F7h-5253h`: it is startup-only in the current
-trace, samples raw `PA mask 20h`, runs carriage timing tables, and pulses the
-gate-array `TM` input rather than the paper-feed `PB3`/`PB4` phase bits.
-Schematic review identifies this input as PA5 with a 15K pullup to `+5 V`; the
-HOME switch sits at the far-left end of travel and closes to ground, so PA mask
-20h clear firmware samples are active-low HOME assertions.
+The carriage startup seek is startup-only in the current trace. It samples raw
+`PA mask 20h`, runs carriage timing tables, and pulses the gate-array `TM`
+input rather than the paper-feed `PB3`/`PB4` phase bits. Schematic review
+identifies this input as PA5 with a 15K pullup to `+5 V`; the HOME switch sits
+at the far-left end of travel and closes to ground, so PA mask 20h clear
+firmware samples are active-low HOME assertions.
 The startup branch sequence is decoded in
 `data/lq500_3c_carriage_home_seek.tsv`: the firmware distinguishes raw PA mask 20h
 set/clear states, performs a short `0004h` probe when PA mask 20h starts clear, a
 fixed `000Ah` confirmation move across the edge, and long `13ECh` seeks on the
 other legs. `5306h` samples PA5 through PA mask 20h three times per timing interval and increments
 `D` only for PA mask 20h clear samples. The success path seeds `EF0F=EF11=0003h`.
-`53B9h` later compares requested positions against `EF0F` with a `001Ah`
-local-motion limit before scheduling the move; this is a scheduler guard, not
-an unresolved home-seek stage. The manual's 22 phase-switch distance from HOME
-to the print area remains a print-area geometry anchor for horizontal
-coordinate correlation.
+Later small relative moves use `53B9h` to compare the requested target against
+`EF0F` with a `001Ah` absolute-difference limit before scheduling through
+`532Bh`.
 
-Service-manual Table 2-7 is the carriage speed grouping: x3 is 900 PPS 2-2,
-x2 is 600 PPS 2-2, x1.5 is 900 PPS 1-2, and x1 is 600 PPS 1-2. Tables 2-8 and
-2-9 define the drive sequences for those excitation systems, and Tables
-2-12 through 2-15 define the accel/decel timings. This manual grouping is
-tracked in `data/lq500_3c_carriage_speed_modes.tsv`.
-
-The firmware anchors for the Table 2-7 profiles are the `7005h` records copied
-by `55B1h` into `EF49..EF60`. `VV4C`/`EF4F` drive the accel list, `EF51` is
-the initial timer addend, and `VV54`/`EF57` drive the decel list through the
-FE1 walker at `0772h`/`0799h`; see
+The firmware anchors for the runtime speed profiles are the `7005h` records
+copied by `55B1h` into `EF49..EF60`. `VV4C`/`EF4F` drive the accel list,
+`EF51` is the initial timer addend, and `VV54`/`EF57` drive the decel list
+through the FE1 walker at `0772h`/`0799h`; see
 `data/lq500_3c_carriage_timing_profiles.tsv`. Startup home seek is separate
-from the four speed modes: it uses the 2-2 excitation system for the manual's
-HOME check interval, but it is not x3 or x2. Firmware `5253h` walks the compact
-10-us `7287h-72AEh` delay table while sampling PA5 and pulsing `PC7`, rather
-than selecting the `7005h` x3/x2 runtime profiles.
+from those runtime profiles: `5253h` walks the compact 10-us
+`7287h-72AEh` delay table while sampling PA5 and pulsing `PC7`.
 
 The five-byte records at `72B3h-72D8h` are indexed by `(VV6F & 7) * 5` in the
 carriage scheduler; see `data/lq500_3c_carriage_sequence_records.tsv`.
