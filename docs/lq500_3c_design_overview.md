@@ -339,15 +339,16 @@ When full justification reaches the spacing computation:
    `$1A24` for used width, adds advance, and compares against
    `EEA5` (available width):
 
-   - **Line fills the margin** (used ≥ available): sets VV:C1 bit 0
+   - **Line fills the margin** (`used + advance >= available`, tested
+     via `DSUBNB` skip-on-no-borrow at `$2B13`): sets VV:C1 bit 0
      (expand-spaces flag).  Divides the remaining space by `EE52`
      (word-space count from line buffer) via `CALT ($00A0)`.
      Quotient → `EE99`/`EE9B` (per-space expansion amount).
      Remainder → `EE95`/`EE97` (extra 1-unit expansion distributed
      to the first N spaces).
 
-   - **Line too short**: clears VV:C1 bit 0 (no expansion).  Uses
-     default spacing from `EE58`/`EE54`.
+   - **Line too short** (`used + advance < available`): clears VV:C1
+     bit 0 (no expansion).  Uses default spacing from `EE58`/`EE54`.
 
 3. The computed values are copied to `EE9D` (8 bytes via BLOCK at
    `$2B5F`) for the render core.
@@ -357,6 +358,22 @@ write) alongside character data.  The division distributes remaining
 space evenly across all inter-word gaps, with the remainder giving
 one extra unit to the leftmost spaces — standard full-justification
 arithmetic.
+
+### Dot-Level Coordinates and Proportional Interaction
+
+All justification position tracking uses dot units (1/360 inch).
+`EE48` (max position reached) and `EE4A` (min position) are updated
+at `$1995` (CALT `$009C`) after every character render: the current
+position is compared against the running min/max via `DLT`/`DGT` and
+the extremes are updated.  Since each character contributes its actual
+dot-level width from the font metrics (`VV:99`/`EF9B`), proportional
+and fixed-pitch characters are handled identically — there is no
+column-count or character-count abstraction.
+
+The full justification "line full" test at `$2B13` uses `>=` (via
+`DSUBNB` skip-on-no-borrow), not `==`.  Proportional text that
+overshoots the margin by a fractional amount still triggers space
+expansion; the line does not need to land exactly at the margin.
 
 ## Tab Stops
 

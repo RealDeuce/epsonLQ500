@@ -154,6 +154,12 @@ adding missing roots, such as hand-confirmed computed jump/table targets, to
   `NEI/NEIW` skip when not equal, `EQI/EQIW` skip when equal, and `DLT` skips
   on carry after subtraction, which corresponds to the left operand being less
   than the right operand.
+- uPD7810 `DSUBNB` (double subtract, no borrow) is a conditional-skip
+  instruction: it skips the following instruction when no borrow occurs
+  (result >= 0). Firmware uses this for clamped subtraction (skip past a
+  zero-clamp `LXI EA,$0000`) and for comparison-and-branch patterns
+  (skip past a `JRE` when the result is non-negative). `DGT` and `DLT`
+  are similar double-word skip-on-compare instructions.
 - uPD7810 `MVI A,xx` uses the CPU `L1` overlay flag: the first consecutive
   `MVI A,xx` loads `A` and sets `L1`; later consecutive `MVI A,xx`
   instructions act as NOPs until an instruction that clears `L1`. Firmware uses
