@@ -610,6 +610,45 @@ font families (`+`, `−`, `.`, `:`, `[`, `]`, `^`, `_`, `|`) and some
 letterforms with simple symmetric shapes (`H`, `I`, `L`, `T` in Sans
 Serif; `H`, `T`, `l` in Roman).
 
+### Underline Rendering
+
+Underline (`VV:28` bit 0, from `VV:23` bit 0 / ESC `-` / ESC `!`
+bit 7) is **not** part of the effect pipeline at `$1ABF`-`$1B18`.
+It is rendered separately at `$1EBC`-`$1F22`, after the `$1E7F`
+column write loop completes.
+
+At `$1EBC`: `ONIW VV:28,$01` — if underline active, skip the `RET`
+and fall through into the underline renderer. The underline is also
+invoked from `$2970` (`CALL $1ECC`) in the per-character render loop
+for characters that bypass the normal `$1E7F` glyph write.
+
+The underline renderer at `$1ECC`-`$1F22`:
+
+1. Sets `VV:B2 = $01` (underline dot mask = bit 0 of byte 2).
+   Condition checks at `$1ECF`-`$1F00` may change this to `$04`
+   (bit 2 of byte 2) for double-height characters.
+2. Reads the **previous** column's byte 2 (`DCX DE; LDAX (DE+)` at
+   `$1F06`) to determine the alternation phase — maintaining
+   continuity with any preceding underlined character.
+3. Walks from old `EE66` to new `EE66` (the full character cell:
+   start + width + advance), modifying byte 2 of each 3-byte column:
+   - **Even columns**: `ORA A,C` — sets the underline bit.
+   - **Odd columns**: `ANA A,C` (with `C = ~mask`) — clears it.
+   - `XRI C,$FF` toggles the mask each iteration.
+
+The underline dots follow the 360 DPI two-pass interleave: set in
+every other column, matching the glyph data pattern. The two carriage
+passes fill the gaps to produce a continuous line.
+
+**Vertical position**: `VV:B2 = $01` → bit 0 of byte 2 → wire 17
+(H17, vertical position 16/180 inch below pin 1). This corresponds
+to the 24-pin head's underline strike position. For double-height:
+`VV:B2 = $04` → bit 2 of byte 2 → wire 19 (H19, position 18/180).
+
+**Written into the image buffer** directly, ORed alongside glyph
+column data. The underline is not a separate mechanism — it shares
+the same buffer and two-pass print path as the character data.
+
 ## Glyph Transform Families
 
 The `43DDh-4C36h` region looks like the resident bitmap expansion engine. It
