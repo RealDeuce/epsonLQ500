@@ -483,7 +483,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 | 3 | VV:29.4 set | `$47CB` | Emphasized | Copies glyph to work buffer with 3 blank-column padding, then ORs original data at +1 column offset (bold shift). Half-res path uses +2 column offset with adjacent-dot restriction via `$1F50`. Width += 1 (or 2 for half-res), advance -= same. |
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
 | 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Calls `$1E52` to double metrics, clears dest buffer, then duplicates columns. Half-res: literal duplication via `STAX (DE+)`+`STAX (DE+$02)`. Normal LQ: ORs adjacent source columns (`LDAX (HL+$03); ORAX (HL+)`), which is a no-op for interleaved blanks → effective duplication. Super/subscript path at `$4879` applies adjacent-dot restriction while doubling. |
-| 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into nibbles, ORs upper nibble at current position and lower nibble at stride-offset position to create rightward slant |
+| 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into 4-pin nibbles, routes low nibble to current column and high nibble to next column (+3 bytes). Successive bytes within a column write to progressively earlier destination columns (DCX DE × 5 per byte), creating a rightward shear from bottom to top. Normal: 5-column spread across 24 pins (~6° slant), width += 5. Double-wide: 2-bit pairs across 4 columns, 11-column spread, width += 11. |
 | 7 | VV:2A bits 5+6 = 11 | `$44C4` | Unused on LQ-500 | — |
 | 8 | VV:2A.6 set | `$43DD` | Unused on LQ-500 | — |
 | 9 | VV:2A.5 set | `$444A` | Unused on LQ-500 | — |
@@ -921,6 +921,51 @@ ORing each glyph column one position to the right of itself:
 
 The bold offset is always rightward: the original data stays at its
 position, and a copy is ORed one column to the right.
+
+### Italic Shear Detail (`$4ACE`)
+
+`$4ACE` (ESC 4, ESC ! bit 6, `VV:27` bits 4+3) applies a rightward
+shear by distributing each column's vertical pin data across multiple
+destination columns based on vertical position:
+
+1. Calls `$1DDF` (full expansion setup: clears work buffer, returns
+   HL = source, DE = dest).
+
+2. Flag cascade at `$4AD9`-`$4AF3` selects between normal, double-wide
+   (`$4B3E`), and double-wide+double-height (`$4BD8`) paths.
+
+**Normal path** (`$4AF5`):
+
+- Destination offset: `EA += 12` (4 columns into the cleared buffer).
+- For each source column (3 bytes, 24 pins), each byte is split into
+  two 4-pin nibbles. The low nibble (`ANI A,$0F`) is ORed into the
+  current destination column; the high nibble (`ANI C,$F0`) is ORed
+  into the next column (`STAX (DE+$03)`). After each byte, DE backs
+  up by 5 positions (`DCX DE × 5`).
+
+  For source column N, the mapping is:
+
+  | Source byte | Pins | Low nibble → | High nibble → |
+  | --- | --- | --- | --- |
+  | byte 0 (top) | 1-8 | dest col N+4, byte 0 | dest col N+5, byte 0 |
+  | byte 1 (mid) | 9-16 | dest col N+2, byte 1 | dest col N+3, byte 1 |
+  | byte 2 (bot) | 17-24 | dest col N+0, byte 2 | dest col N+1, byte 2 |
+
+  The bottom pins land at the leftmost column, the top pins at the
+  rightmost — a 5-column rightward shear across 24 vertical pins.
+  At 360 DPI horizontal / 180 DPI vertical this is approximately 6°.
+
+- Metrics: width += 5, EF9B -= 5.
+
+**Double-wide path** (`$4B3E`):
+
+- Destination offset: `EA += 24` (8 columns).
+- Each source byte is split into four 2-bit pairs (masks `$03`,
+  `$0C`, `$30`, `$C0`), each ORed into a separate destination column
+  at DE, DE+3, DE+6, DE+9. Then DE backs up by 11 positions.
+  This spreads 24 pins across 11 destination columns — double the
+  normal shear to match the doubled character width.
+- Metrics: width += 11, EF9B -= 11.
 
 ### Double-Wide Detail (`$4830`)
 
