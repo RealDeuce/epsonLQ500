@@ -1374,18 +1374,42 @@ Each iteration fires the mechanism at a **different head position**
 — the paper advances between slices, not after all slices
 accumulate. The advance distance comes from the table at `$682E`:
 
-| Index | Distance | Used by |
+| Index | Value | Distance |
 | --- | --- | --- |
-| 0 | 0/180" | no advance (stay in place) |
-| 1 | 4/180" | |
-| 2 | 6/180" | |
-| 3 | 10/180" | |
-| 4 | 20/180" | |
-| 5 | 24/180" | |
+| 0 | $00 | 0/180" (no advance) |
+| 1 | $04 | 4/180" |
+| 2 | $06 | 6/180" |
+| 3 | $0A | 10/180" |
+| 4 | $14 | 20/180" |
+| 5 | $18 | 24/180" |
+| 6 | $80 | 128/180" |
+| 7 | $57 | 87/180" |
 
 `EE7A` feeds into `EF40` at `$287E` within `$2864`, driving the
 `$5676` mechanism scheduler. `EF40` is in **1/180-inch units** (one
 unit = one stepper phase = one pin pitch).
+
+#### Line Spacing Halving (`$50EB`)
+
+The LF handler at `$2014` loads `EF8B` (line spacing) into HL, then
+calls `$50EB` which halves it:
+
+```
+50EB: DMOV EA,HL          ; EA = line spacing
+50EC: DSLR EA             ; EA >>= 1 (divide by 2)
+50EE: DMOV HL,EA          ; HL = spacing / 2
+50EF: SK   CY             ; if original was odd:
+50F2: LDAW VV:93           ;   load rounding state
+50F4: INR  A               ;   toggle
+50F5: ANI  A,$01           ;   keep bit 0
+50F7: STAW VV:93           ;   save
+50F9: SK   Z               ;   if toggled to 0:
+50FC: INX  HL              ;     round up (spacing/2 + 1)
+```
+
+The halved value is stored to `EE7A` at `$2586`. `VV:93` tracks
+the alternating half-unit for odd spacings, ensuring that two
+consecutive half-line advances sum to the exact original spacing.
 
 **Loop termination** at `$26D3`-`$26D7`: `MVI A,$10; OFFAX (HL)`
 tests bit 4 of the next byte in the record chain. If bit 4 is
