@@ -1330,32 +1330,83 @@ It doubles vertical output by expanding each selected source nibble into a
 
 ### Double-Height Pass Scheduling
 
-The mode table at `$67F0` contains 2-byte pointers indexed by the
-render mode. Each pointer leads to a record chain: the first 3 bytes
-are `[VV:88, VV:89, byte2]`, followed by additional byte2 values for
-successive passes.
+#### Mode Table Structure
 
-The loader at `$264F` reads the initial record and sets `VV:88`/`VV:89`.
-Then the loop at `$2663`-`$26EF` processes chained byte2 values. After
-each iteration, the shift at `$26E5`-`$26E9` advances the slice:
+The mode table at `$67F0` contains 8 two-byte pointers. Each pointer
+leads to a record chain: the first 3 bytes are `[VV:88, VV:89, byte2]`,
+followed by additional byte2 values for successive passes.
+
+The table index is computed at `$2642`-`$264F`:
+
+```
+A = (VV:AA bit 0 ? $08 : $00)    (double-height gate, MVI L1 at $263F)
+  + (VV:A9 bit 6 ? $04 : $00)    (render class, $2646)
+  + (VV:A9 bit 5 ? $02 : $00)    (double-strike, $2652)
+EA = $67F0 + A                    (pointer to record chain)
+```
+
+`VV:AA` bit 0 is the double-height gate, set at `$190A` from `VV:25`
+bit 7 (ESC w).  When set, A starts at 8, selecting mode table entries
+8-14 which all have initial VV:89=$01. Normal rendering uses entries
+0-6 with VV:89=$00 (the `$4900` effect is skipped entirely when
+`VV:2A` bit 7 is clear).
+
+`VV:A9` bits 5-6 are set in the printable-char path at `$18E4`-`$1904`:
+bit 5 from `VV:24` bit 6 (double-strike), bit 6 from `VV:22` bit 1
+(character-classifier flag).
+
+#### Inner Loop: Record Chain and VV:89 Shift
+
+The loader at `$264F` reads the initial 3-byte record and sets
+`VV:88`/`VV:89`. Then the inner loop at `$2663`-`$26EF` processes
+chained byte2 values and shifts VV:89 after each iteration:
 
 ```
 26E5: LDAW VV:89
 26E7: SLL  A         ; shift left 1
-26E9: STAW VV:89     ; $01 → $02 → $04 → $08 → ...
+26E9: STAW VV:89     ; $01 → $02 → $04
 ```
 
-This means a double-height character is rendered across successive
-print bands, with VV:89 cycling through slice values `$01 → $02 → $04`
-to emit different vertical portions of the source glyph. The mode
-table entry at `$6811` (double-height, A_base=8) starts with
-VV:89=$01 and chains through byte2 values `$04, $22, $30, ...` while
-shifting VV:89 per pass.
+**Loop termination** at `$26D3`-`$26D7`: `MVI A,$10; OFFAX (HL)`
+tests bit 4 of the next byte in the record chain. If bit 4 is
+**set**, `JRE $26FB` exits the loop. If **clear**, the loop
+continues.
 
-The four slice paths are NOT four independent passes of the same
-24-pin band. They are portions emitted at different vertical
-positions across successive bands, with the render-mode scheduler
-controlling paper advance between bands.
+For the double-height record chain at `$6811`:
+- Initial: VV:88=$00, VV:89=$01
+- byte2 values: `$04` (bit 4=0, continue), `$22` (bit 4=0, continue),
+  `$30` (bit 4=1, exit)
+- VV:89 cycles: `$01 → $02 → $04` over 3 iterations (3 slices)
+
+#### Outer Loop: Render Bands and Paper Advance
+
+The inner loop runs within the outer band loop at `$2599` (`DON
+EA,BC`), which iterates once per render band. Each band iteration:
+
+1. `$259D`: check `VV:A9` bit 7 for first-pass/subsequent-pass
+   routing.
+2. `$25AA`-`$25BC`: compute `EE7A` (vertical position within the
+   double-height sequence). `EE7A` bit 7 flags whether the current
+   band is a continuation pass (set at `$25B3` via `ORI H,$80`).
+3. `$25D0`-`$25D6`: set `VV:38` bit 3 and `VV:39` bit 3, then
+   `CALL $5676` — the shared mechanism scheduler triggers paper
+   advance and fires the first carriage pass.
+4. `$25E4`-`$25E7`: set `VV:39` bits for second pass, then
+   `CALL $5676` again — fires the second carriage pass (for
+   interleaved 360 DPI printing).
+5. `$25EA`-`$25F0`: clear `VV:38`/`VV:39` mechanism flags.
+6. `$2574`: `ANIW VV:A9,$BF` clears bit 6, changing the mode table
+   index for the next band.
+7. `$2609`-`$264F`: set up render state and reload mode table for
+   the next band.
+8. Loop back to `$2599`.
+
+Paper advance between double-height bands uses the same `$5676`
+mechanism scheduler as normal printing. The `VV:38` bit 3 flag
+selects paper-feed mode, which drives the stepper motor via
+`PB2`/`PB & 18h` phase outputs. There is no special double-height
+paper-advance path — the firmware handles inter-band advance through
+the normal render-band scheduling loop.
 
 ### `VV:88` / `VV:89` / `VV:2A` helper-bit mapping
 
