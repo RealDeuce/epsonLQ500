@@ -484,9 +484,9 @@ Multiple effects can be applied in sequence to the same glyph data.
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
 | 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Calls `$1E52` to double metrics, clears dest buffer, then duplicates columns. Half-res: literal duplication via `STAX (DE+)`+`STAX (DE+$02)`. Normal LQ: ORs adjacent source columns (`LDAX (HL+$03); ORAX (HL+)`), which is a no-op for interleaved blanks → effective duplication. Super/subscript path at `$4879` applies adjacent-dot restriction while doubling. |
 | 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into 4-pin nibbles, routes low nibble to current column and high nibble to next column (+3 bytes). Successive bytes within a column write to progressively earlier destination columns (DCX DE × 5 per byte), creating a rightward shear from bottom to top. Normal: 5-column spread across 24 pins (~6° slant), width += 5. Double-wide: 2-bit pairs across 4 columns, 11-column spread, width += 11. |
-| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Unused on LQ-500 | — |
-| 8 | VV:2A.6 set | `$43DD` | Unused on LQ-500 | — |
-| 9 | VV:2A.5 set | `$444A` | Unused on LQ-500 | — |
+| 7 | VV:2A bits 5+6 = 11 | `$44C4` | Outline+shadow (unreachable) | Copy + shift-left-1 + shift-right-1 + shift-right-1 via `$45B1`/`$45F8`. Mutually exclusive with 8/9 (dispatch at `$1AFE` catches both-bits case first). |
+| 8 | VV:2A.6 set | `$43DD` | Outline (unreachable) | Copy columns at stride `VV:CF` to all 3 planes, then shift-left-1 (`$45B1`) + shift-right-1 (`$45F8`) into dest, XOR/mask (`$463F`) to hollow interior. Width += 1 via `$4664`. |
+| 9 | VV:2A.5 set | `$444A` | Shadow (unreachable) | Copy + shift via `$46C4`/`$1DDF`. Simpler variant of effect 8. |
 | 10 | VV:2A.7 set | `$4900` | Double-height | Expands each 4-bit nibble → 8 bits (each dot becomes 2-dot pair) via `$49AD`; VV:89 bits select extraction mode |
 
 VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
@@ -847,8 +847,12 @@ interactions:
 - **Double-height**: runs last (effect #10).  Each nibble expands to
   a byte, doubling vertical resolution.
 
-Effects that are unused on the LQ-500 (effects 7-9, gated by VV:2A
-bits 5+6) are skipped.
+Effects 7-9 are gated by `VV:2A` bits 5+6 (from `VV:25` bits 5+6).
+These bits correspond to ESC q (select character style: outline/shadow),
+which is documented in the ESC/P command set but not implemented on
+the LQ-500 — no command in the traced firmware sets `VV:25` bits 5-6.
+The effect code (`$44C4`/`$43DD`/`$444A`) is real and functional,
+shared from a broader Epson platform, but unreachable on this model.
 
 ### Super/Subscript Detail (`$4AA8`)
 
