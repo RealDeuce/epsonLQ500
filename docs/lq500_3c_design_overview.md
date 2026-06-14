@@ -931,10 +931,13 @@ of the original CG column format.
 
 ### Condensed-Draft Detail (`$49C5`)
 
-The extracted CG directory has no separate plain LQ condensed family entry (only
-`0x13`/`0x17` as elite/proportional-condensed variants for Roman and Sans).
-In this path, condensed is implemented by the transform below, not by swapping
-to an extra plain-LQ condensed font record.
+`$49C5` is implemented in firmware, not as a font-table swap.
+
+The extracted CG directory has no separate plain-LQ condensed family entry
+(`0x04`/`0x05`/`0x06` are Roman 15 cpi / 10 cpi Elite / 12 cpi
+proportional and `0x17` is elite proportional condensed; no equivalent
+plain-LQ condensed). In this path, condensed is implemented by the transform
+below, not by selecting a separate font record.
 
 `$49C5` (SI/DC2 + Draft mode, `VV:27` bit 7) halves the glyph width
 by merging adjacent column pairs:
@@ -1087,8 +1090,10 @@ Three paths depending on flags:
 
 ### Double-Height Detail (`$4900`)
 
-`$4900` (ESC w, `VV:2A` bit 7) doubles vertical resolution by
-expanding each selected source nibble into a 2-dot pair using `$49AD` (`bit7->C0`, `bit6->30`, `bit5->0C`, `bit4->03`):
+`$4900` (ESC w, `VV:2A` bit 7) is not a geometric Y-scale primitive; it is
+an explicit vertical-expansion transform executed on packed nibble columns.
+It doubles vertical output by expanding each selected source nibble into a
+2-dot pair using `$49AD` (`bit7->C0`, `bit6->30`, `bit5->0C`, `bit4->03`):
 
 1. If double-wide is active (`VV:29` bits 0+1 set), calls `$47CB`
    (emphasized) first at `$4908`.
