@@ -955,7 +955,109 @@ This section documents how printer attributes interact at parse time and
 render time, derived from the firmware trace.  The emulator must reproduce
 these rules to match the real printer's output.
 
-### ESC ! Master Select Override
+### Attribute Mechanism Layers
+
+Each attribute takes effect at one of three layers.  Attributes in
+different layers are always independent.  Interactions only occur
+within the same layer or across layers where one feeds into another.
+
+**Font selection** (VV:A6 → 4C directory scan at `$1677`):
+
+| Input | VV:A6 bits | Set by | Notes |
+| --- | --- | --- | --- |
+| Pitch | 1:0 | `$164B` from VV:23 | Priority: proportional > 15 cpi > elite > 10 cpi. Mutually exclusive. |
+| Quality | 2 | VV:87 bit 2 via `$1643` | Draft (set) / LQ (clear). |
+| Super/subscript | 4 | VV:23 bit 4 via `$166B` | Selects 2-byte-per-column font (dim1=$10). |
+| Italic | 6 | VV:24 bit 3 via `$1666` | Falls back to non-italic if not in directory. |
+
+These four inputs select one of the 13 physical fonts in the 4C CG
+ROM.  Many combinations collapse to the same font:
+
+- 15 cpi maps to the elite+proportional font slot.
+- Italic without an italic font falls back to non-italic with
+  the condensed bit set (via the `$154E` fallback chain).
+- All four pitch modes in Draft quality share 3 fonts (10 cpi,
+  elite, elite+proportional+condensed).
+
+**Effect pipeline** (`$1ABF`-`$1B18`, sequential transforms on
+3-byte column data):
+
+| Order | Gate bits | Effect | Independent? |
+| --- | --- | --- | --- |
+| 1 | VV:28.4 | Super/subscript 2→3 col | Fires for $20-$AF range only. |
+| 2 | VV:27.7 | Condensed-Draft merge | Only when condensed + Draft + not proportional + not 15 cpi. |
+| 3 | VV:29.4 | Emphasized bold shift | Independent. |
+| 4 | VV:29.7 | Half-res expansion | Automatic from font glyph_ptr bit 23. Not user-settable. |
+| 5 | VV:29.0+1 | Double-wide | Independent. |
+| 6 | VV:27.4+3 | Italic shear | Independent. Applied to already-widened data. |
+| 7 | VV:2A.5+6=11 | Outline+shadow | Mutually exclusive with 8, 9. |
+| 8 | VV:2A.6 | Outline | Mutually exclusive with 7, 9. |
+| 9 | VV:2A.5 | Shadow | Mutually exclusive with 7, 8. |
+| 10 | VV:2A.7 | Double-height | Runs last. |
+
+Effects are sequential: each transforms the output of the previous.
+All gate bits are independent (one effect firing does not prevent
+another), except effects 7/8/9 which are mutually exclusive via the
+dispatch at `$1AFE` (VV:2A bits 5+6 select exactly one path).
+
+**Non-pipeline attributes** (operate outside the effect chain):
+
+| Attribute | Mechanism | Interaction |
+| --- | --- | --- |
+| Double-strike | Render dispatch fires carriage pass twice (`$27E5`). | Independent of all pipeline effects. |
+| Underline | ORed into image buffer at `$1EBC`. | Independent. Not an effect. |
+
+### Mutual Exclusions
+
+| Group | Members | Mechanism |
+| --- | --- | --- |
+| Pitch | 10 cpi, 12 cpi, 15 cpi, proportional | `$164B` priority chain. Only one set of VV:A6 bits 1:0 survives. |
+| Quality | Draft, LQ | Single bit VV:87.2 / VV:A6.2. |
+| Outline/shadow | Outline, shadow, outline+shadow, normal | VV:2A bits 5+6: 00=normal, 01=shadow, 10=outline, 11=outline+shadow. |
+| Super vs sub | Superscript, subscript | VV:23 bit 3 selects alignment. Both share VV:23 bit 4 active flag. |
+
+### Attribute Collapses (Same Output)
+
+Some attribute combinations produce identical output because
+they map to the same font + effect combination:
+
+- **15 cpi** and **elite + proportional** select the same 4C font
+  directory entry (VV:A6 bits 1:0 = $03 for both).
+- **Condensed (SI/DC2)** in LQ mode with proportional or 15 cpi
+  active: the condensed-Draft composite flag at `$14C6` requires
+  Draft quality AND not proportional AND not 15 cpi, so the
+  condensed effect #2 never fires.  Condensed has no visible effect
+  in LQ proportional/15 cpi modes.
+- **Italic** with a typestyle family that has no italic font: the
+  fallback chain at `$154E` drops italic and retries, so the output
+  matches non-italic.
+
+### Condensed: Two Distinct Mechanisms
+
+"Condensed" in this firmware refers to two unrelated things:
+
+1. **SI/DC2 condensed** (VV:22 bit 5): a runtime effect (#2 at
+   `$49C5`) that merges adjacent column pairs.  Only fires when
+   the condensed-Draft composite flag (VV:22 bit 7) is set, which
+   requires Draft quality + not proportional + not 15 cpi.
+
+2. **Super/subscript font** (VV:A6 bit 4): selects 4C font
+   directory entries labelled "Condensed" in the CG ROM's internal
+   naming.  These are 2-byte-per-column (16-dot) super/subscript
+   glyph sets — not related to SI/DC2 condensed mode.
+
+### Attributes NOT Controlled by ESC !
+
+ESC ! (`$0F42`) overrides pitch, emphasized, double-strike, italic,
+double-wide, condensed, and underline.  It does **not** affect:
+
+- Super/subscript (VV:23 bits 3-4)
+- Double-height (VV:25 bit 7)
+- Outline/shadow (VV:25 bits 5-6)
+- Quality Draft/LQ (VV:87 / ESC x)
+- 15 cpi is **always cleared** by ESC ! (VV:23 bit 7)
+
+### ESC ! Master Select Override (Trace Detail)
 
 ESC ! (`$0F42`) is a complete override for the attributes it controls.
 It first clears all affected bits (ANIW), then sets from the parameter:
