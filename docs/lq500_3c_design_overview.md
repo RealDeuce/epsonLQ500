@@ -479,7 +479,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 | Order | Condition | Address | Effect | Data operation |
 | --- | --- | --- | --- | --- |
 | 1 | VV:28.4 set | `$4AA8` | Super/subscript active | Copies 2-byte CG columns → 3-byte with zero-fill; VV:28.3 selects upper/lower 16-pin alignment |
-| 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears destination, XOR-inverts and ANDs adjacent columns to merge/halve column count |
+| 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears work buffer, then merges pairs of source columns via OR and writes with adjacent-dot restriction (XRI/ANA against previous output). Halves width/start/advance. Half-res path clears VV:29.7 and applies restriction only (no merge, no metrics change). |
 | 3 | VV:29.4 set | `$47CB` | Emphasized | Copies glyph to work buffer with 3 blank-column padding, then ORs original data at +1 column offset (bold shift). Half-res path uses +2 column offset with adjacent-dot restriction via `$1F50`. Width += 1 (or 2 for half-res), advance -= same. |
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
 | 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Calls `$1E52` to double metrics, clears dest buffer, then duplicates columns. Half-res: literal duplication via `STAX (DE+)`+`STAX (DE+$02)`. Normal LQ: ORs adjacent source columns (`LDAX (HL+$03); ORAX (HL+)`), which is a no-op for interleaved blanks → effective duplication. Super/subscript path at `$4879` applies adjacent-dot restriction while doubling. |
@@ -848,6 +848,47 @@ interactions:
 
 Effects that are unused on the LQ-500 (effects 7-9, gated by VV:2A
 bits 5+6) are skipped.
+
+### Condensed-Draft Detail (`$49C5`)
+
+`$49C5` (SI/DC2 + Draft mode, `VV:27` bit 7) halves the glyph width
+by merging adjacent column pairs:
+
+1. Calls `$1DFE` for a work buffer. Clears 3 × width bytes to zero.
+2. Updates `EE88` to the work buffer. Sets DE = original source,
+   HL = work_buffer − 3 (write-ahead offset for restriction).
+
+Two paths based on `VV:29` bit 7 (half-res):
+
+- **Half-res** (`$49E7`): clears `VV:29` bit 7 (preventing `$4C16`
+  from running later). Applies a simple `XRI $FF; ANAX` adjacent-dot
+  restriction loop over the compact data bytes. Does **not** merge
+  column pairs or halve metrics — the half-res data stays at its
+  compact width. Returns before the metrics-halving code.
+
+- **Normal** (`$49F9`): main loop at `$4A06` processes column pairs.
+  For each pair (columns N and N+1):
+  - `LDAX (DE+$03); ORAX (DE+)` — merges both columns via OR
+  - `LDAX (HL+); XRI $FF; ANA` — restricts the merged result
+    against the inverted previous output column (adjacent-dot
+    restriction: suppresses dots that would create adjacent pin
+    firings at the condensed spacing)
+  - `STAX (HL+$02)` — writes to the output at a +2 byte offset
+  - Repeats for all 3 bytes of the column, then DE advances by 6
+    (past both merged source columns)
+
+  After the loop: `VV:99 = width / 2` (+ 1 for odd width),
+  `EF95 /= 2`, `EF97 /= 2`, `EF9B` recomputed. All metrics halved.
+
+The write-ahead offset (`HL` reads at position P, writes at P+2)
+means each merged output column is restricted against its left
+neighbor — the firmware ensures no two adjacent output columns have
+dots in the same pin position.
+
+Note: effect #2 runs **before** effect #4 (`$4C16`) in the pipeline.
+When both condensed and half-res are active, the half-res path here
+clears `VV:29` bit 7, so `$4C16` never runs. The condensed output
+stays at the compact half-res column spacing.
 
 ### Emphasized Detail (`$47CB`)
 
