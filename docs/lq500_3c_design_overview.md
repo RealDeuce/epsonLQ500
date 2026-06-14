@@ -487,7 +487,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 | 7 | VV:2A bits 5+6 = 11 | `$44C4` | Outline+shadow | Copy + shift-left-1 + shift-right-1 + shift-right-1 via `$45B1`/`$45F8`. Mutually exclusive with 8/9 (dispatch at `$1AFE` catches both-bits case first). ESC q 3. |
 | 8 | VV:2A.6 set | `$43DD` | Outline | Copy columns at stride `VV:CF` to all 3 planes, then shift-left-1 (`$45B1`) + shift-right-1 (`$45F8`) into dest, XOR/mask (`$463F`) to hollow interior. Width += 1 via `$4664`. ESC q 1. |
 | 9 | VV:2A.5 set | `$444A` | Shadow | Copy + shift via `$46C4`/`$1DDF`. Simpler variant of effect 8. ESC q 2. |
-| 10 | VV:2A.7 set | `$4900` | Double-height | Expands each 4-bit nibble → 8 bits (each dot becomes 2-dot pair) via `$49AD`; VV:89 bits select extraction mode |
+| 10 | VV:2A.7 set | `$4900` | Double-height | If double-wide active, calls `$47CB` (emphasized) first. Then `$1DFE` for work buffer, selects one of four vertical slices via VV:89 bits 0-2, expands each 4-bit nibble → 8 bits via `$49AD` (each dot → 2-dot pair). VV:89 selects which 12-pin slice of the 24-pin source fills the full 24-pin output. |
 
 VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
 Confirmed VV bit assignments from ESC ! Master Select (`0F42h`) and
@@ -1043,6 +1043,59 @@ Three paths depending on flags:
   adjacent-dot restriction. Uses `XRI $FF; ANAX` masking to suppress
   dots that would create adjacent-pin conflicts when the doubled
   column is placed next to the original.
+
+### Double-Height Detail (`$4900`)
+
+`$4900` (ESC w, `VV:2A` bit 7) doubles vertical resolution by
+expanding each dot into a 2-dot pair using `$49AD`:
+
+1. If double-wide is active (`VV:29` bits 0+1 set), calls `$47CB`
+   (emphasized) first at `$4908`.
+2. Calls `$1DFE` for work buffer. DE = destination, HL = source.
+   Updates `EE88` to work buffer.
+
+3. `VV:89` bits 0-2 select which 12-pin vertical slice of the
+   24-pin source column gets doubled to fill the full 24-pin output:
+
+   | VV:89 bits | Path | Source pins | Output |
+   | --- | --- | --- | --- |
+   | 000 | `$4925` | 1-10 (top) | Byte 0 high nibble → dest byte 0, byte 0 low nibble → dest byte 1, byte 1 top 2 bits → dest byte 2. Byte 2 skipped. |
+   | bit 0 | `$4945` | 5-16 (upper-mid) | Reads across byte 0/1 boundary with shifts. |
+   | bit 1 | `$4977` | 17-22 (lower) | Zeros dest bytes 0-1, reads byte 2 shifted. |
+   | bit 2 | `$4991` | 13-24 (lower-mid) | Zeros dest byte 0, reads bytes 1-2 with shifts. |
+
+4. The expander at `$49AD` converts each high-nibble bit to a 2-bit
+   pair: bit 7 → `$C0`, bit 6 → `$30`, bit 5 → `$0C`, bit 4 → `$03`.
+   Four input bits become 8 output bits — each dot doubled vertically.
+
+The firmware prints the top half and bottom half of a double-height
+character on successive print lines, selecting the appropriate
+`VV:89` slice for each line.
+
+### Double-Strike (`VV:29` bit 6)
+
+Double-strike (ESC G/H, `VV:24` bit 6 → `VV:29` bit 6 at runtime)
+is **not** part of the effect pipeline at `$1ABF`-`$1B18`. It does
+not modify glyph column data.
+
+It operates at two levels:
+
+1. **Render dispatch** (`$27D1`-`$281D`): `VV:29` bit 6 is checked
+   at `$27E5` alongside `VV:88` bit 7. The flag cascade selects
+   between `CALL $1A8A` at `$281D` (render with position update) and
+   `JMP $1A8A` at `$281A` (render without position update). This
+   allows the character to be rendered into the image buffer without
+   advancing the position, then rendered again with the advance.
+
+2. **Line output** (`$2871`-`$28C3`): the mechanism firing loop
+   calls `$5676` multiple times. `$288A` fires the first carriage
+   pass; `$28AA` fires a second pass after mechanism completion and
+   carriage repositioning via `$28CE`. The same image buffer data
+   is printed at two slightly different carriage positions, producing
+   a denser/darker impression.
+
+Note: ESC G/H do not trigger font reconfig via CALT (`$0092`), unlike
+most other style commands.
 
 ### Draft vs LQ Rendering Differences
 
