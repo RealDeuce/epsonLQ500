@@ -154,6 +154,11 @@ adding missing roots, such as hand-confirmed computed jump/table targets, to
   `NEI/NEIW` skip when not equal, `EQI/EQIW` skip when equal, and `DLT` skips
   on carry after subtraction, which corresponds to the left operand being less
   than the right operand.
+- uPD7810 `DCR` (decrement register) is a conditional-skip instruction:
+  it skips the following instruction when the register was **0 before
+  decrement** (underflows to 255). MAME: `ZHC_SUB(tmp, reg, 0);
+  SKIP_CY;` — CY is set on unsigned underflow, SK fires on CY.
+  Firmware uses DCR for stride-byte counting in `$463F`/`$45F8`.
 - uPD7810 `DSUBNB` (double subtract, no borrow) is a conditional-skip
   instruction: it skips the following instruction when no borrow occurs
   (result >= 0). Firmware uses this for clamped subtraction (skip past a

@@ -873,9 +873,11 @@ Notable helpers:
 
 | Address | Working label | Evidence |
 | --- | --- | --- |
-| `45B1h` | `or_shifted_columns_left_into_work_buffer` | Shifts source data left and ORs into destination bytes. |
-| `45F8h` | `or_shifted_columns_right_into_work_buffer` | Mirrors the left-shift helper using right shifts. |
-| `463Fh` | `xor_or_mask_shifted_columns_into_work_buffer` | Uses `XRAX`/masking while walking destination columns. |
+| `45B1h` | `or_shifted_columns_left_into_work_buffer` | Shifts source data left (upward) and ORs into destination. Mirror of `$45F8`. |
+| `45F8h` | `shift_right_and_or_into_dest` | DSLR on 16-bit EA pairs shifts pin data downward by VV:D0 bits with cross-byte carry. Last byte carry-sticks via `SK CY; ORI A,$01`. Processes VV:99 columns × VV:CF bytes. |
+| `463Fh` | `xor_mask_columns_into_dest` | XORs source into dest per column. First byte: optionally masks pin 1 via `ANI $7F` (gated by VV:D1 bit 0). Last byte: masks pin 24 via `ANI $FE`. Uses DCR skip-on-underflow to count stride bytes. |
+| `457Eh` | `smear_and_expand_horizontal` | Calls `$1DDF`, then ORs each source byte into 3 stride-separated dest positions (3-column horizontal thickening). Width += 1. Used by shadow, outline, and outline+shadow. |
+| `1DDFh` | `swap_source_and_allocate_work_buffer` | EE8A = EE88 (save source), EE88 = new zeroed 540-byte buffer. Returns HL = old source, DE = new buffer. |
 | `4664h` | `adjust_glyph_width_and_right_edge_metrics` | Updates `VV99`, `EF95`, `EF97`, and `EF9B`. |
 | `49ADh` | `expand_high_nibble_to_2bit_pairs` | Converts high-nibble bits into paired masks `C0/30/0C/03`. |
 | `49C5h` | `condense_or_mask_glyph_columns` | Uses inverted masks and halves/condenses metrics afterward. |
@@ -1079,6 +1081,82 @@ set by ESC q n at `$43C3`:
 - n=3: `ORIW VV:25,$60` — set both bits (outline+shadow, effect 7).
 
 Values n ≥ 4 are rejected (`LTI A,$04; RET`).
+
+### Shadow Detail (`$444A`)
+
+`$444A` (ESC q 2, `VV:2A` bit 5) creates a hollow character with a
+drop shadow extending to the lower-right.
+
+#### Shared Helpers
+
+The shadow, outline, and outline+shadow effects share these helpers:
+
+**`$1DDF`** — buffer swap and allocate:
+1. `EE8A = EE88` (save current source as work pointer).
+2. Allocates a new buffer via `$1DFE` → `EE88` = new zeroed buffer.
+3. Clears 540 bytes (`$049C`).
+4. Returns HL = EE8A (old source), DE = EE88 (new buffer).
+
+**`$457E`** — horizontal smear (called from all three effects):
+1. Calls `$1DDF` to set up buffers.
+2. For each source byte: ORs it into dest at 3 stride-separated
+   positions (pos, pos+stride, pos+2×stride). This replicates each
+   column into 3 consecutive dest columns with OR overlap, creating
+   a horizontally thickened version of the glyph.
+3. Calls `$4664` with B=1 → width += 1.
+
+**`$45F8`** — vertical shift-right and OR:
+1. `VV:D0` = shift amount (A-1 on entry).
+2. For each column (B = VV:99 iterations), for each byte within
+   the column (C = VV:CF stride):
+   - Loads source byte pair into 16-bit EA (cross-byte carry).
+   - DSLR × VV:D0 shifts EA right (pin data moves downward).
+   - ORs EAL into dest byte.
+3. Last byte: `SK CY; ORI A,$01` — carry-in from DSLR sets bit 0,
+   preventing dots from vanishing past pin 24 (carry-stick).
+
+**`$463F`** — XOR/mask to hollow interior:
+1. `VV:D1` = A on entry (controls bit 7 masking).
+2. For each column (B = VV:99), for each byte (C = VV:CF stride):
+   - First byte: `ONIW VV:D1,$01` → if VV:D1 bit 0 set, skip
+     `ANI A,$7F` (include pin 1 in XOR). Otherwise mask pin 1 out.
+   - Middle bytes: plain XOR with dest.
+   - Last byte: `ANI A,$FE` (exclude pin 24 from XOR).
+   - XOR source into dest: `XRAX (DE); STAX (DE+)`.
+3. DCR is a **skip-on-underflow** instruction on the uPD7810: it
+   skips the next instruction when the register was 0 before
+   decrement (wraps to 255). Used here to count through stride bytes.
+
+#### Shadow Sequence
+
+1. `$46C4`: sets `VV:CF=3`. If double-height active (`VV:2A` bit 7),
+   also performs double-height expansion and sets `VV:CF=4`.
+
+2. `$457E`: calls `$1DDF` (EE8A = source, EE88 = buffer1), then
+   smears source into buffer1 (3-column OR thickening). Width += 1.
+
+3. `$1DDF` again at `$4455`: EE8A = buffer1 (smeared), EE88 =
+   buffer2 (zeroed). Returns HL = buffer1, DE = buffer2.
+
+4. `$4458`-`$4466`: copies buffer1 (smeared) to buffer2.
+
+5. Three `$45F8` calls — shift buffer1 (EE8A) downward and OR into
+   buffer2 (EE88) at column offsets:
+   - `$4477`: offset +1 column, shift down 1 pin.
+   - `$448E`: offset +3 columns, shift down 1 pin.
+   - `$44A9`: offset +5 columns, shift down 2 pins.
+
+6. `$463F` at `$44B6`: XOR buffer1 (smeared) into buffer2 column by
+   column (VV:D1=1 → all bits of byte 0 included, byte 2 bit 0
+   excluded). This removes the smeared original from the composite,
+   hollowing the character body and leaving only the shadow portions
+   visible outside the original footprint.
+
+7. `$4664` at `$44BB`: width += 5 (B=5).
+
+The result is the character rendered as a hollow outline with a solid
+shadow stepping rightward and downward in 3 stages. The shadow
+becomes visible where it extends beyond the character body.
 
 ### Super/Subscript Detail (`$4AA8`)
 
