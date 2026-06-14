@@ -379,6 +379,35 @@ At `1B4Bh`, the firmware reads the glyph metrics record:
   column on output. See "Half-Resolution Glyphs" below.
 - `EF9B` and `EF95` are derived from these metrics plus mode flags.
 
+### Secondary Metric Transform for LQ Positioning
+
+The secondary read at `1CF2` is the LQ super/subscript transform stage.
+It does not change the glyph source pointer; it only adjusts the active
+width and advance used by the render loop:
+
+- `1CED` reaches this path only when control reaches `1CF0` and then enters
+  `1CF2` instead of continuing at `1C15`.
+- `1CF2` saves current `F002` in `B`, then loads `F002=$4F`.
+- `1CF6` uses `VV28` bit 4 for base select: set -> `$8600`, clear -> `$8000`.
+- Address is `base + VV:A0 * 6`.
+- `byte0` is read and ignored by traced code.
+- `byte1` is loaded into `EF99` (width/count).
+- `byte2` is loaded into `EF9B` (advance).
+- The fetch does this as `MOV D,$00 ; MOV E,A ; SDED EF99/EF9B`, so this
+  secondary advance is effectively zero-extended before arithmetic.
+- `F002` is restored to `B`.
+
+The traced render path uses these values directly for placement:
+
+- In `1E7F`, `EA = EE66 + 3 × EF97` gives destination buffer start
+  (3-byte columns for LQ).
+- `1E9A..1EA7` writes `VV99` columns, ORing 3 bytes per column.
+- `1EA9..1EB8` sets `EE66 = EE66 + 3 × EF9B` for the next character.
+
+Any subsequent metric-effect transformer (double-wide, italic, etc.) can still
+change these numbers later, but the secondary metrics values are the
+base LQ super/subscript override for `VV99` and `EF9B`.
+
 ### Second CG Read
 
 After the initial metrics, when `VV27` bit 2 is clear the code reaches
@@ -386,7 +415,7 @@ After the initial metrics, when `VV27` bit 2 is clear the code reaches
 
 - Sets `F002=$4F` (a fixed bank, distinct from the font-selected bank).
 - Reads a 6-byte record at (`$8000` or `$8600`) + `VV:A0` × 6.
-- `VV28` bit 4 selects the base: `$8000` when set, `$8600` when clear.
+- `VV28` bit 4 selects the base: `$8600` when set, `$8000` when clear.
 - Bytes 1 and 2 are loaded into `EF99`/`EF9B`.
 - Restores `F002` and returns.
 
@@ -501,8 +530,8 @@ individual command handlers, verified against `lq500_u1.pdf` page 6-4:
 | VV:22 | 7 | Condensed-Draft mode (condensed AND Draft AND not proportional) | `14C6h` reconfig |
 | VV:23 | 0 | Underline | ESC -, ESC ! bit 7 |
 | VV:23 | 1 | Elite (12 cpi) | ESC M/P, ESC ! bit 0 |
-| VV:23 | 3 | Superscript (vs subscript when bit 4 set) | ESC S 0 |
-| VV:23 | 4 | Super/subscript active | ESC S 0/1, ESC T |
+| VV:23 | 3 | Super/subscript vertical align (`1` = superscript, `0` = subscript; meaningful when active) | ESC S 0/1 |
+| VV:23 | 4 | Super/subscript active | ESC S 0/1 set, ESC T clear |
 | VV:23 | 5 | Proportional | ESC p, ESC ! bit 1 |
 | VV:23 | 7 | 15 cpi | ESC g, cleared by ESC P/M |
 | VV:24 | 0 | Double-wide one-line (SO, DC4 cancels) | SO/DC4 |
@@ -883,7 +912,7 @@ set and other conditions pass. When `VV:28` bit 4 is already set
 
 1. `$1DFE` → HL = EE88 (CG source), EA = work buffer.
 2. DE = work buffer, EE88 updated to work buffer.
-3. `VV:28` bit 3 selects alignment:
+3. `VV:28` bit 3 selects alignment (this comes from `VV:23` bit 3):
 
    - **Superscript** (bit 3 SET, `$4ABA`): for each column, reads
      2 source bytes via `LDAX (HL+)`, writes them to dest bytes 0-1,
