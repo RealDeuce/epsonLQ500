@@ -686,6 +686,15 @@ Multiple effects can be applied in sequence to the same glyph data.
 | 9 | VV:2A.5 set | `$444A` | Shadow | `$457E` smear, copy to buffer2, shift-right-1 at +1/+3 cols + shift-right-2 at +5 cols, `$463F` XOR (VV:D1=1). `$4664`(B=5) → width += 10. See "Shadow Detail." ESC q 2. |
 | 10 | VV:2A.7 set | `$4900` | Double-height | If double-wide active, calls `$47CB` (emphasized) first. Then `$1DFE` for work buffer, selects one of four vertical slices via VV:89 bits 0-2, expands each 4-bit nibble → 8 bits via `$49AD` (each dot → 2-dot pair). VV:89 selects which 12-pin slice of the 24-pin source fills the full 24-pin output. |
 
+**Character-range gate for effects 7-9**: before the outline/shadow
+dispatch, `$1AF3` (`OFFIW VV:28,$40`) tests VV:28 bit 6 (= VV:23
+bit 6). When set, ALL outline/shadow effects are skipped and control
+passes directly to the double-height check at `$1B12`. VV:23 bit 6
+is set by the classifier at `$4163` for $B0+/$F0+ characters and
+cleared by font reconfig at `$14CC`. Result: outline/shadow fire
+only for **$20-$AF** and **user-defined** characters, never for
+extended/graphics characters.
+
 VV:27-VV:2A correspond to VV:22-VV:25 via the BLOCK copy at `185Ch`.
 Confirmed VV bit assignments from ESC ! Master Select (`0F42h`) and
 individual command handlers, verified against `lq500_u1.pdf` page 6-4:
@@ -702,6 +711,7 @@ individual command handlers, verified against `lq500_u1.pdf` page 6-4:
 | VV:23 | 3 | Super/subscript vertical align (`1` = superscript, `0` = subscript; meaningful when active) | ESC S 0/1 |
 | VV:23 | 4 | Super/subscript active | ESC S 0/1 set, ESC T clear |
 | VV:23 | 5 | Proportional | ESC p, ESC ! bit 1 |
+| VV:23 | 6 | Extended character flag: set at `$4163` for $B0+/$F0+ characters, cleared by reconfig at `$14CC`. Copied to VV:28 bit 6 to block outline/shadow effects at `$1AF3`. | `$4038` classifier |
 | VV:23 | 7 | 15 cpi | ESC g, cleared by ESC P/M |
 | VV:24 | 0 | Double-wide one-line (SO, DC4 cancels) | SO/DC4 |
 | VV:24 | 0+1 | Double-wide persistent | ESC W, ESC ! bit 5 |
@@ -990,9 +1000,9 @@ ROM.  Many combinations collapse to the same font:
 | 4 | VV:29.7 | Half-res expansion | Automatic from font glyph_ptr bit 23. Not user-settable. |
 | 5 | VV:29.0+1 | Double-wide | Independent. |
 | 6 | VV:27.4+3 | Italic shear | Independent. Applied to already-widened data. |
-| 7 | VV:2A.5+6=11 | Outline+shadow | Mutually exclusive with 8, 9. |
-| 8 | VV:2A.6 | Outline | Mutually exclusive with 7, 9. |
-| 9 | VV:2A.5 | Shadow | Mutually exclusive with 7, 8. |
+| 7 | VV:2A.5+6=11 | Outline+shadow | Mutually exclusive with 8, 9. Blocked for $B0+ chars (VV:28.6 gate). |
+| 8 | VV:2A.6 | Outline | Mutually exclusive with 7, 9. Blocked for $B0+ chars. |
+| 9 | VV:2A.5 | Shadow | Mutually exclusive with 7, 8. Blocked for $B0+ chars. |
 | 10 | VV:2A.7 | Double-height | Runs last. |
 
 Effects are sequential: each transforms the output of the previous.
