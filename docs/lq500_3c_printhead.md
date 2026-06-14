@@ -36,10 +36,12 @@ split across the two page columns and continues through CN6 pin `15`, `HD3`.
 The combined output, connector, and physical wire map is in
 `data/lq500_3c_printhead_wire_map.tsv`.
 
-The remaining conservative point is bit order inside each 8-bit latch. Ordered
-`D0..D7` and `Hn..Hn+7` names imply the natural order recorded as candidates
-in the TSV, but the appendix block diagram does not draw each individual `D`
-bit to each `H` output.
+The intra-byte order in each 8-bit latch is now treated as confirmed:
+`D7` maps to the first wire in the latch block and `D0` maps to the last.
+So `first_H1_H8` uses `D7..D0 -> H1..H8`, `second_H9_H16` uses
+`D7..D0 -> H9..H16`, and `third_H17_H24` uses `D7..D0 -> H17..H24`.
+This is reflected in `data/lq500_3c_printhead_wire_map.tsv` and in the rendered
+glyph check for Roman `g` at 10 cpi LQ.
 
 The head interface is the E05A02LA gate array. The manual identifies it as
 three 8-bit data latches for `H1..H24`:
@@ -107,9 +109,8 @@ glyph bytes are produced before they become the three bytes consumed by
 
 ## Next Workstream
 
-- If needed for rendering, validate the candidate intra-byte bit order
-  (`D0..D7` to the corresponding `H` block) against schematic traces or output
-  tests. The latch blocks, CN5/CN6 connector pins, and physical head wire
-  placement are now mapped.
+- Intra-byte mapping is now resolved (`D7..D0` to `Hn..Hn+7`) and used by the
+  render pipeline assumptions; remaining uncertainty is limited to connector
+  mechanical details already documented in the wire map.
 - In a later rendering document, trace how character-generator/render buffers
   prepare the three-byte rows consumed by `0978h`.

@@ -625,13 +625,21 @@ for characters that bypass the normal `$1E7F` glyph write.
 
 The underline renderer at `$1ECC`-`$1F22`:
 
-1. Sets `VV:B2 = $01` (underline dot mask = bit 0 of byte 2).
-   Condition checks at `$1ECF`-`$1F00` may change this to `$04`
-   (bit 2 of byte 2) for double-height characters.
-2. Reads the **previous** column's byte 2 (`DCX DE; LDAX (DE+)` at
+1. Sets `VV:B2 = $01` (underline dot mask = bit 0 of the target column byte).
+2. The renderer exits without doing anything if `($2A low nibble & $88 low nibble)` is zero:
+   this is the `ONA A,C` gate at `$1ED8`.
+3. It also exits if either `$88 bit 5` is set or either `$89 bit 0` or
+   `$89 bit 3` is set (`$1EE3` / `$1EE7`).
+4. Otherwise, the default remains `VV:B2 = $01`. It is changed to
+   `VV:B2 = $04` only when all of these are true:
+   - `$89 bit 2` is set,
+   - `$89 bit 4` is set,
+   - `$2A bit 7` is clear,
+   - and the earlier `$88` low-nibble/`$2A` low-nibble overlap gate passed.
+5. Reads the **previous** column's byte 2 (`DCX DE; LDAX (DE+)` at
    `$1F06`) to determine the alternation phase — maintaining
    continuity with any preceding underlined character.
-3. Walks from old `EE66` to new `EE66` (the full character cell:
+6. Walks from old `EE66` to new `EE66` (the full character cell:
    start + width + advance), modifying byte 2 of each 3-byte column:
    - **Even columns**: `ORA A,C` — sets the underline bit.
    - **Odd columns**: `ANA A,C` (with `C = ~mask`) — clears it.
@@ -641,10 +649,9 @@ The underline dots follow the 360 DPI two-pass interleave: set in
 every other column, matching the glyph data pattern. The two carriage
 passes fill the gaps to produce a continuous line.
 
-**Vertical position**: `VV:B2 = $01` → bit 0 of byte 2 → wire 17
-(H17, vertical position 16/180 inch below pin 1). This corresponds
-to the 24-pin head's underline strike position. For double-height:
-`VV:B2 = $04` → bit 2 of byte 2 → wire 19 (H19, position 18/180).
+Using the confirmed pin mapping (`D7..D0 -> H17..H24` for the third
+byte in each 3-byte column), `VV:B2 = $01` maps to `H24` and
+`VV:B2 = $04` maps to `H22`.
 
 **Written into the image buffer** directly, ORed alongside glyph
 column data. The underline is not a separate mechanism — it shares
@@ -1071,6 +1078,54 @@ expanding each dot into a 2-dot pair using `$49AD`:
 The firmware prints the top half and bottom half of a double-height
 character on successive print lines, selecting the appropriate
 `VV:89` slice for each line.
+
+### `VV:88` / `VV:89` / `VV:2A` helper-bit mapping
+
+These three bytes are loaded from the mode table at `67F0h` (via
+`264F`-`2676`) and then consumed by normal render, double-strike, and
+underline paths. They are not user-visible attributes the way `VV:22`–`VV:25`
+are; they are runtime render-mode selectors and compatibility gates.
+
+`VV:2A` bits:
+
+- `0x20` and `0x40`: effect bits for shadow/outline (`ESC q2/1`, and both for
+  `ESC q3`), consumed by the effect dispatch at `$1ABF`-`$1B18`.
+- `0x80`: global render-state bit set by ESC w (`VV:2A bit 7`) for
+  double-height path (`$4900`) and consulted in render/underline gating.
+- Low nibble (`0x0F`): participates in overlap-class checks:
+  - `VV:2A.low & VV:88.low` gate at `$27D9` and `$1ED6` (`OFFA`/`ONA`).
+  - no separate per-bit semantics proven beyond this compatibility role.
+
+`VV:88` bits:
+
+- `0x80`: dispatch/underline override bit:
+  - if clear, render can continue without the `VV:29.6` check in
+    `$27E2`/`$1EDB`.
+  - if set, `VV:29.6` becomes part of the gating path and can force early return.
+  - treat as "double-strike/render override flag" (inferred from trace behavior).
+- `0x20`: participates with `VV:89.08` in the early render-class branch at
+  `$1D28`/`$1D2B` and with `VV:89.08` at `$27FF`/`$2802` for the sibling
+  render branch.
+- `0x08`: initialized/sanitized via table load (`$2666`/`$266F`) and not used
+  as an independent branch predicate elsewhere in current traces.
+- Low nibble (`0x0F`): compatibility mask used with `VV:2A` low nibble.
+
+`VV:89` bits:
+
+- `0x01`, `0x02`, `0x04`: double-height source-slice selectors used by
+  `$4900` (`bit`-based interleave path choice is also shown in
+  “Double-Height Detail”).
+- `0x08`: used with `VV:88.20` in mode-branching (`$1D2B`, `$2802`) and as
+  an explicit disable in underline setup (`$1EE7` checks `$09`, so either bit
+  `0x01` or `0x08` set forces an early return).
+- `0x20`: newline-style guard for underline; it must be clear for the alternate
+  `VV:B2=$04` mask path.
+- `0x02` + `0x04` + `VV:2A.80==0`: together with the `VV:88` low-nibble
+  overlap gate, enable the alternate underline mask (`VV:B2=$04`).
+
+Bits in this trio are currently only known through trace behavior; where this
+is not provable as a direct documented mode flag, the table marks them as
+inferred from control-flow coupling.
 
 ### Double-Strike (`VV:29` bit 6)
 

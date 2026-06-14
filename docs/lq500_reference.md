@@ -448,6 +448,18 @@ Printhead details from service manual pages 2-54 through 2-59 and Appendix A:
   CN5/CN6 `HD n` pins. Table A-12 is split across the two page columns and
   continues through CN6 pin `15`, `HD3`.
 
+### Output Byte Bit Convention (Canonical)
+
+Within each 8-bit latch (and each glyph column byte), bit order is validated as
+MSB-first (`D7`/bit 7 first, `D0`/bit 0 last) per latch block:
+
+- `first_H1_H8`: `D7..D0` -> `H1..H8`
+- `second_H9_H16`: `D7..D0` -> `H9..H16`
+- `third_H17_H24`: `D7..D0` -> `H17..H24`
+
+For 3-byte CG columns, this means bit 7 is the top wire and bit 0 is the
+bottom wire of each byte group (`H1..H8`, `H9..H16`, `H17..H24`).
+
 Paper-feed motor details from service manual Figure 2-47:
 
 - The paper-feed motor is a 4-phase, 48-step stepper motor.
