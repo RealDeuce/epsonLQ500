@@ -482,7 +482,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 | 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears destination, XOR-inverts and ANDs adjacent columns to merge/halve column count |
 | 3 | VV:29.4 set | `$47CB` | Emphasized | Copies glyph to work buffer with 3 blank-column padding, then ORs original data at +1 column offset (bold shift). Half-res path uses +2 column offset with adjacent-dot restriction via `$1F50`. Width += 1 (or 2 for half-res), advance -= same. |
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
-| 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Clears double-width destination, duplicates each 3-byte column (STAX (DE+) plus STAX (DE+$02)) |
+| 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Calls `$1E52` to double metrics, clears dest buffer, then duplicates columns. Half-res: literal duplication via `STAX (DE+)`+`STAX (DE+$02)`. Normal LQ: ORs adjacent source columns (`LDAX (HL+$03); ORAX (HL+)`), which is a no-op for interleaved blanks → effective duplication. Super/subscript path at `$4879` applies adjacent-dot restriction while doubling. |
 | 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into nibbles, ORs upper nibble at current position and lower nibble at stride-offset position to create rightward slant |
 | 7 | VV:2A bits 5+6 = 11 | `$44C4` | Unused on LQ-500 | — |
 | 8 | VV:2A.6 set | `$43DD` | Unused on LQ-500 | — |
@@ -880,6 +880,39 @@ ORing each glyph column one position to the right of itself:
 
 The bold offset is always rightward: the original data stays at its
 position, and a copy is ORed one column to the right.
+
+### Double-Wide Detail (`$4830`)
+
+`$4830` (ESC W, SO, ESC ! bit 5, `VV:29` bits 0+1) doubles each
+glyph column horizontally:
+
+1. Calls `$1E52` to double width/start/advance/EF95 (returns original
+   width in A). If original width is 0, returns immediately.
+2. Computes destination buffer size = (width + 2) × 6 bytes, then
+   clears the entire buffer with zeros via `$1DFE`.
+3. Updates `EE88` to the work buffer.
+
+Three paths depending on flags:
+
+- **Half-res** (`$4861`, `VV:29` bit 7 set): literal column
+  duplication. Each 3-byte source column is written to two consecutive
+  destination columns via `STAX (DE+)` plus `STAX (DE+$02)` for all
+  3 bytes, then `INX DE × 3` skips past the second copy. Stride: 6
+  destination bytes per source column.
+
+- **Normal LQ** (`$48BB`, `VV:28` bit 2 clear): the first and last
+  source columns are straight-copied to the destination with a 3-byte
+  blank skip (via `$48EA`). The main loop at `$48D6` reads each source
+  column ORed with its right neighbor: `LDAX (HL+$03); ORAX (HL+)`.
+  For standard 360 DPI interleaved data (alternating data/blank
+  columns), ORing with a blank neighbor is a no-op, so this
+  effectively duplicates each data column while preserving the
+  interleave pattern. `VV:99` gets +1 padding column; `EF9B` gets −1.
+
+- **Super/subscript** (`$4879`, `VV:28` bit 2 set): doubles with
+  adjacent-dot restriction. Uses `XRI $FF; ANAX` masking to suppress
+  dots that would create adjacent-pin conflicts when the doubled
+  column is placed next to the original.
 
 ### Draft vs LQ Rendering Differences
 
