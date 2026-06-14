@@ -1029,9 +1029,12 @@ they map to the same font + effect combination:
   condensed effect #2 never fires.  Condensed has no visible effect
   in LQ proportional/15 cpi modes.
 - **Italic** with a typestyle family that has no italic font: the
-  fallback chain at `$154E` drops italic and sets VV:A6 bit 4
-  (super/subscript font flag) before retrying, so the output uses
-  a different font than plain non-italic.
+  fallback chain at `$154E` drops italic (clears VV:A6 bit 6) and
+  sets the italic-fallback marker (VV:2C bit 4 → VV:22 bit 4).
+  The retry searches without italic but does NOT change VV:A6
+  bit 4.  The italic shear effect (#6) still fires at render time
+  (VV:27 bits 4+3 come from VV:22 bit 4 via the classifier),
+  so the output is the non-italic font with firmware-applied shear.
 
 ### WARNING: "Condensed" Has Two Unrelated Meanings
 
@@ -1140,14 +1143,18 @@ matches when the CG directory scan at `$1677` fails:
 
 1. **Exact match**: current VV:A6 (pitch + quality + italic +
    super/subscript)
-2. **Drop italic**: if VV:A6 bit 6 was set, clear it and add VV:A6
-   bit 4 (super/subscript font flag — NOT SI/DC2 condensed), retry
-3. **Try alternate pitch** (`$156A`): with VV:A6 bit 4 cleared,
-   cycles through pitch alternatives:
+2. **Drop italic** (`$155A`): if VV:A6 bit 6 was set, clear it
+   (remove italic from search criteria) and set VV:2C bit 4
+   (italic fallback marker → becomes VV:22 bit 4), retry.
+   This does NOT change VV:A6 bit 4 — super/subscript font
+   selection is unaffected by the italic fallback.
+3. **Try alternate pitch** (`$156A`): cycles through pitch
+   alternatives:
    - From 10 cpi ($00): try elite ($01), then proportional ($02)
    - From proportional ($02): try 10 cpi ($00), then elite ($01)
    - From elite ($01): try 10 cpi ($00), then proportional ($02)
-   Similar fallbacks with VV:A6 bit 4 set at `$15ED`
+   Each pitch is tried with and without VV:A6 bit 4
+   (super/subscript) at `$15C1`/`$15ED`.
 4. **Try Roman family**: sets VV:A5=$FF and rescans from step 1
 5. **Fail**: jumps to `$53DF` (no output for this character)
 
