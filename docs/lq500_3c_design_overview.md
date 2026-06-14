@@ -931,6 +931,11 @@ of the original CG column format.
 
 ### Condensed-Draft Detail (`$49C5`)
 
+The extracted CG directory has no separate plain LQ condensed family entry (only
+`0x13`/`0x17` as elite/proportional-condensed variants for Roman and Sans).
+In this path, condensed is implemented by the transform below, not by swapping
+to an extra plain-LQ condensed font record.
+
 `$49C5` (SI/DC2 + Draft mode, `VV:27` bit 7) halves the glyph width
 by merging adjacent column pairs:
 
@@ -1083,7 +1088,7 @@ Three paths depending on flags:
 ### Double-Height Detail (`$4900`)
 
 `$4900` (ESC w, `VV:2A` bit 7) doubles vertical resolution by
-expanding each dot into a 2-dot pair using `$49AD`:
+expanding each selected source nibble into a 2-dot pair using `$49AD` (`bit7->C0`, `bit6->30`, `bit5->0C`, `bit4->03`):
 
 1. If double-wide is active (`VV:29` bits 0+1 set), calls `$47CB`
    (emphasized) first at `$4908`.
@@ -1091,7 +1096,7 @@ expanding each dot into a 2-dot pair using `$49AD`:
    Updates `EE88` to work buffer.
 
 3. `VV:89` bits 0-2 select which 12-pin vertical slice of the
-   24-pin source column gets doubled to fill the full 24-pin output:
+   24-pin source column gets doubled in this slice-pass:
 
    | VV:89 bits | Path | Source pins | Output |
    | --- | --- | --- | --- |
@@ -1100,13 +1105,16 @@ expanding each dot into a 2-dot pair using `$49AD`:
    | bit 1 | `$4977` | 17-22 (lower) | Zeros dest bytes 0-1, reads byte 2 shifted. |
    | bit 2 | `$4991` | 13-24 (lower-mid) | Zeros dest byte 0, reads bytes 1-2 with shifts. |
 
-4. The expander at `$49AD` converts each high-nibble bit to a 2-bit
+4. This is a per-pass expander path; the mode table (`VV:89`) controls which
+   slice is expanded, and the same mechanism is used across successive print
+   lines by render-mode scheduling.
+5. The expander at `$49AD` converts each selected nibble bit to a 2-bit
    pair: bit 7 → `$C0`, bit 6 → `$30`, bit 5 → `$0C`, bit 4 → `$03`.
    Four input bits become 8 output bits — each dot doubled vertically.
 
-The firmware prints the top half and bottom half of a double-height
-character on successive print lines, selecting the appropriate
-`VV:89` slice for each line.
+The four `VV:89` slice paths allow the same glyph row to be emitted
+across the two vertical print-line passes (top + bottom coverage), with each
+pass selecting the appropriate source slice.
 
 ### `VV:88` / `VV:89` / `VV:2A` helper-bit mapping
 
@@ -1188,7 +1196,7 @@ most other style commands.
 | Image buffer column stride | 4 bytes | 3 bytes |
 | CG column format | 3 bytes per column (24 dots) | 3 bytes per column (24 dots) |
 | CG font column resolution | Lower (fewer columns per glyph) | Higher (more columns) |
-| Condensed-Draft effect | Active (merges adjacent columns) | Not active (different font used) |
+| Condensed-Draft effect | Active (merges adjacent columns) | Not active in plain LQ condensed path |
 | Render geometry table mode | Modes 0-4 | Modes 5-7 |
 | Bidirectional adjustment | VR1 at n/240 inch | VR2 at n/720 inch |
 | Half-resolution glyphs | Not observed | Present (byte 5 bit 7 flag) |
