@@ -480,7 +480,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 | --- | --- | --- | --- | --- |
 | 1 | VV:28.4 set | `$4AA8` | Super/subscript active | Copies 2-byte CG columns → 3-byte with zero-fill; VV:28.3 selects upper/lower 16-pin alignment |
 | 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears destination, XOR-inverts and ANDs adjacent columns to merge/halve column count |
-| 3 | VV:29.4 set | `$47CB` | Emphasized | Copies columns with BLOCK × 3 planes plus zero padding for bold offset |
+| 3 | VV:29.4 set | `$47CB` | Emphasized | Copies glyph to work buffer with 3 blank-column padding, then ORs original data at +1 column offset (bold shift). Half-res path uses +2 column offset with adjacent-dot restriction via `$1F50`. Width += 1 (or 2 for half-res), advance -= same. |
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
 | 5 | VV:29 bits 0+1 set | `$4830` | Double-wide | Clears double-width destination, duplicates each 3-byte column (STAX (DE+) plus STAX (DE+$02)) |
 | 6 | VV:27 bits 4+3 set | `$4ACE` | Italic shear | Splits each byte into nibbles, ORs upper nibble at current position and lower nibble at stride-offset position to create rightward slant |
@@ -841,14 +841,45 @@ interactions:
   doubles.  Net effect: original width but with condensed glyph shape.
 - **Italic shear**: runs after emphasized and double-wide, so the
   shear applies to the already-widened data.
-- **Double-strike**: copies columns with interleaved zero spacing.
-  The firmware clears VV:29.7 after processing, so double-strike
-  applies once per render.
+- **Half-res expansion**: (formerly "double-strike prep") see
+  "Half-Resolution Glyphs" above.
 - **Double-height**: runs last (effect #10).  Each nibble expands to
   a byte, doubling vertical resolution.
 
 Effects that are unused on the LQ-500 (effects 7-9, gated by VV:2A
 bits 5+6) are skipped.
+
+### Emphasized Detail (`$47CB`)
+
+`$47CB` (ESC E, ESC ! bit 3, `VV:29` bit 4) produces bold text by
+ORing each glyph column one position to the right of itself:
+
+1. Calls `$1DFE` to select a work buffer.
+2. Three `BLOCK` operations copy the full glyph (width × 3 bytes)
+   from the current source (EE88) to the work buffer.
+3. Writes 9 zero bytes (3 blank columns) as padding after the data.
+4. Updates `EE88` to point to the work buffer.
+5. Sets `DE = work_buffer + 3` (one column offset) for normal glyphs,
+   or `work_buffer + 6` (two columns) for half-res.
+6. ORs the original glyph data into the offset position:
+
+   - **Normal path** (`$480E`): three calls to `$1F62`, which
+     performs a straight `LDAX (HL+); ORAX (DE); STAX (DE+)` loop.
+     Each original column's data is ORed into the next column's
+     position. Result: each dot is widened by one 360 DPI column
+     to the right.
+   - **Half-res path** (`$47FB`): three calls to `$1F4D`/`$1F50`.
+     `$1F50` reads adjacent column data, ORs to find which pin
+     positions would conflict, inverts to create a restriction mask,
+     and ANDs the bold data through it — suppressing any dot that
+     would create an adjacent-dot pair (which the printhead cannot
+     fire). The offset is 2 columns (one 180 DPI column pair).
+
+7. Width grows by 1 (normal) or 2 (half-res). `EF9B` (advance)
+   shrinks by the same amount to keep the total cell width constant.
+
+The bold offset is always rightward: the original data stays at its
+position, and a copy is ORed one column to the right.
 
 ### Draft vs LQ Rendering Differences
 
