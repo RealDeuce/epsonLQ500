@@ -75,3 +75,4 @@ esc	0x77	0x0F16	ESC w n	Turn double-high mode on/off.
 esc	0x6A	0x2568	ESC j n	FX-80 compatibility: immediate reverse feed by n/216 inch. Handler reads n, sets H=0x80, and enters the shared ESC J/immediate-feed path.
 esc	0x72	0x0A0B	ESC r n	Compatibility/no-op candidate. Not found in FX-80 notes; LQ-500 handler is the generic one-byte consumer, so it preserves stream sync.
 esc	0x68	0x0A0B	ESC h n	Compatibility/no-op candidate. Not found in FX-80 notes; LQ-500 handler is the generic one-byte consumer, so it preserves stream sync.
+esc	0x71	0x43C3	ESC q n	Select character style: 0=normal, 1=outline, 2=shadow, 3=outline+shadow. Sets VV:25 bits 5-6. Rejects n >= 4.
