@@ -876,9 +876,9 @@ Notable helpers:
 | `45B1h` | `or_shifted_columns_left_into_work_buffer` | Shifts source data left (upward) and ORs into destination. Mirror of `$45F8`. |
 | `45F8h` | `shift_right_and_or_into_dest` | DSLR on 16-bit EA pairs shifts pin data downward by VV:D0 bits with cross-byte carry. Last byte carry-sticks via `SK CY; ORI A,$01`. Processes VV:99 columns × VV:CF bytes. |
 | `463Fh` | `xor_mask_columns_into_dest` | XORs source into dest per column. First byte: optionally masks pin 1 via `ANI $7F` (gated by VV:D1 bit 0). Last byte: masks pin 24 via `ANI $FE`. Uses DCR skip-on-underflow to count stride bytes. |
-| `457Eh` | `smear_and_expand_horizontal` | Calls `$1DDF`, then ORs each source byte into 3 stride-separated dest positions (3-column horizontal thickening). Width += 1. Used by shadow, outline, and outline+shadow. |
+| `457Eh` | `smear_and_expand_horizontal` | Calls `$1DDF`, then ORs each source byte into 3 stride-separated dest positions (3-column horizontal thickening). Calls `$4664` with B=1 → width += 2. Used by shadow, outline, and outline+shadow. |
 | `1DDFh` | `swap_source_and_allocate_work_buffer` | EE8A = EE88 (save source), EE88 = new zeroed 540-byte buffer. Returns HL = old source, DE = new buffer. |
-| `4664h` | `adjust_glyph_width_and_right_edge_metrics` | Updates `VV99`, `EF95`, `EF97`, and `EF9B`. |
+| `4664h` | `adjust_glyph_width_and_right_edge_metrics` | `VV:99 += 2×B` (two `ADD A,B` at `$4669`/`$466B`). Also decrements `EF97` (start offset) by up to B-1, and adjusts `EF9B` (advance) to keep total cell width constant. |
 | `49ADh` | `expand_high_nibble_to_2bit_pairs` | Converts high-nibble bits into paired masks `C0/30/0C/03`. |
 | `49C5h` | `condense_or_mask_glyph_columns` | Uses inverted masks and halves/condenses metrics afterward. |
 | `4AA8h` | `copy_2byte_glyph_columns_to_3byte_work_rows` | Copies 2 source bytes plus a zero byte, with order selected by a flag. |
@@ -1133,7 +1133,9 @@ The shadow, outline, and outline+shadow effects share these helpers:
    also performs double-height expansion and sets `VV:CF=4`.
 
 2. `$457E`: calls `$1DDF` (EE8A = source, EE88 = buffer1), then
-   smears source into buffer1 (3-column OR thickening). Width += 1.
+   smears source into buffer1 (3-column OR thickening). Calls
+   `$4664` with B=1 → width += 2 (matching the smear's 2-column
+   extension).
 
 3. `$1DDF` again at `$4455`: EE8A = buffer1 (smeared), EE88 =
    buffer2 (zeroed). Returns HL = buffer1, DE = buffer2.
@@ -1152,11 +1154,45 @@ The shadow, outline, and outline+shadow effects share these helpers:
    hollowing the character body and leaving only the shadow portions
    visible outside the original footprint.
 
-7. `$4664` at `$44BB`: width += 5 (B=5).
+7. `$4664` at `$44BB`: width += 10 (B=5, `$4664` adds 2×B).
 
 The result is the character rendered as a hollow outline with a solid
 shadow stepping rightward and downward in 3 stages. The shadow
 becomes visible where it extends beyond the character body.
+
+### Outline Detail (`$43DD`)
+
+`$43DD` (ESC q 1, `VV:2A` bit 6) creates a hollow double-border
+outline of the character.
+
+1. `$46C4`: sets `VV:CF=3` (or 4 for double-height).
+
+2. `$457E` at `$43E5`: smear + `$4664`(B=1) → width += 2.
+   EE8A = source, EE88 = buffer1 (smeared).
+
+3. `$1DDF` at `$43E8`: EE8A = buffer1, EE88 = buffer2 (zeroed).
+
+4. `$43EB`-`$4414`: smear buffer1 into buffer2 (same 3-column OR
+   loop as `$457E` but no `$4664` call — width stays the same).
+   This creates a double-smeared version: each original column is
+   spread across ~5 dest columns via two cascaded 3-column ORs.
+
+5. At dest offset +1 column (DE = buffer2 + stride):
+   - `$4427`: `CALL $45B1` — shift buffer1 LEFT (upward) 1 pin,
+     OR into dest at +1 column.
+   - `$4432`: `CALL $45F8` — shift buffer1 RIGHT (downward) 1 pin,
+     OR into dest at +1 column.
+   - `$443C`: `CALL $463F` — XOR buffer1 into dest at +1 column
+     (VV:D1=0 → pin 1 masked via `ANI $7F`, pin 24 masked via
+     `ANI $FE`).
+
+6. `$4664` at `$4441`: width += 2 (B=1).
+
+The left+right shifts expand the character vertically by 1 pin in
+each direction at column offset +1. The XOR then removes the filled
+interior from the overlap region, leaving a double-bordered outline.
+The pin 1/24 masking in `$463F` prevents the XOR from creating
+artifacts at the top and bottom edges.
 
 ### Super/Subscript Detail (`$4AA8`)
 
