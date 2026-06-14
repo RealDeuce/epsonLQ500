@@ -268,6 +268,96 @@ FF at `201Fh` loads `EF8D` (page length) and advances to the next page
 boundary. If `EF8D` is zero (no page length set), FF enters the shared
 advance path at `2048h` without feeding.
 
+## Justification
+
+`ESC a n` (`$42C1`) selects justification mode by writing `VV:C1`:
+n=0 left ($00), n=1 center ($80), n=2 right ($40), n=3 full ($20).
+The command is rejected unless the current print position `EE4C`
+equals the left margin `EE5E`.  After storing VV:C1, the handler
+falls through to `$42E8` which computes `EEA5 = EE5C - EE4C`
+(available line width from current position to right margin).
+
+### VV:C1 Bit Map
+
+| Bit | Mask | Meaning | Set/cleared by |
+| --- | --- | --- | --- |
+| 7 | $80 | Center justification mode | ESC a 1 |
+| 6 | $40 | Right justification mode | ESC a 2 |
+| 5 | $20 | Full justification mode | ESC a 3 |
+| 4 | $10 | Deferred-render flag | `$2AEF`/`$2CE2` set; `$2AB6`/`$2B9B` clear |
+| 3 | $08 | Render state flag | `$1A01` set; `$1A0B`/`$2D00`/`$2D0E` clear |
+| 2 | $04 | Render state flag | `$1A0F` set; `$1A04`/`$2D00` clear |
+| 1 | $02 | Justify-pending flag (triggers `$2B98` from decode loop) | `$1A08` set; `$1A0B`/`$2D0E` clear |
+| 0 | $01 | Expand-spaces flag (full justification spacing active) | `$2B17` set; `$2B40` clear |
+
+Bits 7:5 select the mode; bits 4:0 are runtime state flags.
+
+### Decode Loop Integration
+
+The main character loop at `$400B` has two justification checkpoints:
+
+**Before rendering** (`$401E`): when full justification is active
+(VV:C1 bit 5), `$4173` is called to check whether the current
+character would overflow the right margin.  `$4173` computes
+`EE4C + HL (char width)` and compares against `EE5C` (right margin).
+If the character would overflow and the cursor is not at the left
+margin, it forces a line feed via `CALL $2011` (LF handler) — this
+is the automatic word-wrap trigger for full justification.
+
+**After line-advance** (`$402B`): after `CALT ($0098)` (line advance
+at `$1896`), the loop tests VV:C1 bit 5.  If full justification is
+active, it skips the pending-justify check and loops back (full
+justification defers spacing to line end).  Otherwise, it tests
+VV:C1 bit 1 (justify-pending) and calls `$2B98` if set.
+
+### Center and Right Justification (`$2ABE-$2ADC`)
+
+When VV:C1 bit 1 triggers `$2B98` from the decode loop, the code
+reaches `$2AB3` which calls `$2DC8` (setup), clears VV:C1 bit 4,
+then branches on the mode bits:
+
+1. `$2ADD` computes remaining space:
+   - `$1A24` returns used width in BC (`EE48 - EE4A`).
+   - `EEA5` (available width) minus used width → EA.
+   - Clamped to zero on borrow.
+
+2. **Center** (VV:C1 bit 7): remaining ÷ 2 via `DSLR EA` at `$2AC9`.
+   **Right** (VV:C1 bit 6): full remaining used as offset.
+
+3. The offset is added to four position registers (`EE48`, `EE4A`,
+   `EE4C`, `EE6C`) via `CALT ($00B0)` at `$2ACF-$2ADB`, shifting
+   the entire line rightward.
+
+### Full Justification (`$2AEB-$2B68`)
+
+When full justification reaches the spacing computation:
+
+1. `$2AEB`: if VV:C1 bits 2+3 (`$0C`) are set, the render is
+   deferred (sets bit 4, returns).
+
+2. `$2AF3`: clears `EE91`/`EE93`, loads `EF9B` (advance), calls
+   `$1A24` for used width, adds advance, and compares against
+   `EEA5` (available width):
+
+   - **Line fills the margin** (used ≥ available): sets VV:C1 bit 0
+     (expand-spaces flag).  Divides the remaining space by `EE52`
+     (word-space count from line buffer) via `CALT ($00A0)`.
+     Quotient → `EE99`/`EE9B` (per-space expansion amount).
+     Remainder → `EE95`/`EE97` (extra 1-unit expansion distributed
+     to the first N spaces).
+
+   - **Line too short**: clears VV:C1 bit 0 (no expansion).  Uses
+     default spacing from `EE58`/`EE54`.
+
+3. The computed values are copied to `EE9D` (8 bytes via BLOCK at
+   `$2B5F`) for the render core.
+
+`EE52` is the word-space counter, incremented at `$1920` (line buffer
+write) alongside character data.  The division distributes remaining
+space evenly across all inter-word gaps, with the remainder giving
+one extra unit to the leftmost spaces — standard full-justification
+arithmetic.
+
 ## Tab Stops
 
 **Horizontal tabs**: HT stop table at `$FF00` (scratch RAM), up to 31

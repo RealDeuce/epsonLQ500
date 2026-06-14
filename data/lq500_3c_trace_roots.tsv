@@ -99,3 +99,4 @@ address	source	note
 0x11B0	command_handler	ESC : handler (copy ROM characters to user-defined); writes VV:1B at 1215h
 0x4EB9	host_consumer	consumer-side near-full handler; clears VV09 bit 0 and manages flow control
 0x43C3	dispatch	ESC q handler (outline/shadow)
+0x42C1	command_handler	ESC a handler (select justification)

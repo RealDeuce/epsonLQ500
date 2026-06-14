@@ -38935,6 +38935,153 @@
     "rest": "",
     "text": "42c0: b8           RET"
   },
+  "0x42C1": {
+    "addr": 17089,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0082)",
+    "text": "42c1: 81           CALT    ($0082)"
+  },
+  "0x42C2": {
+    "addr": 17090,
+    "size": 4,
+    "op": "LHLD",
+    "rest": "$EE4C",
+    "text": "42c2: 70 3f 4c ee  LHLD    $EE4C"
+  },
+  "0x42C6": {
+    "addr": 17094,
+    "size": 1,
+    "op": "DMOV",
+    "rest": "EA,HL",
+    "text": "42c6: a7           DMOV    EA,HL"
+  },
+  "0x42C7": {
+    "addr": 17095,
+    "size": 4,
+    "op": "LHLD",
+    "rest": "$EE5E",
+    "text": "42c7: 70 3f 5e ee  LHLD    $EE5E"
+  },
+  "0x42CB": {
+    "addr": 17099,
+    "size": 2,
+    "op": "DEQ",
+    "rest": "EA,HL",
+    "text": "42cb: 74 ff  DEQ     EA,HL"
+  },
+  "0x42CD": {
+    "addr": 17101,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "42cd: b8     RET"
+  },
+  "0x42CE": {
+    "addr": 17102,
+    "size": 2,
+    "op": "LTI",
+    "rest": "A,$30",
+    "text": "42ce: 37 30  LTI     A,$30"
+  },
+  "0x42D0": {
+    "addr": 17104,
+    "size": 2,
+    "op": "SUI",
+    "rest": "A,$30",
+    "text": "42d0: 66 30  SUI     A,$30"
+  },
+  "0x42D2": {
+    "addr": 17106,
+    "size": 2,
+    "op": "LTI",
+    "rest": "A,$04",
+    "text": "42d2: 37 04  LTI     A,$04"
+  },
+  "0x42D4": {
+    "addr": 17108,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "42d4: b8     RET"
+  },
+  "0x42D5": {
+    "addr": 17109,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$00",
+    "text": "42d5: 67 00  NEI     A,$00"
+  },
+  "0x42D7": {
+    "addr": 17111,
+    "size": 1,
+    "op": "JR",
+    "rest": "$42E0",
+    "text": "42d7: c8     JR      $42E0"
+  },
+  "0x42D8": {
+    "addr": 17112,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$01",
+    "text": "42d8: 67 01  NEI     A,$01"
+  },
+  "0x42DA": {
+    "addr": 17114,
+    "size": 1,
+    "op": "JR",
+    "rest": "$42E2",
+    "text": "42da: c7     JR      $42E2"
+  },
+  "0x42DB": {
+    "addr": 17115,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$02",
+    "text": "42db: 67 02  NEI     A,$02"
+  },
+  "0x42DD": {
+    "addr": 17117,
+    "size": 1,
+    "op": "JR",
+    "rest": "$42E4",
+    "text": "42dd: c6     JR      $42E4"
+  },
+  "0x42DE": {
+    "addr": 17118,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$20",
+    "text": "42de: 69 20  MVI     A,$20"
+  },
+  "0x42E0": {
+    "addr": 17120,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$00",
+    "text": "42e0: 69 00  MVI     A,$00"
+  },
+  "0x42E2": {
+    "addr": 17122,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$80",
+    "text": "42e2: 69 80        MVI     A,$80"
+  },
+  "0x42E4": {
+    "addr": 17124,
+    "size": 2,
+    "op": "MVI",
+    "rest": "A,$40",
+    "text": "42e4: 69 40        MVI     A,$40"
+  },
+  "0x42E6": {
+    "addr": 17126,
+    "size": 2,
+    "op": "STAW",
+    "rest": "VV:C1",
+    "text": "42e6: 63 c1        STAW    VV:C1"
+  },
   "0x42E8": {
     "addr": 17128,
     "size": 4,
@@ -39431,6 +39578,97 @@
     "op": "RET",
     "rest": "",
     "text": "43c2: b8        RET"
+  },
+  "0x43C3": {
+    "addr": 17347,
+    "size": 1,
+    "op": "CALT",
+    "rest": "($0080)",
+    "text": "43c3: 80        CALT    ($0080)"
+  },
+  "0x43C4": {
+    "addr": 17348,
+    "size": 2,
+    "op": "LTI",
+    "rest": "A,$04",
+    "text": "43c4: 37 04     LTI     A,$04"
+  },
+  "0x43C6": {
+    "addr": 17350,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "43c6: b8        RET"
+  },
+  "0x43C7": {
+    "addr": 17351,
+    "size": 3,
+    "op": "ANIW",
+    "rest": "VV:25,$9F",
+    "text": "43c7: 05 25 9f  ANIW    VV:25,$9F"
+  },
+  "0x43CA": {
+    "addr": 17354,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$00",
+    "text": "43ca: 67 00     NEI     A,$00"
+  },
+  "0x43CC": {
+    "addr": 17356,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "43cc: b8        RET"
+  },
+  "0x43CD": {
+    "addr": 17357,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$01",
+    "text": "43cd: 67 01     NEI     A,$01"
+  },
+  "0x43CF": {
+    "addr": 17359,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:25,$40",
+    "text": "43cf: 15 25 40  ORIW    VV:25,$40"
+  },
+  "0x43D2": {
+    "addr": 17362,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$02",
+    "text": "43d2: 67 02     NEI     A,$02"
+  },
+  "0x43D4": {
+    "addr": 17364,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:25,$20",
+    "text": "43d4: 15 25 20  ORIW    VV:25,$20"
+  },
+  "0x43D7": {
+    "addr": 17367,
+    "size": 2,
+    "op": "NEI",
+    "rest": "A,$03",
+    "text": "43d7: 67 03     NEI     A,$03"
+  },
+  "0x43D9": {
+    "addr": 17369,
+    "size": 3,
+    "op": "ORIW",
+    "rest": "VV:25,$60",
+    "text": "43d9: 15 25 60  ORIW    VV:25,$60"
+  },
+  "0x43DC": {
+    "addr": 17372,
+    "size": 1,
+    "op": "RET",
+    "rest": "",
+    "text": "43dc: b8        RET"
   },
   "0x43DD": {
     "addr": 17373,

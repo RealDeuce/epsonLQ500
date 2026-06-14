@@ -50,11 +50,9 @@ address	kind	size	classification	text
 0x401D	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x418F	untraced_gap_start	109	likely_data_or_untraced_code	-
 0x426F	untraced_gap_start	4	likely_data_or_untraced_code	-
-0x42C1	untraced_gap_start	39	likely_data_or_untraced_code	-
 0x4315	untraced_gap_start	77	likely_data_or_untraced_code	-
 0x43A9	untraced_gap_start	4	likely_data_or_untraced_code	-
 0x43BB	untraced_gap_start	4	likely_data_or_untraced_code	-
-0x43C3	untraced_gap_start	26	likely_data_or_untraced_code	-
 0x4C6C	untraced_gap_start	1	likely_data_or_untraced_code	-
 0x4C85	untraced_gap_start	12	likely_data_or_untraced_code	-
 0x4F36	untraced_gap_start	1	likely_data_or_untraced_code	-
