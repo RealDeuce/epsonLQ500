@@ -292,16 +292,21 @@ def extract_4c_font_glyphs(rom4c: bytes, outdir: Path,
                 half_res = bool(glyph_ptr & 0x800000)
                 stored_width = (width + 1) // 2 if half_res else width
 
-                # Read glyph bitmap (3 bytes per column)
+                # Read glyph bitmap: 2 bytes per column for
+                # super/subscript fonts (dim1=$10), 3 for normal
+                # (dim1=$18).  dim1 from the font directory record.
+                bytes_per_col = 2 if rec["dim1"] == 0x10 else 3
                 glyph_hex = ""
                 if stored_width > 0 and glyph_addr > 0 \
-                        and glyph_addr + stored_width * 3 <= len(rom4c):
+                        and glyph_addr + stored_width * bytes_per_col \
+                        <= len(rom4c):
                     cols = []
                     for c in range(stored_width):
-                        b0 = rom4c[glyph_addr + c * 3]
-                        b1 = rom4c[glyph_addr + c * 3 + 1]
-                        b2 = rom4c[glyph_addr + c * 3 + 2]
-                        cols.append(f"{b0:02X}{b1:02X}{b2:02X}")
+                        col_bytes = []
+                        for b in range(bytes_per_col):
+                            col_bytes.append(rom4c[
+                                glyph_addr + c * bytes_per_col + b])
+                        cols.append("".join(f"{v:02X}" for v in col_bytes))
                     glyph_hex = " ".join(cols)
                     chars_with_data += 1
 

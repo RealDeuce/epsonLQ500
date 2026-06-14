@@ -379,16 +379,39 @@ At `1B4Bh`, the firmware reads the glyph metrics record:
   column on output. See "Half-Resolution Glyphs" below.
 - `EF9B` and `EF95` are derived from these metrics plus mode flags.
 
-### Secondary Metric Transform for LQ Positioning
+### Super/Subscript Font Selection
 
-The secondary read at `1CF2` is the LQ super/subscript transform stage.
-It does not change the glyph source pointer; it only adjusts the active
-width and advance used by the render loop:
+When super/subscript is active (VV:23 bit 4), the font reconfig at
+`$164B` sets VV:A6 bit 4 (`$166B`: `OFFIW VV:23,$10; ORI A,$10`).
+The font lookup at `$154E` (`$156E`: `OFFIW VV:A6,$10`) then branches
+into a search path that matches 4C font directory entries with config
+bit 4 set.  These entries have `dim1 = $10` (16 vertical dots) and
+store glyphs as 2 bytes per column — pre-drawn at 2/3 height.  This
+is the primary mechanism for vertical size reduction in LQ
+super/subscript: the glyph source pointer itself changes to a smaller
+font, not just the metrics.
+
+The `$4AA8` 2→3 byte column conversion (effect #1) handles vertical
+alignment via zero-fill.  Its gate at `$1ABBh` checks VV:27 bit 2.
+VV:27 bit 2 reflects the character classifier path, NOT the user's
+LQ/Draft quality selection: for $20-$AF characters, VV:22 is loaded
+from VV:2E (3rd font search result) at `$4124`, which has bit 2 clear
+(cleared at `$14C9` during font reconfig, never re-added).  For $B0+
+characters, VV:22 bit 2 is forced set at `$409D`.  Therefore `$4AA8`
+fires for **both Draft and LQ** super/subscript characters in the
+$20-$AF range.  See "Super/Subscript Detail" below.
+
+### Secondary Metric Stage for LQ Super/Subscript
+
+The secondary read at `1CF2` is the LQ super/subscript metric lookup.
+It provides matching width and advance values for the smaller glyphs
+selected by the font reconfig above:
 
 - `1CED` reaches this path only when control reaches `1CF0` and then enters
   `1CF2` instead of continuing at `1C15`.
 - `1CF2` saves current `F002` in `B`, then loads `F002=$4F`.
-- `1CF6` uses `VV28` bit 4 for base select: set -> `$8600`, clear -> `$8000`.
+- `1CF6` uses `VV28` bit 2 (mask `$04`) for base select: set -> `$8600`,
+  clear -> `$8000`.
 - Address is `base + VV:A0 * 6`.
 - `byte0` is read and ignored by traced code.
 - `byte1` is loaded into `EF99` (width/count).
@@ -397,6 +420,19 @@ width and advance used by the render loop:
   secondary advance is effectively zero-extended before arithmetic.
 - `F002` is restored to `B`.
 
+`byte1` and `byte2` are treated as metrics here because the primary fetch
+already uses the same records that way: `1B4Bh` maps byte1 → `VV99` and the
+signed byte2 path into advance state; `2159h` then uses `EF9B` when moving
+to the next cell.
+
+The secondary metrics read complements the font selection and column
+conversion: the font reconfig selects a 2-byte-per-column glyph set,
+`$4AA8` converts to 3-byte columns with vertical alignment (upper or
+lower 16 pins), and `$1CF2` provides matching narrower width/advance
+values.  There is no traced operation at `$1CF2` that changes `EF97`
+or applies a vertical baseline offset — vertical positioning is
+handled entirely by `$4AA8`'s zero-fill placement.
+
 The traced render path uses these values directly for placement:
 
 - In `1E7F`, `EA = EE66 + 3 × EF97` gives destination buffer start
@@ -404,18 +440,43 @@ The traced render path uses these values directly for placement:
 - `1E9A..1EA7` writes `VV99` columns, ORing 3 bytes per column.
 - `1EA9..1EB8` sets `EE66 = EE66 + 3 × EF9B` for the next character.
 
+No traced branch between this stage and the normal LQ render path (`4C16h`
+and its callees) applies a super/subscript-driven vertical baseline shift or
+other raster-y placement transform. Any later raster-style change comes from
+other style effects that are independently gated.
+
 Any subsequent metric-effect transformer (double-wide, italic, etc.) can still
 change these numbers later, but the secondary metrics values are the
-base LQ super/subscript override for `VV99` and `EF9B`.
+starting LQ super/subscript override for `VV99` and `EF9B`.
+
+The extracted secondary files show 129 entries per table (`base_0000` and
+`base_0600`), so they are not full 256-entry tables. In practice this means
+super/subscript behavior is driven by an override-style secondary set rather
+than a full remap, and width/advance output must follow the actual ROM bytes
+for unlisted characters.
+
+This path has no traced baseline or vertical-offset shift.  The
+vertical size reduction comes from the font reconfig selecting 16-dot
+glyphs (see "Super/Subscript Font Selection" above); this secondary
+read provides the matching horizontal metrics.
+Example (LQ):
+
+- `'0'` (`0x30`) width/advance -> normal table (`$8000` base): width `0x13`, adv `0x02`;
+  secondary table (`$8600`/`$8000` path): width `0x0D`, adv `0x01`.
+- `'G'` (`0x47`) width/advance -> normal table (`$8000` base): width `0x06`, adv `0x09`;
+  super/subscript table (`$8600` base): width `0x04`, adv `0x03`.
+- No explicit secondary rows are present for `'g'` (`0x67`) or `'h'` (`0x68`) in
+  the extracted TSV (`base_0000`/`base_0600`), so vertical-size differences for
+  those characters are not documented by the traced secondary table.
 
 ### Second CG Read
 
-After the initial metrics, when `VV27` bit 2 is clear the code reaches
+After the initial metrics, when `VV27` bit 2 is set (LQ mode), the code reaches
 `1CEDh` → `1CF2h`, which performs a second CG read:
 
 - Sets `F002=$4F` (a fixed bank, distinct from the font-selected bank).
 - Reads a 6-byte record at (`$8000` or `$8600`) + `VV:A0` × 6.
-- `VV28` bit 4 selects the base: `$8600` when set, `$8000` when clear.
+- `VV28` bit 2 selects the base: `$8600` when set, `$8000` when clear.
 - Bytes 1 and 2 are loaded into `EF99`/`EF9B`.
 - Restores `F002` and returns.
 
@@ -507,7 +568,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 
 | Order | Condition | Address | Effect | Data operation |
 | --- | --- | --- | --- | --- |
-| 1 | VV:28.4 set | `$4AA8` | Super/subscript (Draft) | Converts 2-byte source columns to 3-byte with zero-fill. `$1DFE` sets HL = source (from EE88), EA = work buffer. VV:28.3 selects alignment: SET (superscript) → [data, data, 0] upper 16 pins; CLEAR (subscript) → [0, data, data] lower 16 pins. Only fires for Draft-mode characters — the pre-pipeline gate at `$1ABBh` (`JR $1AC2` when VV:27 bit 2 set) skips effect #1 for LQ. |
+| 1 | VV:28.4 set | `$4AA8` | Super/subscript (2→3 column conversion) | Converts 2-byte source columns to 3-byte with zero-fill. `$1DFE` sets HL = source (from EE88), EA = work buffer. VV:28.3 selects alignment: SET (superscript) → [data, data, 0] upper 16 pins; CLEAR (subscript) → [0, data, data] lower 16 pins. Fires for **both Draft and LQ** super/subscript characters in the $20-$AF range. The gate at `$1ABBh` checks VV:27 bit 2, which reflects the classifier path (clear for $20-$AF via `$4124`, set for $B0+ via `$409D`), not the user's Draft/LQ quality selection. |
 | 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears work buffer, then merges pairs of source columns via OR and writes with adjacent-dot restriction (XRI/ANA against previous output). Halves width/start/advance. Half-res path clears VV:29.7 and applies restriction only (no merge, no metrics change). |
 | 3 | VV:29.4 set | `$47CB` | Emphasized | Copies glyph to work buffer with 3 blank-column padding, then ORs original data at +1 column offset (bold shift). Half-res path uses +2 column offset with adjacent-dot restriction via `$1F50`. Width += 1 (or 2 for half-res), advance -= same. |
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
@@ -524,6 +585,7 @@ individual command handlers, verified against `lq500_u1.pdf` page 6-4:
 
 | VV register | Bit | ESC/P effect | Set by |
 | --- | --- | --- | --- |
+| VV:22 | 2 | Classifier path flag: set at `$409D` for $B0+/$F0+ characters, clear for $20-$AF (from VV:2E). Copied to VV:27 bit 2 to gate `$4AA8`. | `$4038` classifier |
 | VV:22 | 3 | Not-italic (per classifier, inverse of VV:24.3) | `4038h` classifier |
 | VV:22 | 4 | Italic fallback (italic requested but not in font) | `154Eh` font scan |
 | VV:22 | 5 | Condensed | SI/DC2, ESC ! bit 2 |
@@ -563,11 +625,18 @@ attributes), `EE88` still points into the CG ROM window.
 
 ### Normal LQ Render Path (No Effects)
 
-For a plain LQ character with no style attributes, the pre-pipeline flag
-checks at `1A8Dh`-`1AB8h` route through `VV:27` bit 2 (LQ flag, set),
-which causes `JR $1AAB` at `1AA4h`. The entire effect dispatch at
-`1ABFh`-`1B18h` is then a no-op: every gate condition is false, and
-the pipeline returns without calling any effect function.
+For a plain LQ character ($20-$AF) with no style attributes, VV:27
+bit 2 is clear (from the `$4124` classifier path), so the pre-pipeline
+flag checks at `1A8Dh`-`1AB8h` do not take the `$1AAB` shortcut via
+`$1AA4`.  However, since VV:28 bit 4 (super/subscript) is also clear,
+the `$1ABBh` gate at `$1ABCh` (`OFFIW VV:28,$10`) skips `$4AA8`.
+The entire effect dispatch at `1ABFh`-`1B18h` is then a no-op: every
+remaining gate condition is false, and the pipeline returns without
+calling any effect function.
+
+Note: for $B0+ characters, VV:27 bit 2 IS set (forced at `$409D`),
+so the `$1AABh` shortcut at `$1AA4h` fires and the effect pipeline
+is skipped entirely.
 
 The per-character render loop at `$2948` then calls `$1E7F`, which reads
 3 bytes per column directly from the CG source (pointed to by `EE88`)
@@ -814,9 +883,19 @@ priority order is:
 3. **Elite / 12 cpi** (VV:23.1): sets VV:A6 bit 0=$01
 4. **10 cpi** (default): VV:A6 bits 1:0 = $00
 
-Condensed (VV:23 bit 4 via `$166B`) and italic (VV:24.3 via `$1666`)
-add their bits independently (VV:A6 bit 4 and bit 6).  LQ quality
-(VV:87 bit 2 via `$1643`) sets VV:A6 bit 2.
+Super/subscript active (VV:23 bit 4 via `$166B`) and italic (VV:24.3
+via `$1666`) add their bits independently (VV:A6 bit 4 and bit 6).
+LQ quality (VV:87 bit 2 via `$1643`) sets VV:A6 bit 2.
+
+Note: VV:A6 bit 4 is the super/subscript font selection bit.  The 4C
+font directory entries with config bit 4 set are labelled "Condensed"
+in the CG ROM's internal naming, but the firmware maps super/subscript
+active (VV:23 bit 4) — not SI/DC2 condensed (VV:22 bit 5) — to this
+bit.  These directory entries have `dim1 = $10` (16 vertical dots)
+instead of the normal `$18` (24), and their glyph data uses **2 bytes
+per column** (16 vertical dots) rather than 3 (verified by glyph
+pointer spacing in the ROM).  This applies to both Draft and LQ
+condensed fonts — they are the super/subscript glyph sets.
 
 ### Condensed-Draft Composite Flag
 
@@ -898,12 +977,28 @@ Values n ≥ 4 are rejected (`LTI A,$04; RET`).
 
 `$4AA8` (ESC S, `VV:28` bit 4) converts 2-byte-per-column CG data
 to the standard 3-byte format with vertical alignment selection.
+This is not a geometric rescale of a 24-dot source. It maps a source that is
+already authored as 16-dot data into a 24-dot destination slot and zero-fills
+the unused half.
 
-**Draft mode only**: the pipeline gate at `$1ABBh` (`OFFIW VV:27,$04;
-JR $1AC2`) skips effect #1 entirely for LQ characters (VV:27 bit 2
-set). LQ CG glyphs are stored as 3 bytes per column and do not need
-format conversion — LQ super/subscript positioning is handled by the
-secondary metrics at `$1CF2`.
+**`$1ABBh` gate**: `OFFIW VV:27,$04; JR $1AC2` skips effect #1 when
+VV:27 bit 2 is set.  VV:27 bit 2 reflects the classifier path, not
+the user's Draft/LQ quality setting:
+
+- **$20-$AF characters** → classifier path `$4124`: VV:22 =
+  `(VV:22 & $08) | VV:2E`.  VV:2E comes from the 3rd font search
+  (with super/subscript in VV:A6), and its bit 2 is always clear
+  (cleared at `$14C9`, never re-added by font search).  So VV:27
+  bit 2 = clear → `$4AA8` is eligible.
+
+- **$B0+ characters** → classifier path `$4081`: `$409D: ORIW
+  VV:22,$04` always sets bit 2.  So VV:27 bit 2 = set → `$4AA8`
+  is blocked.
+
+Both LQ and Draft super/subscript fonts use 2 bytes per column
+(verified by glyph pointer spacing; dim1=$10 in the font directory).
+`$4AA8` fires for both modes in the $20-$AF range, providing the
+2→3 byte conversion and vertical alignment zero-fill.
 
 The pre-pipeline flag logic at `$1A8D`-`$1AA8` conditionally sets
 `VV:28` bit 4 for Draft characters when `VV:28` bit 7 (15 cpi) is
@@ -924,7 +1019,15 @@ set and other conditions pass. When `VV:28` bit 4 is already set
      to dest bytes 1-2. Output per column:
      `[0x00, data, data]` — glyph occupies the lower 16 of 24 pins.
 
-4. Loops for B = width columns. No metrics modification.
+4. Loops for B = width columns. This is the vertical-size change for draft:
+   only 16 vertical dots carry glyph shape instead of the full 24-dot column,
+   which is a source-format selection (`2-byte` -> `3-byte`) with zero-fill.
+
+5. No metrics modification in `$4AA8`; width/advance adjustments for
+   super/subscript come from the secondary metrics path at `$1CF2`.
+   The vertical size reduction comes from the CG ROM storing
+   super/subscript glyphs as 2 bytes per column (16 dots); `$4AA8`
+   expands to 3 bytes with zero-fill for vertical placement.
 
 All subsequent effects (#2-#10) see standard 3-byte columns regardless
 of the original CG column format.
