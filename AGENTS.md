@@ -160,6 +160,12 @@ adding missing roots, such as hand-confirmed computed jump/table targets, to
   zero-clamp `LXI EA,$0000`) and for comparison-and-branch patterns
   (skip past a `JRE` when the result is non-negative). `DGT` and `DLT`
   are similar double-word skip-on-compare instructions.
+- uPD7810 `RLR` (NEC mnemonic "Rotate Left Register") is actually a
+  **rotate RIGHT through carry**: `new_CY = A.bit0; A = (A >> 1) |
+  (old_CY << 7)`. The MAME implementation confirms this. The firmware
+  uses `RLR A` × N followed by `ANI` to extract bit fields that cross
+  byte boundaries (e.g., the double-height path at `$4952` extracts
+  source pins 15-16 from byte 1 via `RLR × 3; ANI $C0`).
 - uPD7810 `MVI A,xx` uses the CPU `L1` overlay flag: the first consecutive
   `MVI A,xx` loads `A` and sets `L1`; later consecutive `MVI A,xx`
   instructions act as NOPs until an instruction that clears `L1`. Firmware uses

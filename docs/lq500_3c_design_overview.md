@@ -1310,26 +1310,52 @@ It doubles vertical output by expanding each selected source nibble into a
 2. Calls `$1DFE` for work buffer. DE = destination, HL = source.
    Updates `EE88` to work buffer.
 
-3. `VV:89` bits 0-2 select which 12-pin vertical slice of the
-   24-pin source column gets doubled in this slice-pass:
+3. `VV:89` selects which source-pin slice gets doubled. The dispatch
+   at `$4915` tests bits 0, 1, 2 in priority order:
 
-   | VV:89 bits | Path | Source pins | Output |
-   | --- | --- | --- | --- |
-   | 000 | `$4925` | 1-10 (top) | Byte 0 high nibble → dest byte 0, byte 0 low nibble → dest byte 1, byte 1 top 2 bits → dest byte 2. Byte 2 skipped. |
-   | bit 0 | `$4945` | 5-16 (upper-mid) | Reads across byte 0/1 boundary with shifts. |
-   | bit 1 | `$4977` | 17-22 (lower) | Zeros dest bytes 0-1, reads byte 2 shifted. |
-   | bit 2 | `$4991` | 13-24 (lower-mid) | Zeros dest byte 0, reads bytes 1-2 with shifts. |
+   | VV:89 | Path | Source pins | Output pins | Operation |
+   | --- | --- | --- | --- | --- |
+   | $01 (bit 0) | `$4925` | 1-10 | 1-20 (21-24=0) | byte0 high nibble → expand → d0; byte0 low nibble SLL×4 → expand → d1; byte1 ANI $C0 → expand → d2 (2 pins only). |
+   | $02 (bit 1) | `$4945` | 11-22 | 1-24 (full) | byte1 SLL×2 ANI $F0 → expand → d0; byte1 RLR×3 ANI $C0 OR byte2 SLR×2 ANI $30 → expand → d1; byte2 SLL×2 ANI $F0 → expand → d2. |
+   | $04 (bit 2) | `$4977` | 23-24 | 19-22 only | d0=0, d1=0; byte2 SLL×5 ANI $60 → expand → d2 (2 pins only). |
+   | $00 (none) | `$4991` | 19-24 | 13-24 (1-12=0) | d0=0; byte2 ANI $30 → expand → d1 (2 pins); byte2 SLL×4 → expand → d2. |
 
-4. This is a per-pass expander path; the mode table (`VV:89`) controls which
-   slice is expanded, and the same mechanism is used across successive print
-   lines by render-mode scheduling.
-5. The expander at `$49AD` converts each selected nibble bit to a 2-bit
-   pair: bit 7 → `$C0`, bit 6 → `$30`, bit 5 → `$0C`, bit 4 → `$03`.
+   Note: `RLR` is rotate RIGHT through carry on the uPD7810 (MAME:
+   `A = (A >> 1) | (carry << 7)`) despite the NEC "Rotate Left
+   Register" mnemonic.
+
+4. The expander at `$49AD` converts the high nibble of A to doubled
+   bits: bit 7 → `$C0`, bit 6 → `$30`, bit 5 → `$0C`, bit 4 → `$03`.
    Four input bits become 8 output bits — each dot doubled vertically.
 
-The four `VV:89` slice paths allow the same glyph row to be emitted
-across the two vertical print-line passes (top + bottom coverage), with each
-pass selecting the appropriate source slice.
+### Double-Height Pass Scheduling
+
+The mode table at `$67F0` contains 2-byte pointers indexed by the
+render mode. Each pointer leads to a record chain: the first 3 bytes
+are `[VV:88, VV:89, byte2]`, followed by additional byte2 values for
+successive passes.
+
+The loader at `$264F` reads the initial record and sets `VV:88`/`VV:89`.
+Then the loop at `$2663`-`$26EF` processes chained byte2 values. After
+each iteration, the shift at `$26E5`-`$26E9` advances the slice:
+
+```
+26E5: LDAW VV:89
+26E7: SLL  A         ; shift left 1
+26E9: STAW VV:89     ; $01 → $02 → $04 → $08 → ...
+```
+
+This means a double-height character is rendered across successive
+print bands, with VV:89 cycling through slice values `$01 → $02 → $04`
+to emit different vertical portions of the source glyph. The mode
+table entry at `$6811` (double-height, A_base=8) starts with
+VV:89=$01 and chains through byte2 values `$04, $22, $30, ...` while
+shifting VV:89 per pass.
+
+The four slice paths are NOT four independent passes of the same
+24-pin band. They are portions emitted at different vertical
+positions across successive bands, with the render-mode scheduler
+controlling paper advance between bands.
 
 ### `VV:88` / `VV:89` / `VV:2A` helper-bit mapping
 
