@@ -478,7 +478,7 @@ Multiple effects can be applied in sequence to the same glyph data.
 
 | Order | Condition | Address | Effect | Data operation |
 | --- | --- | --- | --- | --- |
-| 1 | VV:28.4 set | `$4AA8` | Super/subscript active | Copies 2-byte CG columns → 3-byte with zero-fill; VV:28.3 selects upper/lower 16-pin alignment |
+| 1 | VV:28.4 set | `$4AA8` | Super/subscript (Draft) | Converts 2-byte source columns to 3-byte with zero-fill. `$1DFE` sets HL = source (from EE88), EA = work buffer. VV:28.3 selects alignment: SET (superscript) → [data, data, 0] upper 16 pins; CLEAR (subscript) → [0, data, data] lower 16 pins. Only fires for Draft-mode characters — the pre-pipeline gate at `$1ABBh` (`JR $1AC2` when VV:27 bit 2 set) skips effect #1 for LQ. |
 | 2 | VV:27.7 set | `$49C5` | Condensed-Draft mode | Clears work buffer, then merges pairs of source columns via OR and writes with adjacent-dot restriction (XRI/ANA against previous output). Halves width/start/advance. Half-res path clears VV:29.7 and applies restriction only (no merge, no metrics change). |
 | 3 | VV:29.4 set | `$47CB` | Emphasized | Copies glyph to work buffer with 3 blank-column padding, then ORs original data at +1 column offset (bold shift). Half-res path uses +2 column offset with adjacent-dot restriction via `$1F50`. Width += 1 (or 2 for half-res), advance -= same. |
 | 4 | VV:29.7 set | `$4C16` | Half-res expansion | Clears VV:29.7, calls `$1E52` to double width/start/advance back to full values, then copies each 3-byte column followed by 3 zero bytes — inserting blank columns to restore the full-width sparse dot pattern |
@@ -831,9 +831,10 @@ The print effect pipeline at `$1ABF-$1B18` applies effects sequentially.
 Each effect operates on the output of the previous one.  Key
 interactions:
 
-- **Super/subscript + anything**: effect #1 runs first, converting
-  2-byte CG columns to 3-byte format.  All subsequent effects see
-  3-byte columns regardless.
+- **Super/subscript + anything** (Draft only): effect #1 runs first,
+  converting 2-byte CG columns to 3-byte format.  All subsequent
+  effects see 3-byte columns regardless.  For LQ mode, effect #1 is
+  skipped — LQ CG glyphs are already 3-byte columns.
 - **Condensed-Draft + emphasized**: both can fire.  Condensed halves
   the column count first, then emphasized adds bold offset columns
   to the condensed result.
@@ -848,6 +849,41 @@ interactions:
 
 Effects that are unused on the LQ-500 (effects 7-9, gated by VV:2A
 bits 5+6) are skipped.
+
+### Super/Subscript Detail (`$4AA8`)
+
+`$4AA8` (ESC S, `VV:28` bit 4) converts 2-byte-per-column CG data
+to the standard 3-byte format with vertical alignment selection.
+
+**Draft mode only**: the pipeline gate at `$1ABBh` (`OFFIW VV:27,$04;
+JR $1AC2`) skips effect #1 entirely for LQ characters (VV:27 bit 2
+set). LQ CG glyphs are stored as 3 bytes per column and do not need
+format conversion — LQ super/subscript positioning is handled by the
+secondary metrics at `$1CF2`.
+
+The pre-pipeline flag logic at `$1A8D`-`$1AA8` conditionally sets
+`VV:28` bit 4 for Draft characters when `VV:28` bit 7 (15 cpi) is
+set and other conditions pass. When `VV:28` bit 4 is already set
+(from ESC S), the pre-pipeline jumps to `$1AAB` without modification.
+
+1. `$1DFE` → HL = EE88 (CG source), EA = work buffer.
+2. DE = work buffer, EE88 updated to work buffer.
+3. `VV:28` bit 3 selects alignment:
+
+   - **Superscript** (bit 3 SET, `$4ABA`): for each column, reads
+     2 source bytes via `LDAX (HL+)`, writes them to dest bytes 0-1,
+     then writes `$00` to dest byte 2. Output per column:
+     `[data, data, 0x00]` — glyph occupies the upper 16 of 24 pins.
+
+   - **Subscript** (bit 3 CLEAR, `$4AC4`): for each column, writes
+     `$00` to dest byte 0, then reads 2 source bytes and writes them
+     to dest bytes 1-2. Output per column:
+     `[0x00, data, data]` — glyph occupies the lower 16 of 24 pins.
+
+4. Loops for B = width columns. No metrics modification.
+
+All subsequent effects (#2-#10) see standard 3-byte columns regardless
+of the original CG column format.
 
 ### Condensed-Draft Detail (`$49C5`)
 
