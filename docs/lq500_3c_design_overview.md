@@ -1355,79 +1355,113 @@ bit 7 (ESC w).  When set, A starts at 8, selecting mode table entries
 bit 5 from `VV:24` bit 6 (double-strike), bit 6 from `VV:22` bit 1
 (character-classifier flag).
 
-#### Inner Loop: Record Chain, VV:89 Shift, and Image Buffer Accumulation
+#### Inner Loop: Record Chain, VV:89 Shift, and Per-Iteration Paper Advance
 
 The loader at `$264F` reads the initial 3-byte record and sets
 `VV:88`/`VV:89`. Then the inner loop at `$2663`-`$26EF` processes
 chained byte2 values. Each iteration:
 
-1. Renders characters into the image buffer (`$2750` at `$26C2`).
-2. Calls `$2864` at `$26C5` — if `EE7A` is nonzero, stores it to
-   `EF40` and fires the mechanism via `$5676`; if zero, returns
-   without paper advance.
-3. Clears `EE7A` to zero at `$26CB`.
-4. Shifts VV:89 left at `$26E5`-`$26E9`: `$01 → $02 → $04`.
+1. Loads `EE7A` from the paper advance table at `$682E`, indexed by
+   byte2 bits 2-0 (`$269D`-`$26AA`).
+2. Renders characters into the image buffer (`$2750` at `$26C2`),
+   applying effect #10 (`$4900`) with the current VV:89 slice.
+3. Calls `$2864` at `$26C5` — prints the image buffer at the
+   current head position, then advances paper by `EE7A` pins.
+4. Clears `EE7A` to zero at `$26CB`.
+5. Shifts VV:89 left at `$26E5`-`$26E9`: `$01 → $02 → $04`.
 
-The three slices within one band **accumulate at the same head
-position** via OR into the image buffer (the render path at
-`$1E9A` uses `ORAX` to merge new data). Only the first iteration
-triggers paper advance (EE7A is nonzero from the outer loop);
-iterations 2 and 3 have EE7A=0 (cleared at `$26CB`) and render
-without advancing.
+Each iteration fires the mechanism at a **different head position**
+— the paper advances between slices, not after all slices
+accumulate. The advance distance comes from the table at `$682E`:
+
+| Index | Distance | Used by |
+| --- | --- | --- |
+| 0 | 0/180" | no advance (stay in place) |
+| 1 | 4/180" | |
+| 2 | 6/180" | |
+| 3 | 10/180" | |
+| 4 | 20/180" | |
+| 5 | 24/180" | |
+
+`EE7A` feeds into `EF40` at `$287E` within `$2864`, driving the
+`$5676` mechanism scheduler. `EF40` is in **1/180-inch units** (one
+unit = one stepper phase = one pin pitch).
 
 **Loop termination** at `$26D3`-`$26D7`: `MVI A,$10; OFFAX (HL)`
 tests bit 4 of the next byte in the record chain. If bit 4 is
 **set**, `JRE $26FB` exits the loop. If **clear**, the loop
 continues.
 
-For the double-height record chain at `$6811`:
-- Initial: VV:88=$00, VV:89=$01
-- byte2 values: `$04` (bit 4=0, continue), `$22` (bit 4=0, continue),
-  `$30` (bit 4=1, exit)
-- VV:89 cycles: `$01 → $02 → $04` over 3 iterations (3 slices)
+#### Record Chains and Tiling
 
-#### Outer Loop: Render Bands and Paper Advance
+For the base double-height chain at `$6811` (3 iterations):
 
-The inner loop runs within the outer band loop at `$2599` (`DON
-EA,BC`), which iterates once per render band. Between bands, the
-outer loop advances `EE7A` by a fixed `$0014` (20) at `$25F8`
-(gated by `VV:AA` bit 0 = double-height):
+| Iter | byte2 | Table idx | Advance | VV:89 | Head position | Source pins |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | $04 | 4 | 20/180" | $01 | 0 → 20 | 1-10 → out 1-20 |
+| 1 | $22 | 2 | 6/180" | $02 | 20 → 26 | 11-22 → out 1-24 |
+| 2 | $30 | 0 | 0 (TERM) | $04 | 26 | 23-24 → out 19-22 |
+
+The print-then-advance sequence places each slice at a different
+vertical position. With the 24-pin head:
+
+- Iter 0: prints at position 0, covers rows 0-23, advances to 20
+- Iter 1: prints at position 20, covers rows 20-43, advances to 26
+- Iter 2: prints at position 26, covers rows 26-49
+
+The overlapping regions receive data at different output pin
+positions from different source-pin slices, tiling without
+corruption.
+
+For double-height + VV:22.1 (4 iterations, `$681E`):
+
+| Iter | byte2 | Advance | VV:89 | Source pins |
+| --- | --- | --- | --- | --- |
+| 0 | $04 | 20 | $01 | 1-10 |
+| 1 | $22 | 6 | $02 | 11-22 |
+| 2 | $23 | 10 | $04 | 23-24 |
+| 3 | $30 | 0 (TERM) | $08 | 19-24 (default path) |
+
+For double-height + double-strike (6 iterations, `$6816`):
+
+| Iter | byte2 | Advance | VV:89 | Notes |
+| --- | --- | --- | --- | --- |
+| 0 | $40 | 0 | $01 | print, no advance |
+| 1 | $A4 | 20 | $02 | advance 20, print |
+| 2 | $60 | 0 | $04 | print at same pos (double-strike) |
+| 3 | $A2 | 6 | $08 | advance 6, print |
+| 4 | $60 | 0 | $10 | print (double-strike) |
+| 5 | $B0 | 0 (TERM) | $20 | exit |
+
+Double-strike pairs (iters 0+1, 2+3, 4+5) print each band twice
+at the same position for bolder output.
+
+#### `$49AD` Expansion: Naive Doubling
+
+The expander at `$49AD` maps each source bit to a **pair of
+adjacent output bits** — naive doubling, not interleaved:
 
 ```
-25F0: ONIW VV:AA,$01       ; double-height?
-25F4: LHLD $EE7A           ; load vertical position
-25F8: LXI  EA,$0014         ; advance = 20
-25FB: DADD EA,HL            ; position += 20
-25FE: SHLD $EE7A            ; store
+bit 7 → $C0 (output bits 7+6)
+bit 6 → $30 (output bits 5+4)
+bit 5 → $0C (output bits 3+2)
+bit 4 → $03 (output bits 1+0)
 ```
 
-`EE7A` feeds directly into `EF40` at `$287E` within `$2864`,
-which drives the `$5676` mechanism scheduler. From the paper feed
-documentation: `EF40` is in **1/180-inch units** (one unit = one
-stepper phase = one `$093E` call = one pin pitch). So the
-inter-band advance is **20/180 inch = 20 pin positions**.
+This means the staggered Draft horizontal-bar pattern (`.#.#.#.#` /
+`#.#.#.#.`) becomes two identical row pairs rather than an
+interleaved alternation:
 
-With a 24-pin head spanning 24/180 inch, a 20-pin advance leaves
-a **4-pin overlap** between adjacent bands. The three slices'
-output pin ranges are designed around this tiling:
+```
+source pin 18: .#.#.#.# → row 36: .#.#.#.#
+                           row 37: .#.#.#.#  (identical)
+source pin 19: #.#.#.#. → row 38: #.#.#.#.
+                           row 39: #.#.#.#.  (identical)
+```
 
-| Band | Position | VV:89 slices | Active output range |
-| --- | --- | --- | --- |
-| 0 | 0 | $01→$02→$04 ORed | pins 1-24 (combined) |
-| 1 | 20 | $01→$02→$04 ORed | pins 1-24 (combined) |
-
-Each band's three slices contribute their source-pin portions to
-different output pin positions within the same 24-pin column
-(accumulated via OR). The 4-pin overlap ensures seamless tiling
-at the band boundary.
-
-Each outer-loop iteration also:
-1. Calls `$5676` twice (`$25D6`/`$25E7`) with `VV:38` bit 3 set
-   for paper-feed and carriage scheduling.
-2. Clears `VV:A9` bit 6 at `$2574` to adjust the mode table index
-   for the next band.
-3. Reloads the mode table at `$264F` for the next band's VV:89
-   initial value.
+The physical dot overlap at 180 DPI may mask this banding artifact
+on paper, but the firmware does not compensate for the Draft
+stagger pattern in double-height mode.
 
 ### `VV:88` / `VV:89` / `VV:2A` helper-bit mapping
 
