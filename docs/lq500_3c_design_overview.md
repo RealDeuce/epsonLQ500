@@ -1194,6 +1194,47 @@ interior from the overlap region, leaving a double-bordered outline.
 The pin 1/24 masking in `$463F` prevents the XOR from creating
 artifacts at the top and bottom edges.
 
+### Outline+Shadow Detail (`$44C4`)
+
+`$44C4` (ESC q 3, `VV:2A` bits 5+6 both set) is a **separate code
+path**, not effects #8 and #9 run in sequence. The dispatch at
+`$1AFE` tests both bits together and routes to `$44C4`, which
+combines the outline and shadow operations with shared setup and a
+single XOR pass.
+
+1. `$46C4` at `$44C9`: sets `VV:CF=3` (or 4 for double-height).
+
+2. `$457E` at `$44CC`: smear + `$4664`(B=1) → width += 2.
+   EE8A = source, EE88 = buffer1 (smeared).
+
+3. `$1DDF` at `$44CF`: EE8A = buffer1, EE88 = buffer2 (zeroed).
+
+4. `$44D2`-`$44FB`: smear buffer1 into buffer2 (inline 3-column
+   OR loop, no width increment).
+
+5. Outline shifts at +1 column:
+   - `$450E`: `$45B1` shift LEFT 1, OR.
+   - `$4518`: `$45F8` shift RIGHT 1, OR.
+
+6. Shadow shifts:
+   - `$452B`: `$45F8` shift RIGHT 1, OR at +1 column (redundant
+     with step 5b — OR is idempotent).
+   - `$4542`: `$45F8` shift RIGHT 1, OR at +3 columns.
+   - `$455D`: `$45F8` shift RIGHT 2, OR at +5 columns.
+
+7. `$463F` at `$4570`: XOR buffer1 into buffer2 at +1 column
+   (VV:D1=0 → pin 1 masked via `ANI $7F`, pin 24 excluded via
+   `ANI $FE`). Single XOR pass hollows the interior for both
+   outline and shadow simultaneously.
+
+8. `$4664` at `$4575`: width += 10 (B=5).
+
+The key difference from running outline then shadow separately:
+the double-smear and XOR happen once (not twice), and the outline
+border shifts and shadow offset shifts are applied to the same
+buffer before a single hollow pass. This produces cleaner output
+at the overlap region than two sequential effects would.
+
 ### Super/Subscript Detail (`$4AA8`)
 
 `$4AA8` (ESC S, `VV:28` bit 4) converts 2-byte-per-column CG data
