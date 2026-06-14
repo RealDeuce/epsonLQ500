@@ -661,7 +661,7 @@ VV:04/VV:05 logic for runtime bank selection.
 The CG ROM contains separate glyph bitmaps for each pitch/quality
 combination at native resolution. The `164Bh` font configuration builder
 encodes pitch and quality into `VV:A6` (bit 2 = Draft when clear, plus
-pitch/condensed/italic bits), and font commands trigger `14C6h` (CALT
+pitch/super-subscript/italic bits), and font commands trigger `14C6h` (CALT
 `$0092`) to rescan the font directory via `1677h`/`154Eh`. The scan matches
 (`VV:A5`, `VV:A6`) against the directory records to find the right glyph
 data for the current font family + pitch + quality.
@@ -1029,22 +1029,32 @@ they map to the same font + effect combination:
   condensed effect #2 never fires.  Condensed has no visible effect
   in LQ proportional/15 cpi modes.
 - **Italic** with a typestyle family that has no italic font: the
-  fallback chain at `$154E` drops italic and retries, so the output
-  matches non-italic.
+  fallback chain at `$154E` drops italic and sets VV:A6 bit 4
+  (super/subscript font flag) before retrying, so the output uses
+  a different font than plain non-italic.
 
-### Condensed: Two Distinct Mechanisms
+### WARNING: "Condensed" Has Two Unrelated Meanings
 
-"Condensed" in this firmware refers to two unrelated things:
+The CG ROM labels and firmware use "condensed" for two completely
+different mechanisms.  Confusing them is the single most common
+emulator implementation error for this printer.
 
-1. **SI/DC2 condensed** (VV:22 bit 5): a runtime effect (#2 at
-   `$49C5`) that merges adjacent column pairs.  Only fires when
-   the condensed-Draft composite flag (VV:22 bit 7) is set, which
-   requires Draft quality + not proportional + not 15 cpi.
+1. **SI/DC2 condensed** (VV:22 bit 5): a runtime **effect** (#2 at
+   `$49C5`) that merges adjacent column pairs at print time.  It
+   does **NOT** affect font selection.  VV:22 bit 5 is never read
+   by `$164B` (the VV:A6 builder) and never appears in VV:A6.
 
-2. **Super/subscript font** (VV:A6 bit 4): selects 4C font
-   directory entries labelled "Condensed" in the CG ROM's internal
-   naming.  These are 2-byte-per-column (16-dot) super/subscript
-   glyph sets — not related to SI/DC2 condensed mode.
+2. **Super/subscript font selection** (VV:A6 bit 4): set by VV:23
+   bit 4 (super/subscript active from ESC S) at `$166B`.  Selects
+   4C font directory entries that the CG ROM **misleadingly labels**
+   "Condensed."  These are 2-byte-per-column (16-dot) glyph sets
+   used for super/subscript — they have nothing to do with SI/DC2.
+
+**For emulator implementers**: the font index function must take
+the super/subscript flag (VV:23 bit 4) as input for VV:A6 bit 4.
+It must **NOT** take the SI/DC2 condensed flag (VV:22 bit 5).
+SI/DC2 condensed only fires as effect #2 in the render pipeline,
+and only under the condensed-Draft composite conditions.
 
 ### Attributes NOT Controlled by ESC !
 
@@ -1128,15 +1138,16 @@ compressed output.
 The fallback scan at `$154E` tries progressively less specific font
 matches when the CG directory scan at `$1677` fails:
 
-1. **Exact match**: current VV:A6 (pitch + quality + italic + condensed)
-2. **Drop italic**: if VV:A6 bit 6 was set, clear it and add condensed,
-   retry
-3. **Try alternate pitch** (`$156A`): with condensed cleared, cycles
-   through pitch alternatives:
+1. **Exact match**: current VV:A6 (pitch + quality + italic +
+   super/subscript)
+2. **Drop italic**: if VV:A6 bit 6 was set, clear it and add VV:A6
+   bit 4 (super/subscript font flag — NOT SI/DC2 condensed), retry
+3. **Try alternate pitch** (`$156A`): with VV:A6 bit 4 cleared,
+   cycles through pitch alternatives:
    - From 10 cpi ($00): try elite ($01), then proportional ($02)
    - From proportional ($02): try 10 cpi ($00), then elite ($01)
    - From elite ($01): try 10 cpi ($00), then proportional ($02)
-   Similar fallbacks with condensed set at `$15ED`
+   Similar fallbacks with VV:A6 bit 4 set at `$15ED`
 4. **Try Roman family**: sets VV:A5=$FF and rescans from step 1
 5. **Fail**: jumps to `$53DF` (no output for this character)
 
@@ -1162,11 +1173,12 @@ interactions:
   converting 2-byte CG columns to 3-byte format.  All subsequent
   effects see 3-byte columns regardless.  For LQ mode, effect #1 is
   skipped — LQ CG glyphs are already 3-byte columns.
-- **Condensed-Draft + emphasized**: both can fire.  Condensed halves
-  the column count first, then emphasized adds bold offset columns
-  to the condensed result.
-- **Double-wide + condensed**: condensed halves, then double-wide
-  doubles.  Net effect: original width but with condensed glyph shape.
+- **SI/DC2 condensed-Draft + emphasized**: both can fire.  Condensed
+  effect #2 halves the column count first, then emphasized adds bold
+  offset columns to the condensed result.
+- **Double-wide + SI/DC2 condensed**: condensed effect #2 halves,
+  then double-wide doubles.  Net effect: original width but with
+  condensed glyph shape.
 - **Italic shear**: runs after emphasized and double-wide, so the
   shear applies to the already-widened data.
 - **Half-res expansion**: (formerly "double-strike prep") see
