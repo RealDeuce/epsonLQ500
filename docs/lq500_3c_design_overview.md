@@ -785,18 +785,26 @@ column. Vertical strokes are two dots wide at the same alternating
 spacing: `#.#`.
 
 The image buffer stores one 3-byte column per 1/360-inch dot position.
-The multi-pass carriage mechanism (VV:6F bit 1 set, EF79 = EF64/2)
-fires the image buffer in two passes:
+The multi-pass carriage mechanism is only partially traced at this
+layer. The confirmed firmware behavior is:
 
-- **Pass 1**: fires all columns at their natural positions (every
-  column, including blanks, at 1/360-inch spacing).
-- **Pass 2**: fires the same columns offset by one dot position
-  (1/360 inch).
+- `$217C` computes the render/output geometry and stores scheduler
+  template fields such as `EF40`, `EF42`, `EF44`, `EF3B`, and `EF3E`.
+- `$5676` copies `EF38..EF46` into the live scheduler state.
+- `$563C` saves the head source/count state into `EF75`/`EF77`/`EF79`.
+  When `VV:6F` bit 1 is set, `$5650` halves the `EF64` count before
+  storing it to `EF79`.
+- `$0978` emits one contiguous three-byte `F005` packet per head
+  interrupt, advancing or decrementing the alternate-register `DE`
+  source pointer according to print direction.
 
-The two passes together fill the gaps between the alternating dots,
-producing solid strokes at 180 DPI effective density. A 10 CPI
-character at 360 DPI occupies 36 columns (start + width + advance =
-36 for Roman LQ `M`).
+That proves that the head fires a reduced count for the multi-pass LQ
+class, but it does **not** by itself prove that pass 2 is a blind replay
+of the same logical 360 DPI columns shifted by one dot. The unresolved
+part is the source/phase relationship between successive scheduler
+templates produced around `$288A`, `$28AA`, and `$28CE`. Keep emulator
+behavior here conservative until that `EF38..EF46`/`EF75` path is traced
+more tightly.
 
 ### Half-Resolution Glyphs
 
@@ -1836,12 +1844,12 @@ It operates at two levels:
    allows the character to be rendered into the image buffer without
    advancing the position, then rendered again with the advance.
 
-2. **Line output** (`$2871`-`$28C3`): the mechanism firing loop
-   calls `$5676` multiple times. `$288A` fires the first carriage
-   pass; `$28AA` fires a second pass after mechanism completion and
-   carriage repositioning via `$28CE`. The same image buffer data
-   is printed at two slightly different carriage positions, producing
-   a denser/darker impression.
+2. **Line output** (`$2871`-`$28C3`): the mechanism firing loop calls
+   `$5676` multiple times. `$288A` schedules from the current `EF38..EF46`
+   template; `$28AA` schedules again after the busy/state checks; `$28CE`
+   queues the current template into the `FFB0h` ring. The exact source
+   phase used by those successive head runs still needs to be traced
+   through `EF40..EF46` into `EF75`/`EF77`.
 
 Note: ESC G/H do not trigger font reconfig via CALT (`$0092`), unlike
 most other style commands.
@@ -1872,10 +1880,10 @@ LQ) to get byte offsets. The OR operation allows overlapping characters
 (strike-over, accents) to merge.
 
 Full-resolution LQ glyphs have the two-pass interleave baked in:
-data columns alternate with blank (`000000`) columns. The multi-pass
-carriage mechanism fires all columns on each pass, offset by one dot
-position, filling the gaps to produce solid 180 DPI output. See
-"360 DPI Two-Pass Interleave" above.
+data columns alternate with blank (`000000`) columns. The output path
+uses the multi-pass/count-halving mechanism described in "360 DPI
+Two-Pass Interleave" above; the exact second-pass source phase is still
+an active trace target, not a proved same-column replay.
 
 The render geometry tables at `$7307`-`$739A` control per-mode
 addressing parameters (base offsets, clipping bounds, column stride)

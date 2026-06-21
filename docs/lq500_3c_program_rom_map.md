@@ -22,6 +22,7 @@ Source dump:
 - Shared `VV3A`/`VV6F` mode selector: `data/lq500_3c_vv3a_mode_selector.tsv`
 - Carriage mode-state plumbing: `data/lq500_3c_carriage_mode_state.tsv`
 - Printhead mechanical-output path: `data/lq500_3c_printhead_path.tsv`
+- Render-output geometry and head source path: `data/lq500_3c_render_output_path.tsv`
 - Printhead wire/output map: `data/lq500_3c_printhead_wire_map.tsv`
 - Bidirectional adjustment slots: `data/lq500_3c_bidirectional_adjustment.tsv`
 - Audited command behavior table: `data/lq500_3c_command_behaviors.tsv`

@@ -9,6 +9,7 @@ feed is in `docs/lq500_3c_paper_feed.md`.
 Primary data files:
 
 - `data/lq500_3c_printhead_path.tsv`
+- `data/lq500_3c_render_output_path.tsv`
 - `data/lq500_3c_printhead_wire_map.tsv`
 
 ## Manual Anchors
@@ -112,5 +113,6 @@ glyph bytes are produced before they become the three bytes consumed by
 - Intra-byte mapping is now resolved (`D7..D0` to `Hn..Hn+7`) and used by the
   render pipeline assumptions; remaining uncertainty is limited to connector
   mechanical details already documented in the wire map.
-- In a later rendering document, trace how character-generator/render buffers
-  prepare the three-byte rows consumed by `0978h`.
+- `data/lq500_3c_render_output_path.tsv` now tracks the boundary between
+  render geometry (`EF38..EF46`), `EF75`/`EF77` source capture, and the
+  three-byte rows consumed by `0978h`. Continue LQ pass-phase work there.

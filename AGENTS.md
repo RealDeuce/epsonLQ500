@@ -73,6 +73,8 @@ manual notes, or hardware measurements.
   XON/XOFF serial flow control, and buffer geometry.
 - `data/lq500_3c_printhead_path.tsv`: printhead mechanical-output path,
   E05A02LA `F004h/F005h` command/data behavior, and HPW timing notes.
+- `data/lq500_3c_render_output_path.tsv`: traced render-output geometry,
+  scheduler-template, count-scaling, and head-burst path notes.
 - `data/lq500_3c_printhead_wire_map.tsv`: E05A02LA `H1..H24` pin/output
   map to CN5/CN6 head connector pins and Figure 5-3 physical wire placement.
 - `data/lq500_3c_bidirectional_adjustment.tsv`: VR1/VR2 bidirectional
@@ -97,6 +99,8 @@ manual notes, or hardware measurements.
   dot-doubling bit mapping from `$0C95`.
 - `tools/extract_lq500_rom_tables.py`: ROM table and font extraction
   script; reads both ROM binaries and produces data TSVs.
+- `tools/generate_lq500_selftest_sample.py`: builds ESC/P sample-page
+  streams from the local ignored program ROM for scan/render comparisons.
 - `patches/minipro-lq500-4c-custom-prom.patch`: optional minipro source patch
   for custom `4C` pin-22/A16 read experiments.
 
